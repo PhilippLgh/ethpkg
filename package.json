@@ -1,6 +1,6 @@
 {
   "name": "@philipplgh/ethpkg",
-  "version": "0.1.2",
+  "version": "0.1.7",
   "description": "",
   "main": "dist/index.js",
   "bin": {
@@ -30,6 +30,7 @@
     "@types/jszip": "^3.1.4",
     "@types/mocha": "^5.2.5",
     "@types/node": "^10.12.18",
+    "@types/ora": "^3.0.0",
     "chai": "^4.2.0",
     "copyfiles": "^2.1.0",
     "mocha": "^5.2.0",
@@ -37,11 +38,10 @@
     "typescript": "^3.3.3"
   },
   "dependencies": {
-    "@types/ora": "^3.0.0",
     "base64url": "^3.0.1",
     "chalk": "^2.4.2",
     "clime": "^0.5.10",
-    "ethereumjs-util": "^6.0.0",
+    "ethereumjs-util": "6.0.0",
     "jszip": "^3.1.5",
     "ora": "^3.1.0",
     "secp256k1": "^3.6.2"
