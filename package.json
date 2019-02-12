@@ -1,8 +1,11 @@
 {
-  "name": "@philipplgh/ethpgk",
+  "name": "@philipplgh/ethpkg",
   "version": "0.1.0",
   "description": "",
   "main": "dist/index.js",
+  "bin": {
+    "ethpkg": "./dist/bin/ethpkg"
+  },
   "scripts": {
     "test": "mocha --require ts-node/register test/**/*.ts",
     "static-files": "copyfiles src/signer/eth/metamask/public/index.html -u 1 dist/",
@@ -34,9 +37,13 @@
     "typescript": "^3.3.3"
   },
   "dependencies": {
+    "@types/ora": "^3.0.0",
     "base64url": "^3.0.1",
+    "chalk": "^2.4.2",
+    "clime": "^0.5.10",
     "ethereumjs-util": "^6.0.0",
     "jszip": "^3.1.5",
+    "ora": "^3.1.0",
     "secp256k1": "^3.6.2"
   }
 }
