@@ -8,6 +8,7 @@ import ZipPackage from './pkgFormats/zipPackage'
 import ethUtil from 'ethereumjs-util'
 import jws from './jws';
 import base64url from 'base64url';
+import IExternalSigner from './IExternalSigner';
 
 const META_DIR = '_META_'
 
@@ -50,9 +51,17 @@ const compareDigests = (digestsFile: Digests, calculatedDigests: Digests) => {
   return true
 }
 
-const getPackage = async (pkgPath : string) : Promise<IPackage> => {
+const getPackage = async (pkgSrc : string | Buffer) : Promise<IPackage> => {
+  let pgkContent;
+  if(typeof pkgSrc === 'string'){
+    if(!fs.existsSync(pkgSrc)) {
+      throw new Error('package not found')
+    }
+    pgkContent = fs.readFileSync(pkgSrc)
+  } else {
+    pgkContent = pkgSrc
+  }
   const zip = new ZipPackage()
-  const pgkContent = fs.readFileSync(pkgPath)
   await zip.loadBuffer(pgkContent)
   return zip
 }
@@ -126,9 +135,15 @@ const verifyIntegrity = async (pkg : IPackage, signatureObj : any) => {
 
 export default class pkgsign {
 
-  static async sign(pkgPath: string, privateKey? : Buffer, pkgPathOut? : string) {
+  static async sign(pkgSrc: string | Buffer, privateKey? : Buffer | IExternalSigner, pkgPathOut? : string) {
 
-    const pkg = await getPackage(pkgPath)
+    let pkg = null
+    try {
+      pkg = await getPackage(pkgSrc)
+    } catch (error) {
+      console.log('could not find or load package')
+      return
+    }
 
     if(!privateKey) {
       // TODO support external signers
@@ -146,10 +161,22 @@ export default class pkgsign {
       alg: 'ES256K',
       b64: false
     }
-    const flattenedJwsSerialization =  await jws.sign(payload, privateKey, header)
 
-    // the signature file name is '_sig' || eth-address(publicKey) 
-    const address = ethUtil.privateToAddress(privateKey).toString('hex')
+    const flattenedJwsSerialization =  await jws.sign(payload, privateKey, header)
+    let address = '0x0000000000000000000000000000000000000000'
+    if (Buffer.isBuffer(privateKey)) {
+      // the signature file name is '_sig' || eth-address(publicKey) 
+      address = ethUtil.privateToAddress(privateKey).toString('hex')
+    } else {
+      // TODO retrieve pk that was used to sign
+    }
+
+    if (!flattenedJwsSerialization) {
+      console.log('jws signing failed')
+      return
+    }
+
+
     await pkg.addFile(`${signaturePath(address)}`, JSON.stringify(flattenedJwsSerialization, null, 2));
 
     // generate an output path based on the input (pkg) path
@@ -162,8 +189,8 @@ export default class pkgsign {
       return pkgPathOut
     }
 
-    pkgPathOut = pkgPathOut || buildOutpath(pkgPath)
-    await pkg.write(pkgPathOut)
+    // pkgPathOut = pkgPathOut || buildOutpath(pkgPath)
+    // await pkg.write(pkgPathOut)
 
     return pkgPathOut
   }

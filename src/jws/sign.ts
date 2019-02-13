@@ -1,6 +1,7 @@
 import ethUtil from 'ethereumjs-util'
 const secp256k1 = require('secp256k1')
 import base64url from 'base64url'
+import IExternalSigner from '../IExternalSigner';
 
 // TODO this signing scheme is quite dangerous as users can be tricked into signing transactions
 // however hardware modules that implement secp256k1 are unlikely to implement ethereum personal message signing
@@ -36,7 +37,7 @@ const ethSign = async (msg: string, privateKey: Buffer): Promise<Buffer> => {
 /*
 1.  Create the content to be used as the JWS Payload. (happens outside of module)
 */
-export default async (payload: any, privateKey: Buffer, _header? : any /*ignored atm: always defined as below*/) => {
+export default async (payload: any, signerOrPrivateKey: Buffer | IExternalSigner, _header? : any /*ignored atm: always defined as below*/) => {
   /*
     [ 2. Compute the encoded payload value BASE64URL(JWS Payload). ]
     */
@@ -72,7 +73,28 @@ export default async (payload: any, privateKey: Buffer, _header? : any /*ignored
   accurately representing the algorithm used to construct the JWS Signature.
   */
   const signingInput = `${encodedHeader}.${encodedPayload}`
-  const signature = await ecSign(signingInput, privateKey)
+  let signature
+  if (Buffer.isBuffer(signerOrPrivateKey)) {
+    console.log('signer is pk', signerOrPrivateKey)
+    signature = await ecSign(signingInput, signerOrPrivateKey /* signerOrPrivateKey = privateKey */)
+  } else {
+    if (signerOrPrivateKey.type === 'signer') {
+      let signer = signerOrPrivateKey
+      try {
+        const signatureInfo = await signer.sign.eth(signingInput)
+        signature = signatureInfo.signature
+        const isValid = true // TODO run checks on signature
+        if (!signature || !isValid) {
+          throw new Error('external signer did not produce a valid signature')
+        }   
+      } catch (error) {
+        console.log('payload could not be signed: signer cancelled or threw error')
+        return
+      }
+    } else {
+      throw new Error('signer argument is not a privateKey and not an instance of IExternalSigner')
+    }
+  }
 
   /*
   6. Compute the encoded signature value BASE64URL(JWS Signature).
