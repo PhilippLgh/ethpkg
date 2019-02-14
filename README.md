@@ -63,10 +63,7 @@ mv UTC--...--661e161dbea99a181f9e0293c916cda89102b1a4 codesign--661e161dbea99a18
 ## Using Local Private Key
 
 ### Geth Keystore Files
-
-```
-
-```
+[![demo](https://asciinema.org/a/33CTRh5trTuf1sxPA7pEb9Txy.svg)](https://asciinema.org/a/https://asciinema.org/a/33CTRh5trTuf1sxPA7pEb9Txy?autoplay=1)
 
 ## Using External Signer
 
