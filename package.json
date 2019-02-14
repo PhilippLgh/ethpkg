@@ -44,6 +44,7 @@
     "enquirer": "^2.3.0",
     "ethereumjs-util": "6.0.0",
     "jszip": "^3.1.5",
+    "keythereum": "^1.0.4",
     "ora": "^3.1.0",
     "secp256k1": "^3.6.2"
   }

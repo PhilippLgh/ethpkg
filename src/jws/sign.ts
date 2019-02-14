@@ -75,7 +75,6 @@ export default async (payload: any, signerOrPrivateKey: Buffer | IExternalSigner
   const signingInput = `${encodedHeader}.${encodedPayload}`
   let signature
   if (Buffer.isBuffer(signerOrPrivateKey)) {
-    console.log('signer is pk', signerOrPrivateKey)
     signature = await ecSign(signingInput, signerOrPrivateKey /* signerOrPrivateKey = privateKey */)
   } else {
     if (signerOrPrivateKey.type === 'signer') {

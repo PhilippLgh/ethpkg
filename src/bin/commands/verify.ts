@@ -1,42 +1,6 @@
 import { Command, command, param, Options, option } from 'clime';
 import { pkgsign } from '../..';
-
-import chalk from 'chalk'
-import ora from 'ora'
-
-const spinner = ora({
-  spinner: {
-    "interval": 100,
-    "frames": [
-      "▓",
-      "▒",
-      "░"
-    ]
-  }
-})
-
-const startTask = (name: string) => {
-  spinner.start()
-  spinner.text = chalk.white.bgBlack.bold(' ' + name + '  ')
-  // @ts-ignore
-  spinner.t_org = name
-}
-
-const succeed = (msg?: string) => {
-  // @ts-ignore
-  let t = chalk.green.bold(spinner.t_org)
-  spinner.succeed(t)
-  if (msg) {
-    console.log(chalk.green(msg))
-  }
-}
-
-const failed = (msg: string) => {
-  // @ts-ignore
-  let t = chalk.white.bgRed.bold(spinner.t_org + ' FAILED: ' + (msg || ''))
-  spinner.fail(t)
-  process.exit()
-}
+import { startTask, succeed, failed } from '../task'
 
 @command({
   description: 'verify a zip or tarball package',
