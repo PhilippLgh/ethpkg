@@ -28,6 +28,10 @@ export const succeed = (msg?: string) => {
   }
 }
 
+export const progress = (msg : string) => {
+  console.log(`${chalk.green('✔')} ${chalk.bold(msg)}`)
+}
+
 export const failed = (msg: string) => {
   // @ts-ignore
   let t = chalk.white.bgRed.bold(spinner.t_org + ' FAILED: ' + (msg || ''))

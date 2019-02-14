@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --no-warnings
 
 import * as path from 'path'
 import {CLI, Shim} from 'clime'

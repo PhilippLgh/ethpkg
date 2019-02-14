@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import path from 'path'
 import os from 'os'
 
-import { startTask, succeed, failed } from '../task'
+import { startTask, succeed, failed, progress } from '../task'
 
 import { Command, command, param, Options, option } from 'clime'
 import { prompt } from 'enquirer'
@@ -36,7 +36,7 @@ const questionKeySelect = (keys: any) => [{
   type: 'select',
   name: 'selectedKey',
   message: `Which key do you want to use?`,
-  initial: 0,
+  initial: '',
   choices: keys.map((k: any) => ({ name: k.address, message: `${k.address} ("${k.file}")`, keyFile: k.filePathFull, file: k.file })),
   result(value: string): any {
     return this.choices.find((choice: any) => choice.name === value)
@@ -118,6 +118,7 @@ const signWithEthKeystore = async (inputFilePath : string) => {
   const { keyfilePassword } = await prompt(question)
   try {
     startTask('Unlocking keyfile')
+    // @ts-ignore
     const privateKey = keythereum.recover(keyfilePassword, keyObject)
     succeed('Keyfile unlocked')
     startTask('Signing file')
@@ -128,12 +129,12 @@ const signWithEthKeystore = async (inputFilePath : string) => {
         const basename = path.basename(pkgPath, ext)
         // ext = '.epk'
         const dirname = path.dirname(pkgPath)
-        const pkgPathOut = `${dirname}/${basename}_signed_${ext}`
+        const pkgPathOut = `${dirname}/${basename}_signed${ext}`
         return pkgPathOut
       }
       const outPath = buildOutpath(inputFilePath)
       await pkg.write(outPath)
-      succeed(`File written to ${outPath}`)
+      succeed(`Signed package written to "${outPath}"`)
     }
   } catch (error) {
     failed('Key could not be unlocked: wrong password?')
