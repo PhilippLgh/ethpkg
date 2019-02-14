@@ -3,6 +3,7 @@ export interface IPackage {
   getEntries() : Promise<Array<IPackageEntry>>;
   getEntry(relativePath : string) : Promise<IPackageEntry | undefined>;
   addFile(relativePath : string, content : string | Buffer) : Promise<string>;
+  toBuffer() : Promise<Buffer>;
   write(outPath: string): Promise<string>;
 }
 

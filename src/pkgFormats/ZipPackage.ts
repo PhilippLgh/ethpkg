@@ -46,6 +46,14 @@ export default class ZipPackage implements IPackage {
     return relativePath
   }
 
+  async toBuffer() {
+    if(!this.zip) {
+      throw new Error('package not loaded - load with loadBuffer()')
+    }
+    let buf = await this.zip.generateAsync({type: "nodebuffer", compression: "DEFLATE"})
+    return buf
+  }
+
   async write(filePath : string) {
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
