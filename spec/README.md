@@ -30,6 +30,35 @@ One important consideration is to encode values NOT to be space efficient or url
 
 To avoid the risk of falsely signed messages and transactions key management and metadata will play an important role with additional key usages.
 
+# Package Format
+
+We assume the following example directory structure and contents for a (Progressive) Web App:
+
+<pre>
+    MyApp
+(a) ├── build/
+(b) ├── node_modules/
+(c) ├── public/
+( ) │   ├── favicon.ico
+( ) │   ├── index.html
+( ) │   ├── manifest.json
+(d) ├── src/
+( ) │   ├── App.css
+( ) │   ├── App.js
+( ) │   ├── App.test.js
+( ) │   ├── index.css
+( ) │   ├── index.js
+( ) │   ├── logo.svg
+( ) │   ├── serviceWorker.js
+(e) ├── .gitignore
+(f) ├── package.json
+(g) ├── package-lock.json
+(h) ├── README.md
+(i) ├── LICENSE.md
+</pre>
+
+## Source vs Build
+
 # JWS Construction
 
 ## Header:
