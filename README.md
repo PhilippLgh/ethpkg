@@ -16,11 +16,9 @@
 yarn global add @philipplgh/ethpkg
 ```
 
-```
-npx @philipplgh/ethpkg verify test_signed.zip 0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7
-```
+# Specification
 
-# Spec
+Please see [the specifcation draft](spec/README.md) for details about the signing and verification process.
 
 # Setup Keys
 
