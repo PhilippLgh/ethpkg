@@ -1,7 +1,7 @@
+import path from 'path'
 import fs from 'fs'
 import { IPackage, IPackageEntry, IFile } from './IPackage'
 import JSZip from 'jszip'
-
 export default class ZipPackage implements IPackage {
 
   private zip : JSZip | undefined
@@ -19,6 +19,7 @@ export default class ZipPackage implements IPackage {
     this.zip.forEach((relativePath: string, file: any /**ZipObject */) => {
       let iFile : IFile = {
         dir: file.dir,
+        name: path.basename(file.name),
         readContent: async (t : string = 'nodebuffer') => {
           return file.async(t)
         }

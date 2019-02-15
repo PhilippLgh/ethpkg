@@ -11,6 +11,7 @@ import base64url from 'base64url';
 import IExternalSigner from './IExternalSigner';
 
 const META_DIR = '_META_'
+const SIGNATURE_PREFIX = `${META_DIR}/_sig`
 
 const shasum = (data : any, alg? : string) => {
   return crypto
@@ -115,16 +116,14 @@ const recoverAddress = async (signatureObj : any) => {
   return address
 }
 
-const verifyIntegrity = async (pkg : IPackage, signatureObj : any) => {
+const verifyIntegrity = async (payloadPkg : any, signatureObj : any) => {
   const { payload } = signatureObj
   const { data } = payload
 
-  // calculate new checksums
-  const payloadGenerated = await createPayload(pkg)
-
   let digestsMatch = false
   try {
-    digestsMatch = compareDigests(data, payloadGenerated.data)
+    // note we can only compare the digests but not "issue date" etc fields here
+    digestsMatch = compareDigests(data, payloadPkg.data)
   } catch (error) {
     console.log('error: ', error)
     return false
@@ -133,9 +132,101 @@ const verifyIntegrity = async (pkg : IPackage, signatureObj : any) => {
   return digestsMatch === true
 }
 
+const verifyAddress = async () => {
+
+}
+
+const createCSR = async () => {
+  return {
+    subject: {
+      name: 'Philipp Langhans',
+      email: 'philipp@ethereum.org'
+    },
+    key: {
+      kid: '',
+      alg: 'eth',
+      address: ''
+    },
+    validity: {
+      from: '',
+      exp: Math.floor(Date.now() / 1000) + (60 * 60),
+    },
+    // the only verified  part: subject info optional or anonymous
+    claim: [
+      {
+        typ: 'GH_SCOPE_repo',
+        repo: '',
+        proof: async () => {
+
+        }
+      }
+    ]
+  }
+}
+
+const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any) => {
+
+  const signatureBuffer = await signatureEntry.file.readContent('nodebuffer')
+  const signatureObj = JSON.parse(signatureBuffer.toString())
+
+  // check if files were changed after signing
+  let isValid = false
+  try {
+    isValid = await verifyIntegrity(payloadPkg, signatureObj)
+    if(!isValid){
+      console.log('integrity error: mismatch between package contents and signed checksums')
+    }
+  } catch (error) {
+    console.log('error during integrity check', error)
+  }
+
+  // recover address / public key
+  let recoveredAddress = 'invalid address'
+  try {
+    recoveredAddress = await recoverAddress(signatureObj)
+  } catch (error) {
+    console.log('error during signature check', error)
+  }
+
+  // let header = JSON.parse(base64url.decode(signatureObj.protected))
+  let { payload } = signatureObj
+  let { version } = payload
+  // console.log('recovered payload', payload)
+
+
+  // TODO check signature date
+  // TODO check signature certs
+  // TODO check filename matches scheme with contained address
+
+  // TODO check that recovered address matches header address
+
+  return {
+    signerAddress: recoveredAddress,
+    isValid: (isValid === true), // passes integrity check: files were not changed
+    certificates: [
+      {
+        issuer: '',
+        isValid: false
+      }
+    ]
+  }
+}
+
+const getSignaturesFromPackage = async (pkg : IPackage, address? : string) => {
+  if (address) {
+    const sig = await pkg.getEntry(signaturePath(address))
+    if(!sig){
+      return []
+    }
+    return [ sig ]
+  }
+  const signatures = (await pkg.getEntries()).filter((pkgEntry : IPackageEntry) => pkgEntry.relativePath.startsWith(SIGNATURE_PREFIX))
+  return signatures
+}
+
 export default class pkgsign {
 
-  static async sign(pkgSrc: string | Buffer, privateKey? : Buffer | IExternalSigner, pkgPathOut? : string) {
+  static async sign(pkgSrc: string | Buffer, privateKey? : Buffer | IExternalSigner, pkgPathOut? : string) : Promise<IPackage | undefined> {
 
     let pkg = null
     try {
@@ -159,7 +250,8 @@ export default class pkgsign {
     // sign payload according to RFC7515 Section 5.1
     const header = {
       alg: 'ES256K',
-      b64: false
+      b64: false,
+      crit: ['b64']
     }
 
     const flattenedJwsSerialization =  await jws.sign(payload, privateKey, header)
@@ -168,7 +260,8 @@ export default class pkgsign {
       // the signature file name is '_sig' || eth-address(publicKey) 
       address = ethUtil.privateToAddress(privateKey).toString('hex')
     } else {
-      // TODO retrieve pk that was used to sign
+      // FIXME retrieve public key / address that was used to sign
+      // should be part of the token metadata
     }
 
     if (!flattenedJwsSerialization) {
@@ -176,61 +269,36 @@ export default class pkgsign {
       return
     }
 
-
     await pkg.addFile(`${signaturePath(address)}`, JSON.stringify(flattenedJwsSerialization, null, 2));
 
-    // generate an output path based on the input (pkg) path
-    const buildOutpath = (pkgPath : string) => {
-      let ext = path.extname(pkgPath)
-      const basename = path.basename(pkgPath, ext)
-      // ext = '.epk'
-      const dirname = path.dirname(pkgPath)
-      const pkgPathOut = `${dirname}/${basename}_signed${ext}`
-      return pkgPathOut
-    }
-
-    // pkgPathOut = pkgPathOut || buildOutpath(pkgPath)
-    // await pkg.write(pkgPathOut)
-
-    return pkgPathOut
+    return pkg
   }
 
-  static async recoverAddress() {
-
+  static async recoverAddress(signerInput : string, signature : string) {
+    return ''
   }
 
-  static async verify(pkgPath: string, address : string) {
-    const pkg = await getPackage(pkgPath)    
+  static async verify(pkgSrc: string | Buffer, address? : string) {
     
-    const signatureEntry = await pkg.getEntry(signaturePath(address))
-    if(!signatureEntry){
-      console.log('package does not contain a signature for', address)
-      return false
+    let pkg = null
+    try {
+      pkg = await getPackage(pkgSrc)
+    } catch (error) {
+      console.log('could not find or load package')
+      return
     }
 
-    const signatureBuffer = await signatureEntry.file.readContent('nodebuffer')
-    const signatureObj = JSON.parse(signatureBuffer.toString())
-
-    try {
-      const isValid = await verifyIntegrity(pkg, signatureObj)
-      if(!isValid){
-        console.log('integrity error: mismatch between package contents and signed checksums')
+    const signatures = await getSignaturesFromPackage(pkg, address)
+    if (address && signatures.length <= 0) {  // signature not found
+        console.log('package does not contain a signature for', address)
         return false
-      }
-    } catch (error) {
-      console.log('error during integrity check', error)
-      return false
     }
-
-    try {
-      const addressRecovered = await recoverAddress(signatureObj)
-      address = formatAddressHex(address)
-      return addressRecovered === address
-    } catch (error) {
-      console.log('error during signature check', error)
-      return false
-    }
-
+    // TODO handle signatures length 0
+    const payloadPkg = await createPayload(pkg)
+    const validations = signatures.map(sig => verifySignature(sig, payloadPkg))
+    const signatureInfos = await Promise.all(validations)
+    
+    return signatureInfos
   }
 
 }
