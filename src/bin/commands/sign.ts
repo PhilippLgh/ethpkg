@@ -44,12 +44,20 @@ const questionKeySelect = (keys: any) => [{
   }
 }];
 
-const questionInputFile = [{
-  type: 'input',
-  name: 'method',
-  message: 'Which zip / tar file do you want to sign?',
-  initial: ''
-}];
+const getUserFilePath = async (message : string) => {
+  const questionFile = (message : string) => [{
+    type: 'input',
+    name: 'file',
+    message,
+    initial: ''
+  }];
+  let { file } = await prompt(questionFile(message))
+  if(!file || !fs.existsSync(file)){
+    console.log(`>> file not found: "${file}"`)
+    return ''
+  }
+  return file
+}
 
 const SIGNING_METHOD: { [index: string]: string } = {
   'PRIVATE_KEY': 'Local Private Key',
@@ -160,11 +168,10 @@ export default class extends Command {
   ) {
 
     if (!inputPath) {
-      inputPath = await prompt(questionInputFile)
+      inputPath = await getUserFilePath('Which zip / tar file do you want to sign?')
     }
 
-    if (!inputPath || !fs.existsSync(inputPath)) {
-      console.log('>> input file not found')
+    if (!inputPath) {
       return
     }
 
@@ -182,7 +189,8 @@ export default class extends Command {
           // helpful debugger: https://lapo.it/asn1js
           // https://github.com/lapo-luchini/asn1js/blob/master/asn1.js#L260
           case KEY_STORAGE.PEM: {
-            const privateKey = util.readPrivateKeyFromPEM(inputPath)
+            let keyFilePath = await getUserFilePath('Provide path to pem keyfile')
+            const privateKey = util.readPrivateKeyFromPEM(keyFilePath)
             if(!privateKey){
               console.log('>> private key not valid or not able to parse')
               return
