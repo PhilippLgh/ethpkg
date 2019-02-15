@@ -1,15 +1,5 @@
 # Ethereum Signed Packages
 
-```
-███████╗████████╗██╗  ██╗    ██████╗ ██╗  ██╗ ██████╗ 
-██╔════╝╚══██╔══╝██║  ██║    ██╔══██╗██║ ██╔╝██╔════╝ 
-█████╗     ██║   ███████║    ██████╔╝█████╔╝ ██║  ███╗
-██╔══╝     ██║   ██╔══██║    ██╔═══╝ ██╔═██╗ ██║   ██║
-███████╗   ██║   ██║  ██║    ██║     ██║  ██╗╚██████╔╝
-╚══════╝   ╚═╝   ╚═╝  ╚═╝    ╚═╝     ╚═╝  ╚═╝ ╚═════╝ 
-                                                      
-```
-
 # Installation
 
 ```
@@ -56,6 +46,26 @@ mv UTC--...--661e161dbea99a181f9e0293c916cda89102b1a4 codesign--661e161dbea99a18
 // private key now in => ~/Library/Ethereum/keystore/codesign--661e161dbea99a181f9e0293c916cda89102b1a4
 ```
 
+## Open SSL
+
+```
+openssl ecparam -name secp256k1 -genkey -noout -out codesigningPrivateKey.pem
+```
+
+The private key should be in the armored PEM format and look like:
+
+```
+-----BEGIN EC PRIVATE KEY-----
+MHQCAQEEIDdW8qpFrglyMikU8s5DhjtV9lgzmktp1foU+rfC2r/EoAcGBSuBBAAK
+oUQDQgAEk2N1W00oI4VQIPC5++C/L4RAI8gyVSW7l/4ywPbli2yyOGfrdUNi7ra5
+bHnZaspUTQtY3aN9tLMsKUP4T7tnjg==
+-----END EC PRIVATE KEY-----
+```
+
+`WARNING:`
+Do never share this file / key with anyone and please note that the key is NOT encrypted.
+Therefore, you should not use the key for any financial transactions and ideally store it only on an internet-disconnected device.
+
 # Sign Packages
 
 ## Using Local Private Key
@@ -63,7 +73,7 @@ mv UTC--...--661e161dbea99a181f9e0293c916cda89102b1a4 codesign--661e161dbea99a18
 ### Geth Keystore Files
 [![demo](https://asciinema.org/a/33CTRh5trTuf1sxPA7pEb9Txy.svg)](https://asciinema.org/a/33CTRh5trTuf1sxPA7pEb9Txy?autoplay=1)
 
-## Using External Signer
+## Using External Signers
 
 ### Geth
 
