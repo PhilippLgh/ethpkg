@@ -55,7 +55,8 @@ export default async (payload: any, signerOrPrivateKey: Buffer | IExternalSigner
     // https://www.iana.org/assignments/jose/jose.xhtml#web-signature-encryption-algorithms
     alg: 'ES256K',
     // skip payload encoding: https://tools.ietf.org/html/rfc7797
-    b64: false
+    b64: false,
+    crit: ['b64']
     // FIXME specify key / cert
   }
 
