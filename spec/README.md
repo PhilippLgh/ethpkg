@@ -59,6 +59,22 @@ We assume the following example directory structure and contents for a (Progress
 
 ## Source vs Build
 
+# Security Considerations for JWS
+
+## alg: 'none'
+Source: https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/
+
+Care should be taken if more than one `arg` parameter and especially the `none` arg value is supported:
+
+To verify a JWS:
+"First, we need to determine what algorithm was used to generate the signature. No problem, there's an alg field in the header that tells us just that.
+
+But wait, we haven't validated this token yet, which means that we haven't validated the header. This puts us in an awkward position: in order to validate the token, we have to allow attackers to select which method we use to verify the signature."
+
+## The 'jwk' Header parameter
+Source: https://mailarchive.ietf.org/arch/msg/jose/gQU_C_QURVuwmy-Q2qyVwPLQlcg
+
+
 # JWS Construction
 
 ## Header:
@@ -78,6 +94,7 @@ The header is JSON serialized and base64url encoded:
 ```
 const encodedHeader = base64url.encode(JSON.stringify(header))
 ```
+
 
 ## Metadata
 
@@ -110,6 +127,9 @@ File starting with `__META__`are excluded from the digest computation.
 ## Payload
 
 TODO specify payload fields
+
+### Public Key
+https://tools.ietf.org/html/rfc5480: Elliptic Curve Cryptography Subject Public Key Information
 
 ### Encoding
 
@@ -196,3 +216,4 @@ TODO placeholder: not the actual payload
 # Ethereum Specifics
 
 ## Signed (Personal) Messages
+
