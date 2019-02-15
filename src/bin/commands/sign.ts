@@ -6,7 +6,8 @@ import { startTask, succeed, failed, progress } from '../task'
 
 import { Command, command, param, Options, option } from 'clime'
 import { prompt } from 'enquirer'
-import { pkgsign } from '../..';
+import { pkgsign, util } from '../..';
+
 const keythereum = require('keythereum')
 
 const getDefaultDataDir = () => {
@@ -47,7 +48,7 @@ const questionInputFile = [{
   type: 'input',
   name: 'method',
   message: 'Which zip / tar file do you want to sign?',
-  initial: 1
+  initial: ''
 }];
 
 const SIGNING_METHOD: { [index: string]: string } = {
@@ -78,7 +79,7 @@ const questionKeyStorage = [{
   initial: 0,
   choices: [
     { name: `${KEY_STORAGE.ETH}`, message: 'Geth Keystore' },
-    { name: `${KEY_STORAGE.PEM}`, message: 'PEM file' }
+    { name: `${KEY_STORAGE.PEM}`, message: 'PEM File' }
   ]
 }];
 
@@ -95,6 +96,24 @@ const questionSigner = [{
     { name: 'cloud', message: 'cloud' }
   ]
 }];
+
+const signFile = async (inputFilePath : string, privateKey : Buffer) => {
+  startTask('Signing file')
+  const pkg = await pkgsign.sign(inputFilePath, privateKey)
+  if(pkg) {
+    const buildOutpath = (pkgPath : string) => {
+      let ext = path.extname(pkgPath)
+      const basename = path.basename(pkgPath, ext)
+      // ext = '.epk'
+      const dirname = path.dirname(pkgPath)
+      const pkgPathOut = `${dirname}/${basename}_signed${ext}`
+      return pkgPathOut
+    }
+    const outPath = buildOutpath(inputFilePath)
+    await pkg.write(outPath)
+    succeed(`Signed package written to "${outPath}"`)
+  }
+}
 
 const signWithEthKeystore = async (inputFilePath : string) => {
   const keys = listKeys()
@@ -121,21 +140,7 @@ const signWithEthKeystore = async (inputFilePath : string) => {
     // @ts-ignore
     const privateKey = keythereum.recover(keyfilePassword, keyObject)
     succeed('Keyfile unlocked')
-    startTask('Signing file')
-    const pkg = await pkgsign.sign(inputFilePath, privateKey)
-    if(pkg) {
-      const buildOutpath = (pkgPath : string) => {
-        let ext = path.extname(pkgPath)
-        const basename = path.basename(pkgPath, ext)
-        // ext = '.epk'
-        const dirname = path.dirname(pkgPath)
-        const pkgPathOut = `${dirname}/${basename}_signed${ext}`
-        return pkgPathOut
-      }
-      const outPath = buildOutpath(inputFilePath)
-      await pkg.write(outPath)
-      succeed(`Signed package written to "${outPath}"`)
-    }
+    await signFile(inputFilePath, privateKey)
   } catch (error) {
     failed('Key could not be unlocked: wrong password?')
   }
@@ -174,8 +179,15 @@ export default class extends Command {
           case KEY_STORAGE.ETH: {
             await signWithEthKeystore(inputPath)
           }
+          // helpful debugger: https://lapo.it/asn1js
+          // https://github.com/lapo-luchini/asn1js/blob/master/asn1.js#L260
           case KEY_STORAGE.PEM: {
-
+            const privateKey = util.readPrivateKeyFromPEM(inputPath)
+            if(!privateKey){
+              console.log('>> private key not valid or not able to parse')
+              return
+            }
+            await signFile(inputPath, privateKey)
           }
         }
         break;
