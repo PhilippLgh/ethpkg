@@ -19,6 +19,7 @@ lib/**/*.ts
 # codes
 test/
 src/
+spec/
 
 # misc
 example/
