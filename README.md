@@ -49,7 +49,7 @@ mv UTC--...--661e161dbea99a181f9e0293c916cda89102b1a4 codesign--661e161dbea99a18
 ## Open SSL
 
 ```
-openssl ecparam -name secp256k1 -genkey -noout -out codesigningPrivateKey.pem
+$ openssl ecparam -name secp256k1 -genkey -out ec-codesign-pk.pem
 ```
 
 The private key should be in the armored PEM format and look like:
@@ -82,3 +82,7 @@ Therefore, you should not use the key for any financial transactions and ideally
 ```
 
 # Verify Packages
+
+# Issue Self-Signed Certificates
+
+[![demo](https://asciinema.org/a/23SYMQbQttZjkcE1yX1lnL6Cz.svg)](https://asciinema.org/a/23SYMQbQttZjkcE1yX1lnL6Cz?autoplay=1)
