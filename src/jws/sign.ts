@@ -88,8 +88,7 @@ export default async (payload: any, signerOrPrivateKey: Buffer | IExternalSigner
           throw new Error('external signer did not produce a valid signature')
         }   
       } catch (error) {
-        console.log('payload could not be signed: signer cancelled or threw error')
-        return
+        throw new Error('payload could not be signed: signer cancelled or threw error')
       }
     } else {
       throw new Error('signer argument is not a privateKey and not an instance of IExternalSigner')
