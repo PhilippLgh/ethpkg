@@ -58,6 +58,7 @@ const getPackage = async (pkgSrc : string | Buffer) : Promise<IPackage> => {
     if(!fs.existsSync(pkgSrc)) {
       throw new Error('package not found')
     }
+    //if (path.endsWith('.tgz') && lstatSync(path).isFile()) {
     pgkContent = fs.readFileSync(pkgSrc)
   } else {
     pgkContent = pkgSrc
@@ -76,7 +77,7 @@ const createPayload = async (pkg : IPackage) => {
   const payload = {
     "version": 1,
     "iss": "self",
-    "exp": Date.now() + (24 * 60 * 60 * 1000),
+    "exp": Date.now() + (24 * 60 * 60),
     "data": digests
   }
 
@@ -132,38 +133,6 @@ const verifyIntegrity = async (payloadPkg : any, signatureObj : any) => {
   return digestsMatch === true
 }
 
-const verifyAddress = async () => {
-
-}
-
-const createCSR = async () => {
-  return {
-    subject: {
-      name: 'Philipp Langhans',
-      email: 'philipp@ethereum.org'
-    },
-    key: {
-      kid: '',
-      alg: 'eth',
-      address: ''
-    },
-    validity: {
-      from: '',
-      exp: Math.floor(Date.now() / 1000) + (60 * 60),
-    },
-    // the only verified  part: subject info optional or anonymous
-    claim: [
-      {
-        typ: 'GH_SCOPE_repo',
-        repo: '',
-        proof: async () => {
-
-        }
-      }
-    ]
-  }
-}
-
 const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any) => {
 
   const signatureBuffer = await signatureEntry.file.readContent('nodebuffer')
@@ -204,10 +173,7 @@ const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any)
     signerAddress: recoveredAddress,
     isValid: (isValid === true), // passes integrity check: files were not changed
     certificates: [
-      {
-        issuer: '',
-        isValid: false
-      }
+
     ]
   }
 }
@@ -226,7 +192,11 @@ const getSignaturesFromPackage = async (pkg : IPackage, address? : string) => {
 
 export default class pkgsign {
 
-  static async sign(pkgSrc: string | Buffer, privateKey? : Buffer | IExternalSigner, pkgPathOut? : string) : Promise<IPackage | undefined> {
+  static async sign(
+    pkgSrc: string | Buffer, 
+    privateKey? : Buffer | IExternalSigner,
+    pkgPathOut? : string
+  ) : Promise<IPackage | undefined> {
 
     let pkg = null
     try {

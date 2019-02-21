@@ -1,6 +1,6 @@
 {
   "name": "@philipplgh/ethpkg",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "",
   "main": "./dist/index.js",
   "bin": {
@@ -38,11 +38,14 @@
     "typescript": "^3.3.3"
   },
   "dependencies": {
+    "@types/jsonwebtoken": "^8.3.0",
+    "asn1.js": "^5.0.1",
     "base64url": "^3.0.1",
     "chalk": "^2.4.2",
     "clime": "^0.5.10",
     "enquirer": "^2.3.0",
     "ethereumjs-util": "6.0.0",
+    "jsonwebtoken": "^8.4.0",
     "jszip": "^3.1.5",
     "keythereum": "^1.0.4",
     "ora": "^3.1.0",
