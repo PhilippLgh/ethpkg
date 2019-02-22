@@ -1,24 +1,14 @@
 import * as fs from 'fs'
 import path from 'path'
-import os from 'os'
+
+import { getKeystorePath, getPrivateKeyFromKeystore } from '../../util';
 
 import { startTask, succeed, failed, progress } from '../task'
 
 import { prompt } from 'enquirer'
-const keythereum = require('keythereum')
-
-const getDefaultDataDir = () => {
-  switch (process.platform) {
-    case 'win32': return '%APPDATA%/Ethereum'
-    case 'linux': return '~/.ethereum'
-    case 'darwin': return '~/Library/Ethereum'
-    default: return '~/.ethereum'
-  }
-}
 
 const listKeys = () => {
-  const dataDir = getDefaultDataDir().replace('~', os.homedir())
-  const keystore = path.join(dataDir, 'keystore')
+  const keystore = getKeystorePath()
   // TODO we could filter keys here for e.g. a prefix like 'codesign' to avoid misuse
   const keyFiles = fs.readdirSync(keystore).map(f => {
     return {
@@ -46,25 +36,17 @@ export const getPrivateKeyFromEthKeystore = async () => {
   const { selectedKey }: any = await prompt(questionKeySelect(keys))
   const { keyFile, file } = selectedKey
 
-  let keyObject
-  try {
-    keyObject = JSON.parse(fs.readFileSync(keyFile, 'utf8'))
-  } catch (error) {
-    console.log('>> keyfile could not be accessed')
-    return
-  }
-
-  const question = {
+  const questionKeyPassword = {
     type: 'password',
-    name: 'keyfilePassword',
+    name: 'keyFilePassword',
     message: `Enter password to unlock "${file}"`
   };
 
-  const { keyfilePassword } = await prompt(question)
+  const { keyFilePassword } = await prompt(questionKeyPassword)
   try {
     startTask('Unlocking keyfile')
     // @ts-ignore
-    const privateKey = keythereum.recover(keyfilePassword, keyObject)
+    const privateKey = await getPrivateKeyFromKeystore(keyFile, keyFilePassword)
     succeed('Keyfile unlocked')
     return privateKey
   } catch (error) {

@@ -1,6 +1,6 @@
 {
   "name": "@philipplgh/ethpkg",
-  "version": "0.1.9",
+  "version": "0.1.11",
   "description": "",
   "main": "./dist/index.js",
   "bin": {
@@ -31,6 +31,7 @@
     "@types/mocha": "^5.2.5",
     "@types/node": "^10.12.18",
     "@types/ora": "^3.0.0",
+    "@types/jsonwebtoken": "^8.3.0",
     "chai": "^4.2.0",
     "copyfiles": "^2.1.0",
     "mocha": "^5.2.0",
@@ -38,7 +39,6 @@
     "typescript": "^3.3.3"
   },
   "dependencies": {
-    "@types/jsonwebtoken": "^8.3.0",
     "asn1.js": "^5.0.1",
     "base64url": "^3.0.1",
     "chalk": "^2.4.2",
