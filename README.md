@@ -1,5 +1,6 @@
 # Ethereum Signed Packages
 
+![enter image description here](https://github.com/PhilippLgh/ethereum-signed-packages/raw/master/assets/ethpkg_logo.png)
 # Installation
 
 ```
