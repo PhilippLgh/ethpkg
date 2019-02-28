@@ -10,7 +10,7 @@ export interface IPackage {
 export interface IFile {
   dir: boolean,
   name: string,
-  readContent: Function
+  readContent: (format? : string) => Promise<Buffer>
 }
 
 export interface IPackageEntry {

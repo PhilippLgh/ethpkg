@@ -192,6 +192,13 @@ const getSignaturesFromPackage = async (pkg : IPackage, address? : string) => {
 
 export default class pkgsign {
 
+  static loadPackage = getPackage
+
+  static async isSigned(pkg : IPackage) {
+    const signatures = await getSignaturesFromPackage(pkg)
+    return signatures.length > 0
+  }
+
   static async sign(
     pkgSrc: string | Buffer, 
     privateKey? : Buffer | IExternalSigner,

@@ -10,6 +10,11 @@ export default class ZipPackage implements IPackage {
     this.zip = await JSZip.loadAsync(buf)
   }
 
+  loadBufferSync(buf : Buffer) {
+    // @ts-ignore
+    this.zip = JSZip.load(buf)
+  }
+
   async getEntries() : Promise<Array<IPackageEntry>>{
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
@@ -34,9 +39,13 @@ export default class ZipPackage implements IPackage {
 
   // TODO can be performance optimized
   async getEntry(relativePath : string) {
-    let entries = await this.getEntries()
-    let entry = entries.find((entry : IPackageEntry) => entry.relativePath === relativePath)
-    return entry
+    try {
+      let entries = await this.getEntries()
+      let entry = entries.find((entry : IPackageEntry) => entry.relativePath === relativePath)
+      return entry
+    } catch (error) {
+      return undefined
+    }
   }
 
   async addFile(relativePath : string, content : string | Buffer) {
@@ -55,11 +64,15 @@ export default class ZipPackage implements IPackage {
     return buf
   }
 
-  async write(filePath : string) {
+  async write(filePath : string, useCompression = true) {
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
-    const content = await this.zip.generateAsync({type:"nodebuffer"})
+    let options : any = {type: "nodebuffer", compression: "DEFLATE"}
+    if(!useCompression){
+      delete options.compression
+    }
+    const content = await this.zip.generateAsync(options)
     fs.writeFileSync(filePath, content)
     return filePath
   }
