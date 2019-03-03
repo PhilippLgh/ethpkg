@@ -9,6 +9,7 @@ import ethUtil from 'ethereumjs-util'
 import jws from './jws';
 import base64url from 'base64url';
 import IExternalSigner from './IExternalSigner';
+import { IVerificationResult } from './IVerificationResult';
 
 const META_DIR = '_META_'
 const SIGNATURE_PREFIX = `${META_DIR}/_sig`
@@ -169,13 +170,15 @@ const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any)
 
   // TODO check that recovered address matches header address
 
-  return {
+  const verificationResult = {
     signerAddress: recoveredAddress,
     isValid: (isValid === true), // passes integrity check: files were not changed
     certificates: [
 
     ]
   }
+
+  return verificationResult
 }
 
 const getSignaturesFromPackage = async (pkg : IPackage, address? : string) => {
@@ -188,6 +191,12 @@ const getSignaturesFromPackage = async (pkg : IPackage, address? : string) => {
   }
   const signatures = (await pkg.getEntries()).filter((pkgEntry : IPackageEntry) => pkgEntry.relativePath.startsWith(SIGNATURE_PREFIX))
   return signatures
+}
+
+const VERIFICATION_ERRORS = {
+  UNSIGNED: 0,
+  UNSIGNED_BY: 1,
+  BAD_PACKAGE: 2,
 }
 
 export default class pkgsign {
@@ -255,27 +264,84 @@ export default class pkgsign {
     return ''
   }
 
-  static async verify(pkgSrc: string | Buffer, address? : string) {
+  static async verify(pkgSrc: string | Buffer, address? : string) : Promise<IVerificationResult> {
     
     let pkg = null
     try {
       pkg = await getPackage(pkgSrc)
     } catch (error) {
       console.log('could not find or load package')
-      return
+      return {
+        signers: [],
+        isValid: false,
+        isTrusted: false,
+        error: {
+          code: VERIFICATION_ERRORS.BAD_PACKAGE,
+          message: `could not find or load package`
+        }
+      }
     }
 
     const signatures = await getSignaturesFromPackage(pkg, address)
+
     if (address && signatures.length <= 0) {  // signature not found
-        console.log('package does not contain a signature for', address)
-        return false
+      return {
+        signers: [],
+        isValid: false,
+        isTrusted: false,
+        error: {
+          code: VERIFICATION_ERRORS.UNSIGNED_BY,
+          message: `package does not contain a signature for ${address}`
+        }
+      }
     }
-    // TODO handle signatures length 0
+
+    if (signatures.length === 0) {
+      return {
+        signers: [],
+        isValid: false,
+        isTrusted: false,
+        error: {
+          code: VERIFICATION_ERRORS.UNSIGNED,
+          message: `package is unsigned. (signatures missing or not parsable)`
+        }
+      }
+    }
+
     const payloadPkg = await createPayload(pkg)
-    const validations = signatures.map(sig => verifySignature(sig, payloadPkg))
-    const signatureInfos = await Promise.all(validations)
+    const promises = signatures.map(sig => verifySignature(sig, payloadPkg))
+    const signatureInfos = await Promise.all(promises)
+
+    /*
+    in order for a package to be verified, it
+    - MUST have at least one signature
+    - the signature MUST match the computed package payload
+    - the payload MUST NOT be empty
+    - all (valid) signatures MUST cover combined 100% of the package's contents TODO partial signatures currently not supported
+
+    in order for a package to be trusted it
+    - MUST have a valid certificate
+    - with a proof or signed by a trusted CA
+    - 100% of the package contents must be signed by at least one valid certificate
+    */
+    let isValid = true
+    signatureInfos.forEach(s => {
+      isValid = isValid && s.isValid
+    })
+
+
+    const verificationResult = {
+      signers: signatureInfos.map(s => ({
+        address: s.signerAddress,
+        certificates: [],
+        coverage: 100
+      })),
+      isValid,
+      isTrusted: false,
+    }
+
+    return verificationResult
     
-    return signatureInfos
   }
 
 }

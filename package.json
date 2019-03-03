@@ -1,6 +1,6 @@
 {
   "name": "@philipplgh/ethpkg",
-  "version": "0.1.11",
+  "version": "0.1.2",
   "description": "",
   "main": "./dist/index.js",
   "bin": {
