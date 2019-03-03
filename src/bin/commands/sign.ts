@@ -46,7 +46,7 @@ export const startSignFlow = async (inputPath: string) => {
   }
 }
 @command({
-  description: 'sign a zip or tarball',
+  description: 'sign a package',
 })
 export default class extends Command {
   public async execute(

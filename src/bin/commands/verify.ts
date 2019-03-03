@@ -3,7 +3,7 @@ import { pkgsign } from '../..';
 import { startTask, succeed, failed } from '../task'
 
 @command({
-  description: 'verify a zip or tarball package',
+  description: 'verify a package',
 })
 export default class extends Command {
   public async execute(
