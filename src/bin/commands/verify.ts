@@ -34,10 +34,11 @@ export default class extends Command {
       console.log(`\npackage contents passed integrity checks and are signed by ${signerAddresses}`)
     }
 
-    if(result.isTrusted) {
-      console.log('')
-    }
     */
+    if(!result.isTrusted) {
+      console.log('\nWARNING: this key is not certified with a trusted signature!')
+      console.log('There is no indication that the signature belongs to the package owner')
+    }
 
     if (result.isValid /*FIXME && result.isTrusted*/) {
       const signerAddresses = result.signers.map(s => s.address).join(',')
