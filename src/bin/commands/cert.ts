@@ -44,17 +44,16 @@ export default class extends Command {
   public async execute(
     @param({
       name: 'name',
-      description: 'your nickname or full name',
+      description: 'your username or full name',
       required: false,
     })
     name?: string
   ) {
 
     const cert_type = await getCertType()
-    name = await getInput('name', "What is the cert holder's name?")
+    name = await getInput('name', "What is the cert holder's name or username?")
     const email = await getInput('email', "What is the cert holder's email?")
-    const { privateKey } = await getPrivateKey()
-
+    
     const subjectInfo = {
       name,
       email
@@ -62,11 +61,13 @@ export default class extends Command {
     const options = {
       csrType: 2 // email
     }
-
+    
+    const { privateKey } = await getPrivateKey()
     const csr = await cert.csr(subjectInfo, privateKey, options)
     
     const outPath = path.join(process.cwd(), `self_signed_cert_${Date.now()}.json`)
-    fs.writeFileSync(outPath, JSON.stringify(csr, null, 2))
-    progress(`Certificate written to ${outPath}`)
+    const certData = JSON.stringify(csr, null, 2)
+    fs.writeFileSync(outPath, certData)
+    progress(`Certificate: \n\n${JSON.stringify(csr, null, 2)}\nwritten to ${outPath}`)
   }
 }
