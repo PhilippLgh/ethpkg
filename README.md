@@ -83,10 +83,12 @@ Therefore, you should not use the key for any financial transactions and ideally
 ### Geth
 
 ```
-
+TODO
 ```
 
 # Verify Packages
+[![demo](https://asciinema.org/a/6I7vkoHONqM5KbBGa3TbC58MD.svg)](https://asciinema.org/a/6I7vkoHONqM5KbBGa3TbC58MD?autoplay=1)
+
 
 # Issue Self-Signed Certificates
 
