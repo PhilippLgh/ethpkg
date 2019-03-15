@@ -1,6 +1,6 @@
 {
   "name": "@philipplgh/ethpkg",
-  "version": "0.1.13",
+  "version": "0.2.0",
   "description": "",
   "main": "./dist/index.js",
   "bin": {
@@ -27,11 +27,11 @@
     "@types/chai": "^4.1.7",
     "@types/es6-promise": "^3.3.0",
     "@types/ethereumjs-util": "^5.2.0",
+    "@types/jsonwebtoken": "^8.3.0",
     "@types/jszip": "^3.1.4",
     "@types/mocha": "^5.2.5",
     "@types/node": "^10.12.18",
     "@types/ora": "^3.0.0",
-    "@types/jsonwebtoken": "^8.3.0",
     "chai": "^4.2.0",
     "copyfiles": "^2.1.0",
     "mocha": "^5.2.0",
@@ -45,10 +45,12 @@
     "clime": "^0.5.10",
     "enquirer": "^2.3.0",
     "ethereumjs-util": "6.0.0",
+    "file-type": "^10.9.0",
     "jsonwebtoken": "^8.4.0",
     "jszip": "^3.1.5",
     "keythereum": "^1.0.4",
     "ora": "^3.1.0",
-    "secp256k1": "^3.6.2"
+    "secp256k1": "^3.6.2",
+    "tar-stream": "^2.0.1"
   }
 }
