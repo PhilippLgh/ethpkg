@@ -1,13 +1,15 @@
-import fs from 'fs'
+import fs, { read } from 'fs'
 import path from 'path'
 import zlib from 'zlib'
 import { IPackage, IPackageEntry, IFile } from './IPackage'
+import { bufferToStream, streamToBuffer } from '../util'
 const tar = require('tar-stream')
 
 export default class TarPackage implements IPackage {
 
   private packagePath: string;
   private isGzipped: boolean;
+  tarbuf?: Buffer;
 
   constructor(packagePath : string, compressed = true) {
     this.packagePath = packagePath
@@ -17,7 +19,6 @@ export default class TarPackage implements IPackage {
     throw new Error("Method not implemented.");
   }
   async getEntries(): Promise<IPackageEntry[]> {
-    // FIXME only if compressed
     const inputStream = fs.createReadStream(this.packagePath, {highWaterMark: Math.pow(2,16)})
     const extract = tar.extract()
     return new Promise((resolve, reject) => {
@@ -69,14 +70,59 @@ export default class TarPackage implements IPackage {
       return null
     }
   }
-  addFile(relativePath: string, content: string | Buffer): Promise<string> {
-    throw new Error("Method not implemented.");
+  // TODO very poor performance - this can probably be optimized a LOT :(
+  async addEntry(relativePath: string, content: string | Buffer): Promise<string> {
+    // prepare in / out streams
+    let inputStream
+    // if tarbuf exists use instead of org file or it would overwite intermediate changes
+    if(this.tarbuf) {
+      inputStream = bufferToStream(this.tarbuf)
+    } else {
+      inputStream = fs.createReadStream(this.packagePath, {highWaterMark: Math.pow(2,16)})
+    }
+
+    // 
+    const pack = tar.pack() // pack is a streams2 stream
+    const extract = tar.extract()
+   
+    // prepare compression
+    const gzip = zlib.createGzip()
+
+    extract.on('entry', (header : any, stream : any, next : any) => {
+      // write the unmodified entry to the pack stream
+      let entry = pack.entry(header, next)
+      stream.pipe(entry)
+    });
+
+    extract.on('finish', function() {
+      // add new entries here:
+      let entry = pack.entry({ name: relativePath }, content)
+      // all entries done - lets finalize it
+      entry.on('finish', () => {
+        pack.finalize()
+      })
+      entry.end()
+    })
+
+    // read input
+    inputStream.pipe(zlib.createGunzip()).pipe(extract)
+
+    // write new tar to buffer
+    let strm = pack.pipe(gzip)
+    // @ts-ignore
+    this.tarbuf = await streamToBuffer(strm)
+
+    return relativePath
   }
   toBuffer(): Promise<Buffer> {
     throw new Error("Method not implemented.");
   }
-  write(outPath: string): Promise<string> {
-    throw new Error("Method not implemented.");
+  writePackage(outPath: string): Promise<string> {
+    if (!this.tarbuf) {
+      throw new Error("cannot create tar file - empty buffer")
+    }
+    fs.writeFileSync(outPath, this.tarbuf)
+    return Promise.resolve(outPath)
   }
 
 }

@@ -58,7 +58,7 @@ export default class ZipPackage implements IPackage {
     }
   }
 
-  async addFile(relativePath : string, content : string | Buffer) {
+  async addEntry(relativePath : string, content : string | Buffer) {
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
@@ -74,7 +74,7 @@ export default class ZipPackage implements IPackage {
     return buf
   }
 
-  async write(filePath : string, useCompression = true) {
+  async writePackage(filePath : string, useCompression = true) {
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
