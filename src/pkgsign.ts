@@ -216,7 +216,7 @@ export default class pkgsign {
     1.  Create the content to be used as the JWS Payload.
     */
     const payload = await createPayload(pkg)
-    await pkg.addFile(`${META_DIR}/_checksums.json`, JSON.stringify(payload.data, null, 2));
+    await pkg.addEntry(`${META_DIR}/_checksums.json`, JSON.stringify(payload.data, null, 2));
 
     // sign payload according to RFC7515 Section 5.1
     const header = {
@@ -240,10 +240,10 @@ export default class pkgsign {
       return
     }
 
-    await pkg.addFile(`${signaturePath(address)}`, JSON.stringify(flattenedJwsSerialization, null, 2))
+    await pkg.addEntry(`${signaturePath(address)}`, JSON.stringify(flattenedJwsSerialization, null, 2))
 
     if (pkgPathOut) {
-      await pkg.write(pkgPathOut)
+      await pkg.writePackage(pkgPathOut)
     }
 
     return pkg
@@ -254,23 +254,28 @@ export default class pkgsign {
   }
 
   // TODO add ENS support
-  static async verify(pkgSrc: string | Buffer, addressOrEnsName? : string) : Promise<IVerificationResult> {
+  static async verify(pkgSrc: string | Buffer | IPackage, addressOrEnsName? : string) : Promise<IVerificationResult> {
     
     let pkg = null
-    try {
-      pkg = await this.loadPackage(pkgSrc)
-    } catch (error) {
-      console.log('could not find or load package')
-      return {
-        signers: [],
-        isValid: false,
-        isTrusted: false,
-        error: {
-          code: VERIFICATION_ERRORS.BAD_PACKAGE,
-          message: `could not find or load package`
+    if(typeof pkgSrc !== 'string' && !Buffer.isBuffer(pkgSrc)) {
+      pkg = pkgSrc
+    } else {
+      try {
+        pkg = await this.loadPackage(pkgSrc)
+      } catch (error) {
+        console.log('could not find or load package')
+        return {
+          signers: [],
+          isValid: false,
+          isTrusted: false,
+          error: {
+            code: VERIFICATION_ERRORS.BAD_PACKAGE,
+            message: `could not find or load package`
+          }
         }
       }
     }
+
 
     const signatures = await getSignaturesFromPackage(pkg, addressOrEnsName)
 

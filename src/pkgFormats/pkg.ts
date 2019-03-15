@@ -12,14 +12,14 @@ export class pkg {
   static isPackage() {
     return true
   }
-  static create = async (pkgDirPath : string, pkgOutPath : string) => {
+  static create = async (pkgDirPath : string, pkgOutPath? : string) => {
 
     if(!lstatSync(pkgDirPath).isDirectory()) {
       throw new Error('package source is not a directory')
     }
 
     const addFile = (src : string, f : string, pkg : IPackage) => {
-      pkg.addFile(f, fs.readFileSync(path.join(src, f)))
+      pkg.addEntry(f, fs.readFileSync(path.join(src, f)))
     }
 
     // FIXME determine the package type e.g zip / tar based on out path
@@ -31,7 +31,12 @@ export class pkg {
       .filter(excludedFiles)
       .forEach(f => addFile(pkgDirPath, f, zip))
     
-    return zip.write(pkgOutPath)
+    
+    if(pkgOutPath) {
+      zip.writePackage(pkgOutPath)
+    }
+
+    return zip
 
   }
   static getPackageSync = (pkgSrc : string | Buffer) : IPackage => {

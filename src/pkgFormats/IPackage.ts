@@ -2,9 +2,9 @@ export interface IPackage {
   loadBuffer(buf : Buffer) : Promise<void>;
   getEntries() : Promise<Array<IPackageEntry>>;
   getEntry(relativePath : string) : Promise<IPackageEntry | null>;
-  addFile(relativePath : string, content : string | Buffer) : Promise<string>;
+  addEntry(relativePath : string, content : string | Buffer) : Promise<string>;
   toBuffer() : Promise<Buffer>;
-  write(outPath: string): Promise<string>;
+  writePackage(outPath: string): Promise<string>;
 }
 
 export interface IFile {
