@@ -15,11 +15,12 @@
 </p>
 
 [![Ethereum Signed Package](https://img.shields.io/badge/signed--package-secp256k1-lightblue.svg?style=for-the-badge&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAAa9JREFUOI2Nk71rVFEQxc+Z3ddIWE1g/UDdt7u+xmAVSSEIWsVGCwUhkMZKLAyCja2Ipagg6exEBf8AEUlhmUIkaBNxZX0QLWLQzcbP5N05Fhox697V2w33Nz+YMwww4DVqjePZ3saJQUwp9pFlWYWFP4Bp/0il8uxjt/u+H2cxga8VlwHfJSkRORPj+gqae5oHRE1v1KQdadRqU/8tEP2WgeVNoOxalmWVfwqaaTpphqMA4MZVkqu/yJ1aX7/Sy/PPYrQ6OvR1y5cFk3+G2UMEVWF4J6ks2SEzjLtxrN1uP9/o2bSFrTuGjiHgk4y7CZyElAookTZJoQB1R9JIZ2Vlru8Iwb0KwzkDxv4KxlAHeN7E7dEMTFpIiIMA7vb2u+MJUR4XfDYqSIri5ZpwD47Hkh+G2VMCbyieJv1qQHFbXlqKhggAWb0+IeGRO+aMPh3MlksB12E4RehiK89vDBQAwL40vQnwAhwdB+Z/rlWzr/N8AoCiI/y2JsklQC8AJ+kE8MFCONPbHBW0Wq3vHmwKwDfJ5PKzrxYX3/Zjo9fY6XaWhoe3LdM4387z+zHuBylTqcbPOnBuAAAAAElFTkSuQmCC&labelColor=blue)]([https://img.shields.io/badge/hello-world-green.svg](https://github.com/PhilippLgh/ethereum-signed-packages))
+
 (ethpkg was used to sign itself - 🤯)
 
 
 # Why?
-<iframe width="560" height="315" src="https://www.youtube.com/embed/1lH4q1-Ba0k?start=816" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+[![Watch the video](http://i3.ytimg.com/vi/1lH4q1-Ba0k/hqdefault.jpg)](https://www.youtube.com/embed/1lH4q1-Ba0k?start=816)
 
 #### **TL;DW: get paid for open source & making the ecosystem more secure**
 
