@@ -7,9 +7,10 @@ import ZipPackage from './pkgFormats/zipPackage'
 
 import ethUtil from 'ethereumjs-util'
 import jws from './jws';
-import base64url from 'base64url';
-import IExternalSigner from './IExternalSigner';
-import { IVerificationResult } from './IVerificationResult';
+import base64url from 'base64url'
+import IExternalSigner from './IExternalSigner'
+import { IVerificationResult } from './IVerificationResult'
+import { pkg as ethpkg } from './pkgFormats/pkg'
 
 const META_DIR = '_META_'
 const SIGNATURE_PREFIX = `${META_DIR}/_sig`
@@ -29,7 +30,7 @@ const calculateDigests = async (entries : Array<IPackageEntry>, alg = 'sha512') 
   for (let index = 0; index < entries.length; index++) {
     const entry = entries[index];
     const { relativePath, file } = entry
-    if(file.dir){continue}
+    if(file.isDir){continue}
     // skip META DIR contents
     if(relativePath.startsWith(META_DIR)){continue}
     const decompressedData = await file.readContent("nodebuffer")
@@ -51,22 +52,6 @@ const compareDigests = (digestsFile: Digests, calculatedDigests: Digests) => {
     }
   }
   return true
-}
-
-const getPackage = async (pkgSrc : string | Buffer) : Promise<IPackage> => {
-  let pgkContent;
-  if(typeof pkgSrc === 'string'){
-    if(!fs.existsSync(pkgSrc)) {
-      throw new Error('package not found')
-    }
-    //if (path.endsWith('.tgz') && lstatSync(path).isFile()) {
-    pgkContent = fs.readFileSync(pkgSrc)
-  } else {
-    pgkContent = pkgSrc
-  }
-  const zip = new ZipPackage()
-  await zip.loadBuffer(pgkContent)
-  return zip
 }
 
 const createPayload = async (pkg : IPackage) => {
@@ -201,7 +186,7 @@ const VERIFICATION_ERRORS = {
 
 export default class pkgsign {
 
-  static loadPackage = getPackage
+  static loadPackage = ethpkg.getPackage
 
   static async isSigned(pkg : IPackage) {
     const signatures = await getSignaturesFromPackage(pkg)
@@ -216,7 +201,7 @@ export default class pkgsign {
 
     let pkg = null
     try {
-      pkg = await getPackage(pkgSrc)
+      pkg = await this.loadPackage(pkgSrc)
     } catch (error) {
       console.log('could not find or load package')
       return
@@ -255,7 +240,11 @@ export default class pkgsign {
       return
     }
 
-    await pkg.addFile(`${signaturePath(address)}`, JSON.stringify(flattenedJwsSerialization, null, 2));
+    await pkg.addFile(`${signaturePath(address)}`, JSON.stringify(flattenedJwsSerialization, null, 2))
+
+    if (pkgPathOut) {
+      await pkg.write(pkgPathOut)
+    }
 
     return pkg
   }
@@ -264,11 +253,12 @@ export default class pkgsign {
     return ''
   }
 
-  static async verify(pkgSrc: string | Buffer, address? : string) : Promise<IVerificationResult> {
+  // TODO add ENS support
+  static async verify(pkgSrc: string | Buffer, addressOrEnsName? : string) : Promise<IVerificationResult> {
     
     let pkg = null
     try {
-      pkg = await getPackage(pkgSrc)
+      pkg = await this.loadPackage(pkgSrc)
     } catch (error) {
       console.log('could not find or load package')
       return {
@@ -282,16 +272,16 @@ export default class pkgsign {
       }
     }
 
-    const signatures = await getSignaturesFromPackage(pkg, address)
+    const signatures = await getSignaturesFromPackage(pkg, addressOrEnsName)
 
-    if (address && signatures.length <= 0) {  // signature not found
+    if (addressOrEnsName && signatures.length <= 0) {  // signature not found
       return {
         signers: [],
         isValid: false,
         isTrusted: false,
         error: {
           code: VERIFICATION_ERRORS.UNSIGNED_BY,
-          message: `package does not contain a signature for ${address}`
+          message: `package does not contain a signature for ${addressOrEnsName}`
         }
       }
     }
@@ -328,7 +318,6 @@ export default class pkgsign {
     signatureInfos.forEach(s => {
       isValid = isValid && s.isValid
     })
-
 
     const verificationResult = {
       signers: signatureInfos.map(s => ({

@@ -6,6 +6,13 @@ export default class ZipPackage implements IPackage {
 
   private zip : JSZip | undefined
 
+  constructor() {
+  }
+
+  init(){
+    this.zip = new JSZip()
+  }
+
   async loadBuffer(buf : Buffer) {
     this.zip = await JSZip.loadAsync(buf)
   }
@@ -23,7 +30,7 @@ export default class ZipPackage implements IPackage {
     let entries = [] as any
     this.zip.forEach((relativePath: string, file: any /**ZipObject */) => {
       let iFile : IFile = {
-        dir: file.dir,
+        isDir: file.dir,
         name: path.basename(file.name),
         readContent: async (t : string = 'nodebuffer') => {
           return file.async(t)
@@ -39,12 +46,15 @@ export default class ZipPackage implements IPackage {
 
   // TODO can be performance optimized
   async getEntry(relativePath : string) {
+    if(!this.zip) {
+      throw new Error('package not loaded - load with loadBuffer()')
+    }
     try {
       let entries = await this.getEntries()
       let entry = entries.find((entry : IPackageEntry) => entry.relativePath === relativePath)
-      return entry
+      return entry || null
     } catch (error) {
-      return undefined
+      return null
     }
   }
 

@@ -1,14 +1,14 @@
 export interface IPackage {
   loadBuffer(buf : Buffer) : Promise<void>;
   getEntries() : Promise<Array<IPackageEntry>>;
-  getEntry(relativePath : string) : Promise<IPackageEntry | undefined>;
+  getEntry(relativePath : string) : Promise<IPackageEntry | null>;
   addFile(relativePath : string, content : string | Buffer) : Promise<string>;
   toBuffer() : Promise<Buffer>;
   write(outPath: string): Promise<string>;
 }
 
 export interface IFile {
-  dir: boolean,
+  isDir: boolean,
   name: string,
   readContent: (format? : string) => Promise<Buffer>
 }
