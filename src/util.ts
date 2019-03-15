@@ -1,8 +1,9 @@
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import stream from 'stream'
 
-import { prompt } from 'enquirer'
+// import { prompt } from 'enquirer'
 const keythereum = require('keythereum')
 
 const secp256k1 = require('secp256k1')
@@ -47,8 +48,10 @@ export const getPrivateKeyFromKeystore = async (keyFile : string, keyFilePasswor
       name: 'password',
       message: `Enter password to unlock "${path.basename(keyFile)}"`
     };
-    const { password } = await prompt(questionKeyPassword)
-    keyFilePassword = password
+    // FIXME breaks browser lib
+    // const { password } = await prompt(questionKeyPassword)
+    // keyFilePassword = password
+    throw new Error("no password provided")
   }
 
   let keyObject
@@ -104,4 +107,77 @@ export const getPrivateKeyFromPEM = (inputPath: string) => {
   }
 
   return privateKey
+}
+
+function runScript (scriptName : string, scriptArgs : any, cwd? : any) {
+  let scriptCommand = `${scriptName} ${scriptArgs.join(' ')}`
+  let scriptOptions = {
+    encoding: 'UTF-8'
+  }
+  if (cwd) {
+    // @ts-ignore
+    scriptOptions.cwd = cwd
+  }
+  try {
+    const execSync = require('child_process').execSync
+    execSync(scriptCommand, scriptOptions)
+    return Promise.resolve()
+  } catch (err) {
+    console.log(`Error running ${scriptName}`, err)
+    Promise.reject()
+    process.exit(1)
+  }
+}
+
+export const downloadNpmPackage = async () => {
+  await runScript('npm pack @philipplgh/electron-app-updater', [])
+}
+
+class WritableMemoryStream extends stream.Writable {
+  buffer: Buffer | undefined;
+  data : any[] = []
+  constructor(){
+    super()
+    this.buffer = undefined
+    this.data = []
+    this.once('finish', () => {
+      this.buffer = Buffer.concat(this.data)
+    })
+  }
+  _write (chunk : any, enc : string, cb : Function) {
+    this.data.push(chunk)
+    cb()
+  }
+}
+
+export const streamToBuffer = async (stream : fs.ReadStream, size? : number) => {
+  return new Promise((resolve, reject) => {
+    let mStream = new WritableMemoryStream()
+    // let fStream = fs.createWriteStream(__dirname+'/test')
+    let t0 = Date.now()
+    stream.pipe(mStream)
+    // stream.pipe(fStream)
+    let completed = 0;
+    stream.on('data', (data : any) => {
+      completed += data.length;
+      // console.log('data ', completed, '/', size)
+    })
+    stream.on("error", (error : any) => {
+      reject(error)
+    });
+    stream.on('end', () => {
+      // console.log( ((Date.now()-t0) / 1000) , ' finished processing')
+      // console.log('end of stream', completed, '/',  size)
+      // TODO make sure that buffer also contains bytes stream.end vs mStream.end
+      resolve(mStream.buffer)
+    })
+  })
+}
+
+export const bufferToStream = (buf : Buffer) => {
+  const readable = new stream.Readable()
+  readable._read = () => {} // _read is required but you can noop it
+  readable.push(buf)
+  readable.push(null)
+  return readable
 }
