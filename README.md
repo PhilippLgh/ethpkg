@@ -3,21 +3,69 @@
 <img align="center" width="200px"src="https://github.com/PhilippLgh/ethereum-signed-packages/raw/master/assets/ethpkg_logo.png" alt="ethpkg logo">
 </p>
 
-# Ethereum Signed Packages
+<div align="center">
+<h1>Ethereum Signed Packages</h1>
+</div>
+<p align="center">
+  <a href="https://circleci.com/gh/philipplgh/ethereum-signed-packages/tree/dev"><img src="https://img.shields.io/circleci/project/github/philipplgh/ethereum-signed-packages/master.svg" alt="Build Status"></a>
+  <a href="https://npmcharts.com/compare/@philipplgh/ethpkg?minimal=true"><img src="https://img.shields.io/npm/dm/@philipplgh/ethpkg.svg" alt="Downloads"></a>
+  <a href="https://www.npmjs.com/package/@philipplgh/ethpkg"><img src="https://img.shields.io/npm/v/@philipplgh/ethpkg.svg" alt="Version"></a>
+  <a href="https://www.npmjs.com/package/@philipplgh/ethpkg"><img src="https://img.shields.io/npm/l/@philipplgh/ethpkg.svg" alt="License"></a>
+  <br>
+</p>
+
+[![Ethereum Signed Package](https://img.shields.io/badge/signed--package-secp256k1-lightblue.svg?style=for-the-badge&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAAa9JREFUOI2Nk71rVFEQxc+Z3ddIWE1g/UDdt7u+xmAVSSEIWsVGCwUhkMZKLAyCja2Ipagg6exEBf8AEUlhmUIkaBNxZX0QLWLQzcbP5N05Fhox697V2w33Nz+YMwww4DVqjePZ3saJQUwp9pFlWYWFP4Bp/0il8uxjt/u+H2cxga8VlwHfJSkRORPj+gqae5oHRE1v1KQdadRqU/8tEP2WgeVNoOxalmWVfwqaaTpphqMA4MZVkqu/yJ1aX7/Sy/PPYrQ6OvR1y5cFk3+G2UMEVWF4J6ks2SEzjLtxrN1uP9/o2bSFrTuGjiHgk4y7CZyElAookTZJoQB1R9JIZ2Vlru8Iwb0KwzkDxv4KxlAHeN7E7dEMTFpIiIMA7vb2u+MJUR4XfDYqSIri5ZpwD47Hkh+G2VMCbyieJv1qQHFbXlqKhggAWb0+IeGRO+aMPh3MlksB12E4RehiK89vDBQAwL40vQnwAhwdB+Z/rlWzr/N8AoCiI/y2JsklQC8AJ+kE8MFCONPbHBW0Wq3vHmwKwDfJ5PKzrxYX3/Zjo9fY6XaWhoe3LdM4387z+zHuBylTqcbPOnBuAAAAAElFTkSuQmCC&labelColor=blue)]([https://img.shields.io/badge/hello-world-green.svg](https://github.com/PhilippLgh/ethereum-signed-packages))
+(ethpkg was used to sign itself - 🤯)
+
+
+# Why?
+<iframe width="560" height="315" src="https://www.youtube.com/embed/1lH4q1-Ba0k?start=816" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+#### **TL;DW: get paid for open source & making the ecosystem more secure**
 
 # Installation
-
 ```
 yarn global add @philipplgh/ethpkg
 ```
 
 # Specification
 
-Please see [the specifcation draft](spec/README.md) for details about the signing and verification process.
+Please see [the specifcation draft](spec/README.md) for details about the signing and verification process and the respective data structures and formats.
+
+
+# CLI Commands
+
+```
+keys    - generate and manage keys
+pack    - create unsigned packages
+sign    - sign a package
+verify  - verify a package
+cert    - creates certificates
+version - print the version number
+
+```
+
+
+# Quickstart
+
+## Example 1- Sign your NPM packages
+
+```
+// pack before uploading it:
+npm pack
+// sign the packed npm module:
+```
+
+
+***
 
 # Setup Keys
 
 Before we can start to sign packages we need to generate keys. There are multiple options to generate and manage keys:
+
+## CLI
+
+`TODO`
 
 ## Metamask
 [Setup Metamask](https://youtu.be/ZIGUC9JAAw8?t=10) and create a dedicated code signing account.
@@ -80,14 +128,46 @@ Therefore, you should not use the key for any financial transactions and ideally
 
 ## Using External Signers
 
-### Geth
+#### Clef
 
 ```
 TODO
 ```
 
+#### Metamask
+
+```
+TODO
+```
+
+#### Frame
+
+```
+TODO
+```
+
+## Web Services
+
+```
+TODO
+```
+
+# NPM Modules
+
+
 # Verify Packages
+
+## NPM Package
+
+```
+npm pack [module name here]
+ethpkg verify [module file name here]
+```
+
+## Local Package
 [![demo](https://asciinema.org/a/6I7vkoHONqM5KbBGa3TbC58MD.svg)](https://asciinema.org/a/6I7vkoHONqM5KbBGa3TbC58MD?autoplay=1)
+
+## Hosted Package
 
 
 # Issue Self-Signed Certificates
