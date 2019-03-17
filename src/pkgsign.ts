@@ -3,7 +3,6 @@ import fs from 'fs'
 import path from 'path'
 
 import { IPackage, IPackageEntry } from './pkgFormats/IPackage'
-import ZipPackage from './pkgFormats/zipPackage'
 
 import ethUtil from 'ethereumjs-util'
 import jws from './jws';
