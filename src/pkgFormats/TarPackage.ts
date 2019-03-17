@@ -18,11 +18,44 @@ export default class TarPackage implements IPackage {
   loadBuffer(buf: Buffer): Promise<void> {
     throw new Error("Method not implemented.");
   }
+  private async getEntryData(entryPath : string) : Promise<Buffer> {
+    const gzip = zlib.createGunzip()
+    const inputStream = fs.createReadStream(this.packagePath)
+    const extract = tar.extract()
+    return new Promise((resolve, reject) => {
+      extract.on('entry', async (header : any, stream : any, next : any) => {
+        let { name } = header
+        const { size, type} = header
+        const relPath = name as string
+        name = path.basename(relPath)
+        if(relPath === entryPath){
+          let fileData = await streamToBuffer(stream, size)
+          resolve(fileData)
+          // TODO close here
+          next()
+        } else {
+          stream.on('end', function() {
+            next() // ready for next entry
+          })
+          stream.resume()
+        }
+      })
+      extract.on('finish', () => {
+        // resolve(entries)
+      })
+      if(this.isGzipped) {
+        inputStream.pipe(zlib.createGunzip()).pipe(extract)
+      } else {
+        inputStream.pipe(extract)
+      }
+    });
+  }
   async getEntries(): Promise<IPackageEntry[]> {
     const inputStream = fs.createReadStream(this.packagePath, {highWaterMark: Math.pow(2,16)})
     const extract = tar.extract()
     return new Promise((resolve, reject) => {
       const entries : IPackageEntry[] = []
+
       extract.on('entry', (header : any, stream : any, next : any) => {
         let { name } = header
         const { size, type} = header
@@ -33,8 +66,8 @@ export default class TarPackage implements IPackage {
           isDir: type === 'directory',
           name,
           readContent: async (t : string = 'nodebuffer') => {
-            // let fileData = await this._getEntryData(relPath)
-            return Promise.resolve(Buffer.from('')) // fileData
+            const content = await this.getEntryData(relativePath)
+            return content
           }
         } 
         entries.push({
@@ -105,7 +138,11 @@ export default class TarPackage implements IPackage {
     })
 
     // read input
-    inputStream.pipe(zlib.createGunzip()).pipe(extract)
+    if(this.isGzipped) {
+      inputStream.pipe(zlib.createGunzip()).pipe(extract)
+    } else {
+      inputStream.pipe(extract)
+    }
 
     // write new tar to buffer
     let strm = pack.pipe(gzip)

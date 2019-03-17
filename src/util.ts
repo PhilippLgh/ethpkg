@@ -150,7 +150,7 @@ class WritableMemoryStream extends stream.Writable {
   }
 }
 
-export const streamToBuffer = async (stream : fs.ReadStream, size? : number) => {
+export const streamToBuffer = async (stream : fs.ReadStream, size? : number) : Promise<Buffer> => {
   return new Promise((resolve, reject) => {
     let mStream = new WritableMemoryStream()
     // let fStream = fs.createWriteStream(__dirname+'/test')
