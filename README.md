@@ -14,15 +14,15 @@
   <br>
 </p>
 
-[![Ethereum Signed Package](https://img.shields.io/badge/signed--package-secp256k1-lightblue.svg?style=for-the-badge&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAAa9JREFUOI2Nk71rVFEQxc+Z3ddIWE1g/UDdt7u+xmAVSSEIWsVGCwUhkMZKLAyCja2Ipagg6exEBf8AEUlhmUIkaBNxZX0QLWLQzcbP5N05Fhox697V2w33Nz+YMwww4DVqjePZ3saJQUwp9pFlWYWFP4Bp/0il8uxjt/u+H2cxga8VlwHfJSkRORPj+gqae5oHRE1v1KQdadRqU/8tEP2WgeVNoOxalmWVfwqaaTpphqMA4MZVkqu/yJ1aX7/Sy/PPYrQ6OvR1y5cFk3+G2UMEVWF4J6ks2SEzjLtxrN1uP9/o2bSFrTuGjiHgk4y7CZyElAookTZJoQB1R9JIZ2Vlru8Iwb0KwzkDxv4KxlAHeN7E7dEMTFpIiIMA7vb2u+MJUR4XfDYqSIri5ZpwD47Hkh+G2VMCbyieJv1qQHFbXlqKhggAWb0+IeGRO+aMPh3MlksB12E4RehiK89vDBQAwL40vQnwAhwdB+Z/rlWzr/N8AoCiI/y2JsklQC8AJ+kE8MFCONPbHBW0Wq3vHmwKwDfJ5PKzrxYX3/Zjo9fY6XaWhoe3LdM4387z+zHuBylTqcbPOnBuAAAAAElFTkSuQmCC&labelColor=blue)]([https://img.shields.io/badge/hello-world-green.svg](https://github.com/PhilippLgh/ethereum-signed-packages))
+[![Ethereum Signed Package](https://img.shields.io/badge/signed--package-secp256k1-lightblue.svg?style=for-the-badge&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAAa9JREFUOI2Nk71rVFEQxc+Z3ddIWE1g/UDdt7u+xmAVSSEIWsVGCwUhkMZKLAyCja2Ipagg6exEBf8AEUlhmUIkaBNxZX0QLWLQzcbP5N05Fhox697V2w33Nz+YMwww4DVqjePZ3saJQUwp9pFlWYWFP4Bp/0il8uxjt/u+H2cxga8VlwHfJSkRORPj+gqae5oHRE1v1KQdadRqU/8tEP2WgeVNoOxalmWVfwqaaTpphqMA4MZVkqu/yJ1aX7/Sy/PPYrQ6OvR1y5cFk3+G2UMEVWF4J6ks2SEzjLtxrN1uP9/o2bSFrTuGjiHgk4y7CZyElAookTZJoQB1R9JIZ2Vlru8Iwb0KwzkDxv4KxlAHeN7E7dEMTFpIiIMA7vb2u+MJUR4XfDYqSIri5ZpwD47Hkh+G2VMCbyieJv1qQHFbXlqKhggAWb0+IeGRO+aMPh3MlksB12E4RehiK89vDBQAwL40vQnwAhwdB+Z/rlWzr/N8AoCiI/y2JsklQC8AJ+kE8MFCONPbHBW0Wq3vHmwKwDfJ5PKzrxYX3/Zjo9fY6XaWhoe3LdM4387z+zHuBylTqcbPOnBuAAAAAElFTkSuQmCC&labelColor=blue)](https://github.com/PhilippLgh/ethereum-signed-packages)
 
 (ethpkg was used to sign itself - 🤯)
 
 
 # Why?
-[![Watch the video](http://i3.ytimg.com/vi/1lH4q1-Ba0k/hqdefault.jpg)](https://www.youtube.com/embed/1lH4q1-Ba0k?start=816)
+[![Watch the video](http://i3.ytimg.com/vi/1lH4q1-Ba0k/hqdefault.jpg)](https://www.youtube.com/watch?v=1lH4q1-Ba0k&t=813)
 
-#### **TL;DW: get paid for open source & making the ecosystem more secure**
+#### **TL;DW: get paid for open source work while making the ecosystem more secure**
 
 # Installation
 ```
@@ -37,13 +37,12 @@ Please see [the specifcation draft](spec/README.md) for details about the signin
 # CLI Commands
 
 ```
-keys    - generate and manage keys
-pack    - create unsigned packages
-sign    - sign a package
-verify  - verify a package
-cert    - creates certificates
-version - print the version number
-
+key     - generate and manage keys
+cert    - create certificates
+pack    - create unsigned packages from dir
+sign    - sign packages
+verify  - verify packages
+version - print version number
 ```
 
 
@@ -51,10 +50,45 @@ version - print the version number
 
 ## Example 1- Sign your NPM packages
 
+### One time setup:
 ```
-// pack before uploading it:
-npm pack
-// sign the packed npm module:
+// install ethpkg
+$ yarn global add @philipplgh/ethpkg
+
+// create project signing key in global keystore
+$ ethpkg key new "project name"
+
+// WARNING if you decided to keep your keys in the project folder:
+// $ ethpkg key new "project name" ./
+// make sure they are added to .gitignore
+
+
+```
+
+### Before every release:
+
+**Manually:**
+*(replace "philipplgh-ethpkg-0.2.0.tgz" with your module name)*
+```
+// 1.) pack before uploading it:
+$ npm pack
+
+// 2.) sign the packed npm module:
+$ ethpkg sign philipplgh-ethpkg-0.2.0.tgz code-signing-key.json --overwrite true
+
+// (optionally) verify:
+$ ethpkg verify philipplgh-ethpkg-0.2.0.tgz
+>> √ package contents passed integrity checks and are signed by [0xe69c103f6fdc766459d1a1436c3a36518006867b]
+
+// 3.) publish
+$ npm publish philipplgh-ethpkg-0.2.0.tgz
+
+// 4.) profit
+```
+
+**NPM script:**
+```
+TODO
 ```
 
 
@@ -66,7 +100,9 @@ Before we can start to sign packages we need to generate keys. There are multipl
 
 ## CLI
 
-`TODO`
+```
+$ ethpkg keys new [alias | file name]
+```
 
 ## Metamask
 [Setup Metamask](https://youtu.be/ZIGUC9JAAw8?t=10) and create a dedicated code signing account.
@@ -127,6 +163,12 @@ Therefore, you should not use the key for any financial transactions and ideally
 ### Geth Keystore Files
 [![demo](https://asciinema.org/a/33CTRh5trTuf1sxPA7pEb9Txy.svg)](https://asciinema.org/a/33CTRh5trTuf1sxPA7pEb9Txy?autoplay=1)
 
+## Within CI Workflows
+
+```
+TODO
+```
+
 ## Using External Signers
 
 #### Clef
@@ -153,9 +195,6 @@ TODO
 TODO
 ```
 
-# NPM Modules
-
-
 # Verify Packages
 
 ## NPM Package
@@ -170,6 +209,9 @@ ethpkg verify [module file name here]
 
 ## Hosted Package
 
+```
+TODO
+```
 
 # Issue Self-Signed Certificates
 
