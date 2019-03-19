@@ -31,7 +31,7 @@ const calculateDigests = async (entries : Array<IPackageEntry>, alg = 'sha512') 
     const { relativePath, file } = entry
     if(file.isDir){continue}
     // skip META DIR contents
-    if(relativePath.startsWith(META_DIR)){continue}
+    if(relativePath.includes(META_DIR)){continue}
     const decompressedData = await file.readContent("nodebuffer")
     const checksum = shasum(decompressedData, alg)
     digests[alg][relativePath] = checksum
@@ -42,8 +42,17 @@ const calculateDigests = async (entries : Array<IPackageEntry>, alg = 'sha512') 
 const compareDigests = (digestsFile: Digests, calculatedDigests: Digests) => {
   let checksumsFile = digestsFile['sha512']
   let checksumsCalc = calculatedDigests['sha512']
-  if(Object.keys(checksumsCalc).length !== Object.keys(checksumsFile).length){
-    throw new Error('package contains more files than checksums')
+
+  let filesCalc = Object.keys(checksumsCalc)
+  let filesCheck =  Object.keys(checksumsFile)
+  if (filesCalc.length !== filesCheck.length)
+  {
+    
+    let difference = filesCalc
+                 .filter(x => !filesCheck.includes(x))
+                 .concat(filesCheck.filter(x => !filesCalc.includes(x)))
+
+    throw new Error(`package contains more files than checksums: \n${difference.join('\n')} \n\n`)
   }
   for (const prop in checksumsCalc) {
     if(checksumsFile[prop] !== checksumsCalc[prop]){
@@ -180,13 +189,14 @@ const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any)
 
 const getSignaturesFromPackage = async (pkg : IPackage, address? : string) => {
   if (address) {
-    const sig = await pkg.getEntry(await signaturePath(address, pkg))
+    const _signaturePath = await signaturePath(address, pkg)
+    const sig = await pkg.getEntry(_signaturePath)
     if(!sig){
       return []
     }
     return [ sig ]
   }
-  const signatures = (await pkg.getEntries()).filter((pkgEntry : IPackageEntry) => pkgEntry.relativePath.startsWith(SIGNATURE_PREFIX))
+  const signatures = (await pkg.getEntries()).filter((pkgEntry : IPackageEntry) => pkgEntry.relativePath.includes(SIGNATURE_PREFIX))
   return signatures
 }
 
