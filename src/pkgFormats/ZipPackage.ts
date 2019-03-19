@@ -17,11 +17,6 @@ export default class ZipPackage implements IPackage {
     this.zip = await JSZip.loadAsync(buf)
   }
 
-  loadBufferSync(buf : Buffer) {
-    // @ts-ignore
-    this.zip = JSZip.load(buf)
-  }
-
   async getEntries() : Promise<Array<IPackageEntry>>{
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
