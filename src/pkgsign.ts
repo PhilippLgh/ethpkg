@@ -77,9 +77,22 @@ const formatAddressHex = (address : string) => {
   return address
 }
 
-const signaturePath = (address : string) => {
+const isNPM = async (pkg : IPackage) => {
+  const packageJson= await pkg.getEntry('package/package.json')
+  return packageJson != null
+}
+
+const signaturePath = async (address : string, pkg : IPackage) => {
   address = formatAddressHex(address)
-  return `${META_DIR}/_sig_${address}.json`
+  const shouldPrefix = await isNPM(pkg)
+  let prefixNpm = (shouldPrefix ? 'package/' : '')
+  return `${prefixNpm + META_DIR}/_sig_${address}.json`
+}
+
+const checksumsPath = async (pkg : IPackage) => {
+  const shouldPrefix = await isNPM(pkg)
+  let prefixNpm = (shouldPrefix ? 'package/' : '')
+  return `${prefixNpm + META_DIR}/_checksums.json`
 }
 
 const recoverAddress = async (signatureObj : any) => {
@@ -167,7 +180,7 @@ const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any)
 
 const getSignaturesFromPackage = async (pkg : IPackage, address? : string) => {
   if (address) {
-    const sig = await pkg.getEntry(signaturePath(address))
+    const sig = await pkg.getEntry(await signaturePath(address, pkg))
     if(!sig){
       return []
     }
@@ -215,7 +228,7 @@ export default class pkgsign {
     1.  Create the content to be used as the JWS Payload.
     */
     const payload = await createPayload(pkg)
-    await pkg.addEntry(`${META_DIR}/_checksums.json`, JSON.stringify(payload.data, null, 2));
+    await pkg.addEntry(await checksumsPath(pkg), JSON.stringify(payload.data, null, 2));
 
     // sign payload according to RFC7515 Section 5.1
     const header = {
@@ -239,7 +252,8 @@ export default class pkgsign {
       return
     }
 
-    await pkg.addEntry(`${signaturePath(address)}`, JSON.stringify(flattenedJwsSerialization, null, 2))
+    const _signaturePath = await signaturePath(address, pkg)
+    await pkg.addEntry(_signaturePath, JSON.stringify(flattenedJwsSerialization, null, 2))
 
     if (pkgPathOut) {
       await pkg.writePackage(pkgPathOut)
