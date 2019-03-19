@@ -121,20 +121,41 @@ export default class TarPackage implements IPackage {
     // prepare compression
     const gzip = zlib.createGzip()
 
+    let wasOverwritten = false
+
     extract.on('entry', (header : any, stream : any, next : any) => {
-      // write the unmodified entry to the pack stream
-      let entry = pack.entry(header, next)
-      stream.pipe(entry)
+      let { name } = header
+      const { size, type} = header
+      // apparently a tar can contain multiple
+      // files with the same name / relative path
+      // in order to avoid duplicates we must overwrite existing entries
+      if(name === relativePath) {
+        wasOverwritten = true
+        let entry = pack.entry({ name }, content)
+        entry.end()
+        stream.on('end', function() {
+          console.log('end')
+          next() // ready for next entry
+        })
+        stream.resume() // just auto drain the stream
+      } else {
+        // write the unmodified entry to the pack stream
+        stream.pipe(pack.entry(header, next))
+      }
     });
 
     extract.on('finish', function() {
       // add new entries here:
-      let entry = pack.entry({ name: relativePath }, content)
-      // all entries done - lets finalize it
-      entry.on('finish', () => {
+      if(!wasOverwritten) {
+        let entry = pack.entry({ name: relativePath }, content)
+        // all entries done - lets finalize it
+        entry.on('finish', () => {
+          pack.finalize()
+        })
+        entry.end()
+      } else {
         pack.finalize()
-      })
-      entry.end()
+      }
     })
 
     // read input
