@@ -6,6 +6,7 @@ import { getKeystorePath, getPrivateKeyFromKeystore } from '../../util';
 import { startTask, succeed, failed, progress } from '../task'
 
 import { prompt } from 'enquirer'
+import { getUserFilePath } from './InputFilepath';
 
 const listKeys = () => {
   const keystore = getKeystorePath()
@@ -29,17 +30,51 @@ const questionKeySelect = (keys: any) => [{
   result(value: string): any {
     return this.choices.find((choice: any) => choice.name === value)
   }
-}];
+}]
+
+const questionKeyTypeSelect = () => [{
+  type: 'select',
+  name: 'selectedKeyType',
+  message: `How is the key stored?`,
+  initial: '',
+  choices: [
+    { name: `Keystore`, message: 'Keystore' },
+    { name: `Keyfile`, message: 'Keyfile' }
+  ]
+}]
+
+export const getKeyFilePath = async () => {
+  const { selectedKeyType }: any = await prompt(questionKeyTypeSelect())
+  let keyFilePath = await getUserFilePath('Path to keyfile used for signing')
+  console.log(' key is stored in', selectedKeyType)
+  return keyFilePath
+}
 
 export const getPrivateKeyFromEthKeystore = async () => {
   const keys = listKeys()
   const { selectedKey }: any = await prompt(questionKeySelect(keys))
   const { keyFile, file } = selectedKey
 
+  return getPrivateKeyFromEthKeyfile(keyFile, file)
+}
+
+export const getPrivateKeyFromEthKeyfile = async (keyFile : string, fileName? : string) => {
+
+  if(!path.isAbsolute(keyFile)) {
+    keyFile = path.join(process.cwd(), keyFile)
+  }
+
+  if(!fs.existsSync(keyFile)) {
+    failed('keyfile does not exist')
+    return
+  }
+
+  fileName = fileName || path.basename(keyFile)
+
   const questionKeyPassword = {
     type: 'password',
     name: 'keyFilePassword',
-    message: `Enter password to unlock "${file}"`
+    message: `Enter password to unlock "${fileName}"`
   };
 
   const { keyFilePassword } = await prompt(questionKeyPassword)

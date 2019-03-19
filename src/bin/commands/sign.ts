@@ -7,8 +7,9 @@ import { Command, command, param, Options, option } from 'clime'
 import { pkgsign, util } from '../..';
 import { getUserFilePath } from '../lib/InputFilepath';
 import { getSingingMethod, SIGNING_METHOD, getPrivateKey, getExternalSigner } from '../lib/signFlow';
+import { getPrivateKeyFromEthKeyfile, getKeyFilePath } from '../lib/EthKeystore';
 
-const signFile = async (inputFilePath : string, privateKey : Buffer) => {
+const signFile = async (inputFilePath : string, privateKey : Buffer, inplace = false) => {
   startTask('Signing file')
   const pkg = await pkgsign.sign(inputFilePath, privateKey)
   if(pkg) {
@@ -20,13 +21,16 @@ const signFile = async (inputFilePath : string, privateKey : Buffer) => {
       const pkgPathOut = `${dirname}/${basename}_signed${ext}`
       return pkgPathOut
     }
-    const outPath = buildOutpath(inputFilePath)
-    await pkg.write(outPath)
+    const outPath = inplace ? inputFilePath : buildOutpath(inputFilePath)
+    await pkg.writePackage(outPath)
     succeed(`Signed package written to "${outPath}"`)
+  } else {
+    failed(`Package could not be signed`)
   }
 }
 
-export const startSignFlow = async (inputPath: string) => {
+export const startSignFlow = async (inputPath: string, keyFilePath? : string) => {
+
   const selectedSigningMethod = await getSingingMethod(inputPath)
   switch (selectedSigningMethod) {
     case SIGNING_METHOD.PRIVATE_KEY: {
@@ -45,6 +49,20 @@ export const startSignFlow = async (inputPath: string) => {
     }
   }
 }
+
+export class SomeOptions extends Options {
+  @option({
+    flag: 't',
+    description: 'WARNING: will overwite package contents',
+  })
+  timeout: number = 0;
+
+  // You can also create methods and properties.
+  get timeoutInSeconds(): number {
+    return this.timeout / 1000;
+  }
+}
+
 @command({
   description: 'sign a package',
 })
@@ -55,17 +73,44 @@ export default class extends Command {
       description: 'path to zip or tarball',
       required: false,
     })
-    inputPath?: string
+    inputPath?: string,
+    @param({
+      name: 'key file',
+      description: 'path to key file',
+      required: false,
+    })
+    keyFilePath?: string,
+    options?: SomeOptions,
   ) {
 
     if (!inputPath) {
       inputPath = await getUserFilePath('Which zip / tar file do you want to sign?')
     }
     if (!inputPath) {
+      console.log('>> input path was not provided')
       return
     }
+    if(!path.isAbsolute(inputPath)) {
+      inputPath = path.join(process.cwd(), inputPath)
+      if(!fs.existsSync(inputPath)) {
+        console.log('>> package not found')
+        return
+      }
+    }
 
-    await startSignFlow(inputPath)
+    console.log('options', options)
+    let inplace = false
+    
+    if (keyFilePath) {
+      const privateKey = await getPrivateKeyFromEthKeyfile(keyFilePath)
+      if (!privateKey) {
+        console.log('>> private key not valid or not able to parse')
+        return
+      }
+      return await signFile(inputPath, privateKey, inplace)
+    }
+
+    await startSignFlow(inputPath, keyFilePath)
 
   }
 }

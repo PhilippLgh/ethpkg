@@ -1,7 +1,8 @@
 import * as fs from 'fs'
+import * as path from 'path'
 import { util } from '../..';
 import { prompt } from 'enquirer'
-import { getPrivateKeyFromEthKeystore } from './EthKeystore';
+import { getPrivateKeyFromEthKeystore, getPrivateKeyFromEthKeyfile } from './EthKeystore';
 import { getPrivateKeyFromPemFile } from './PEMFile';
 
 export const SIGNING_METHOD: { [index: string]: string } = {
@@ -11,6 +12,7 @@ export const SIGNING_METHOD: { [index: string]: string } = {
 
 export const KEY_STORAGE: { [index: string]: string } = {
   'ETH': 'Ethereum Keystore',
+  'ETH_KEYFILE': 'Ethereum Keyfile',
   'PEM': 'PEM File'
 }
 
@@ -38,6 +40,7 @@ export const getKeyLocation = async () => {
     initial: 0,
     choices: [
       { name: `${KEY_STORAGE.ETH}`, message: 'Geth Keystore' },
+      { name: `${KEY_STORAGE.ETH_KEYFILE}`, message: 'Eth Keyfile' },
       { name: `${KEY_STORAGE.PEM}`, message: 'PEM File' }
     ]
   }];
@@ -69,6 +72,12 @@ export const getPrivateKey = async () => {
   switch (keyLocation) {
     case KEY_STORAGE.ETH: {
       const privateKey = await getPrivateKeyFromEthKeystore()
+      return {
+        privateKey
+      }
+    }
+    case KEY_STORAGE.ETH_KEYFILE: {
+      const privateKey = null // await getPrivateKeyFromEthKeyfile()
       return {
         privateKey
       }
