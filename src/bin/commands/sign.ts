@@ -52,15 +52,10 @@ export const startSignFlow = async (inputPath: string, keyFilePath? : string) =>
 
 export class SomeOptions extends Options {
   @option({
-    flag: 't',
+    flag: 'o',
     description: 'WARNING: will overwite package contents',
   })
-  timeout: number = 0;
-
-  // You can also create methods and properties.
-  get timeoutInSeconds(): number {
-    return this.timeout / 1000;
-  }
+  overwrite: boolean = false;
 }
 
 @command({
@@ -98,8 +93,7 @@ export default class extends Command {
       }
     }
 
-    console.log('options', options)
-    let inplace = false
+    const inplace = options && options.overwrite
     
     if (keyFilePath) {
       const privateKey = await getPrivateKeyFromEthKeyfile(keyFilePath)

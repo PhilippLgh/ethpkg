@@ -32,21 +32,8 @@ const questionKeySelect = (keys: any) => [{
   }
 }]
 
-const questionKeyTypeSelect = () => [{
-  type: 'select',
-  name: 'selectedKeyType',
-  message: `How is the key stored?`,
-  initial: '',
-  choices: [
-    { name: `Keystore`, message: 'Keystore' },
-    { name: `Keyfile`, message: 'Keyfile' }
-  ]
-}]
-
 export const getKeyFilePath = async () => {
-  const { selectedKeyType }: any = await prompt(questionKeyTypeSelect())
-  let keyFilePath = await getUserFilePath('Path to keyfile used for signing')
-  console.log(' key is stored in', selectedKeyType)
+  const keyFilePath = await getUserFilePath('Path to keyfile used for signing')
   return keyFilePath
 }
 
@@ -58,7 +45,16 @@ export const getPrivateKeyFromEthKeystore = async () => {
   return getPrivateKeyFromEthKeyfile(keyFile, file)
 }
 
-export const getPrivateKeyFromEthKeyfile = async (keyFile : string, fileName? : string) => {
+export const getPrivateKeyFromEthKeyfile = async (keyFile? : string, fileName? : string) => {
+
+  if(!keyFile) {
+    keyFile = await getKeyFilePath()
+  }
+
+  if(!keyFile){
+    failed('keyfile path was not provided')
+    return null
+  }
 
   if(!path.isAbsolute(keyFile)) {
     keyFile = path.join(process.cwd(), keyFile)

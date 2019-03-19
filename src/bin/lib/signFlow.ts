@@ -77,7 +77,7 @@ export const getPrivateKey = async () => {
       }
     }
     case KEY_STORAGE.ETH_KEYFILE: {
-      const privateKey = null // await getPrivateKeyFromEthKeyfile()
+      const privateKey = await getPrivateKeyFromEthKeyfile()
       return {
         privateKey
       }
