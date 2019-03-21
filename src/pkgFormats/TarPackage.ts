@@ -11,16 +11,23 @@ export default class TarPackage implements IPackage {
   private isGzipped: boolean;
   tarbuf?: Buffer;
 
-  constructor(packagePath : string, compressed = true) {
-    this.packagePath = packagePath
+  constructor(packagePath? : string, compressed = true) {
+    this.packagePath = packagePath || ''
     this.isGzipped = compressed
   }
   loadBuffer(buf: Buffer): Promise<void> {
-    throw new Error("Method not implemented.");
+    this.tarbuf = buf
+    return Promise.resolve()
+  }
+  private getReadStream() {
+    if(this.tarbuf) {
+      return bufferToStream(this.tarbuf)
+    } else {
+      return fs.createReadStream(this.packagePath, {highWaterMark: Math.pow(2,16)})
+    }
   }
   private async getEntryData(entryPath : string) : Promise<Buffer> {
-    const gzip = zlib.createGunzip()
-    const inputStream = fs.createReadStream(this.packagePath)
+    const inputStream = this.getReadStream()
     const extract = tar.extract()
     return new Promise((resolve, reject) => {
       extract.on('entry', async (header : any, stream : any, next : any) => {
@@ -51,7 +58,7 @@ export default class TarPackage implements IPackage {
     });
   }
   async getEntries(): Promise<IPackageEntry[]> {
-    const inputStream = fs.createReadStream(this.packagePath, {highWaterMark: Math.pow(2,16)})
+    const inputStream = this.getReadStream()
     const extract = tar.extract()
     return new Promise((resolve, reject) => {
       const entries : IPackageEntry[] = []
@@ -108,11 +115,7 @@ export default class TarPackage implements IPackage {
     // prepare in / out streams
     let inputStream
     // if tarbuf exists use instead of org file or it would overwite intermediate changes
-    if(this.tarbuf) {
-      inputStream = bufferToStream(this.tarbuf)
-    } else {
-      inputStream = fs.createReadStream(this.packagePath, {highWaterMark: Math.pow(2,16)})
-    }
+    inputStream = this.getReadStream()
 
     // 
     const pack = tar.pack() // pack is a streams2 stream

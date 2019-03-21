@@ -5,6 +5,8 @@ import { IPackage, IPackageEntry } from './IPackage'
 import ZipPackage from './ZipPackage'
 import TarPackage from './TarPackage'
 
+import fileType from 'file-type'
+
 // @ts-ignore
 const excludedFiles = e => !/\.zip$/.test(e)
 
@@ -66,10 +68,22 @@ export class pkg {
       }
     }
     else if(Buffer.isBuffer(pkgSrc)) {
-      // FIXME handle tar buffers
-      const zip = new ZipPackage()
-      await zip.loadBuffer(pkgSrc)
-      return zip
+      const bufferType = fileType(pkgSrc)
+      if (!bufferType) {
+        throw new Error('bad input buffer')
+      }
+      if(bufferType.mime === 'application/gzip') {
+        const tar = new TarPackage()
+        await tar.loadBuffer(pkgSrc)
+        return tar
+      }
+      else if (bufferType.mime === 'application/zip') {
+        const zip = new ZipPackage()
+        await zip.loadBuffer(pkgSrc)
+        return zip
+      } else {
+        throw new Error('unsupported input buffer'+bufferType.mime)
+      }
     } else {
       throw new Error('unsupported input type for package')
     }
