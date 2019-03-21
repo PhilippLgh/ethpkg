@@ -10,6 +10,7 @@ import base64url from 'base64url'
 import IExternalSigner from './IExternalSigner'
 import { IVerificationResult } from './IVerificationResult'
 import { pkg as ethpkg } from './pkgFormats/pkg'
+import { downloadNpmPackage } from './util';
 
 const META_DIR = '_META_'
 const SIGNATURE_PREFIX = `${META_DIR}/_sig`
@@ -200,10 +201,30 @@ const getSignaturesFromPackage = async (pkg : IPackage, address? : string) => {
   return signatures
 }
 
-const VERIFICATION_ERRORS = {
+const VERIFICATION_ERRORS : any = {
   UNSIGNED: 0,
   UNSIGNED_BY: 1,
   BAD_PACKAGE: 2,
+  PACKAGE_DOWNLOAD: 3,
+}
+
+const VERIFICATION_ERROR_MESSAGES : any = {} 
+VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.UNSIGNED] = `package is unsigned. (signatures missing or not parsable)`
+VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.UNSIGNED_BY] = `package does not contain a signature for `
+VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.BAD_PACKAGE] = `could not find or load package`
+VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.PACKAGE_DOWNLOAD] = `could not download package`
+
+
+const verificationError = (errorCode : number, val = '') : IVerificationResult => {
+  return {
+    signers: [],
+    isValid: false,
+    isTrusted: false,
+    error: {
+      code: errorCode,
+      message: `${VERIFICATION_ERROR_MESSAGES[errorCode]} ${val}`
+    }
+  }
 }
 
 export default class pkgsign {
@@ -286,44 +307,18 @@ export default class pkgsign {
       try {
         pkg = await this.loadPackage(pkgSrc)
       } catch (error) {
-        console.log('could not find or load package')
-        return {
-          signers: [],
-          isValid: false,
-          isTrusted: false,
-          error: {
-            code: VERIFICATION_ERRORS.BAD_PACKAGE,
-            message: `could not find or load package`
-          }
-        }
+        return verificationError(VERIFICATION_ERRORS.BAD_PACKAGE)
       }
     }
-
 
     const signatures = await getSignaturesFromPackage(pkg, addressOrEnsName)
 
     if (addressOrEnsName && signatures.length <= 0) {  // signature not found
-      return {
-        signers: [],
-        isValid: false,
-        isTrusted: false,
-        error: {
-          code: VERIFICATION_ERRORS.UNSIGNED_BY,
-          message: `package does not contain a signature for ${addressOrEnsName}`
-        }
-      }
+      return verificationError(VERIFICATION_ERRORS.UNSIGNED_BY, addressOrEnsName) 
     }
 
     if (signatures.length === 0) {
-      return {
-        signers: [],
-        isValid: false,
-        isTrusted: false,
-        error: {
-          code: VERIFICATION_ERRORS.UNSIGNED,
-          message: `package is unsigned. (signatures missing or not parsable)`
-        }
-      }
+      return verificationError(VERIFICATION_ERRORS.UNSIGNED)
     }
 
     const payloadPkg = await createPayload(pkg)
@@ -361,4 +356,18 @@ export default class pkgsign {
     
   }
 
+
+  static async verifyNpm(pkgName : string, addressOrEnsName? : string) : Promise<IVerificationResult> {
+    try {      
+      let pkgPath = await downloadNpmPackage(pkgName)
+      if (!pkgPath) {
+        return verificationError(VERIFICATION_ERRORS.BAD_PACKAGE)
+      }
+
+      return this.verify(pkgPath, addressOrEnsName)
+
+    } catch (error) {
+      return verificationError(VERIFICATION_ERRORS.PACKAGE_DOWNLOAD)
+    }
+  }
 }

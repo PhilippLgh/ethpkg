@@ -109,9 +109,10 @@ export const getPrivateKeyFromPEM = (inputPath: string) => {
   return privateKey
 }
 
-function runScript (scriptName : string, scriptArgs : any, cwd? : any) {
-  let scriptCommand = `${scriptName} ${scriptArgs.join(' ')}`
-  let scriptOptions = {
+async function runScript (scriptName : string, scriptArgs : any, cwd? : any) {
+  const scriptCommand = `${scriptName} ${scriptArgs.join(' ')}`
+  const scriptOptions = {
+    stdio: [null, null, null], // mute in and outputs
     encoding: 'UTF-8'
   }
   if (cwd) {
@@ -119,18 +120,25 @@ function runScript (scriptName : string, scriptArgs : any, cwd? : any) {
     scriptOptions.cwd = cwd
   }
   try {
-    const execSync = require('child_process').execSync
-    execSync(scriptCommand, scriptOptions)
-    return Promise.resolve()
+    const util = require('util')
+    const exec = util.promisify(require('child_process').exec)
+    const { stdout } =  await exec(scriptCommand, scriptOptions)
+    return stdout
   } catch (err) {
     console.log(`Error running ${scriptName}`, err)
     Promise.reject()
-    process.exit(1)
   }
 }
 
-export const downloadNpmPackage = async () => {
-  await runScript('npm pack @philipplgh/electron-app-updater', [])
+export const downloadNpmPackage = async (moduleName : string) => {
+  try {
+    let filename = await runScript(`npm pack ${moduleName}`, [])
+    filename = filename.trim() // can contain lf,\n etc
+    const filePathFull = path.join(process.cwd(), filename)
+    return filePathFull
+  } catch (error) {
+    return null
+  }
 }
 
 class WritableMemoryStream extends stream.Writable {
