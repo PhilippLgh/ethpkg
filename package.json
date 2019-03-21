@@ -1,6 +1,6 @@
 {
   "name": "@philipplgh/ethpkg",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "",
   "main": "./dist/index.js",
   "bin": {
@@ -11,7 +11,8 @@
     "static-files": "copyfiles src/signer/eth/metamask/public/index.html -u 1 dist/",
     "copy-build": "yarn static-files && tsc -p ./tsconfig.json",
     "build": "tsc -p ./tsconfig.json",
-    "start": "node ./dist/index.js"
+    "start": "node ./dist/index.js",
+    "publish": "npm pack && ethpkg sign"
   },
   "repository": {
     "type": "git",

@@ -109,7 +109,28 @@ export const getPrivateKeyFromPEM = (inputPath: string) => {
   return privateKey
 }
 
-async function runScript (scriptName : string, scriptArgs : any, cwd? : any) {
+
+export function runScriptSync (scriptName : string, scriptArgs : any, cwd? : any) {
+  const scriptCommand = `${scriptName} ${scriptArgs.join(' ')}`
+  const scriptOptions = {
+    stdio: ['inherit', 'inherit', 'inherit'],
+    // stdio: [null, null, null], // mute in and outputs
+    encoding: 'UTF-8'
+  }
+  if (cwd) {
+    // @ts-ignore
+    scriptOptions.cwd = cwd
+  }
+  try {
+    const exec = require('child_process').execSync
+    const result = exec(scriptCommand, scriptOptions)
+    return result
+  } catch (err) {
+    console.log(`Error running ${scriptName}`, err)
+  }
+}
+
+export async function runScript (scriptName : string, scriptArgs : any, cwd? : any) {
   const scriptCommand = `${scriptName} ${scriptArgs.join(' ')}`
   const scriptOptions = {
     stdio: [null, null, null], // mute in and outputs

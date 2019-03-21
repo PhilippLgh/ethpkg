@@ -65,9 +65,19 @@ $ ethpkg key new "project name"
 
 ```
 
-### Before every release:
+**NPM script:**
 
-**Manually:**
+Add to the package.json scripts:
+
+```
+"publish": "npm pack && ethpkg sign"
+```
+
+And publish with (!):
+`npm run publish` instead of `npm publish`
+
+
+**Manually instead of `npm publish`:**
 *(replace "philipplgh-ethpkg-0.2.0.tgz" with your module name)*
 ```
 // 1.) pack before uploading it:
@@ -84,11 +94,6 @@ $ ethpkg verify philipplgh-ethpkg-0.2.0.tgz
 $ npm publish philipplgh-ethpkg-0.2.0.tgz
 
 // 4.) profit
-```
-
-**NPM script:**
-```
-TODO
 ```
 
 
@@ -200,8 +205,7 @@ TODO
 ## NPM Package
 
 ```
-npm pack [module name here]
-ethpkg verify [module file name here]
+$ ethpkg verify @philipplgh/ethpkg
 ```
 
 ## Local Package

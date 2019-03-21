@@ -8,6 +8,7 @@ import { pkgsign, util } from '../..';
 import { getUserFilePath } from '../lib/InputFilepath';
 import { getSingingMethod, SIGNING_METHOD, getPrivateKey, getExternalSigner } from '../lib/signFlow';
 import { getPrivateKeyFromEthKeyfile, getKeyFilePath } from '../lib/EthKeystore';
+import { runScriptSync } from '../../util'
 
 const signFile = async (inputFilePath : string, privateKey : Buffer, inplace = false) => {
   startTask('Signing file')
@@ -78,6 +79,26 @@ export default class extends Command {
     options?: SomeOptions,
   ) {
 
+    const pkgJsonPath = path.join(process.cwd(), 'package.json')
+    let npmPackageFlow = false
+    let pkgFileName = ''
+    
+    // used as script after `npm pack`
+    if (!inputPath) {
+      if (fs.existsSync(pkgJsonPath)) {
+        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'))
+        let {name: pkgName, version: pkgVersion} = pkgJson
+        pkgName = pkgName.replace('@', '')
+        pkgName = pkgName.replace('/', '-')
+        pkgFileName = `${pkgName}-${pkgVersion}.tgz`
+        if(fs.existsSync(pkgFileName)) {
+          console.log('INFO: no input file specified but npm package found')
+          inputPath = pkgFileName
+          npmPackageFlow = true
+        }
+      }
+    }
+
     if (!inputPath) {
       inputPath = await getUserFilePath('Which zip / tar file do you want to sign?')
     }
@@ -93,18 +114,44 @@ export default class extends Command {
       }
     }
 
-    const inplace = options && options.overwrite
-    
+
+    if (!keyFilePath && npmPackageFlow) {
+      // TODO better default name
+      const DEFAULT_KEY = 'code-sign-key.json'
+      if(fs.existsSync(DEFAULT_KEY)) {
+        console.log('INFO: no key file specified but default key found')
+        keyFilePath = DEFAULT_KEY
+      }
+    }
+
+    let inplace = options && options.overwrite
+    if (npmPackageFlow) {
+      inplace = true
+    }
+
+
     if (keyFilePath) {
       const privateKey = await getPrivateKeyFromEthKeyfile(keyFilePath)
       if (!privateKey) {
         console.log('>> private key not valid or not able to parse')
         return
       }
-      return await signFile(inputPath, privateKey, inplace)
+      const res = await signFile(inputPath, privateKey, inplace)
+
+      if (npmPackageFlow) {
+        try {
+          runScriptSync('npm publish', [pkgFileName])
+        } catch (error) {
+          console.error(error)
+        }
+        fs.unlinkSync(pkgFileName)
+      }
+
+      return res
     }
 
     await startSignFlow(inputPath, keyFilePath)
+
 
   }
 }
