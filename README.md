@@ -14,7 +14,7 @@
   <br>
 </p>
 
-[![Ethereum Signed Package](https://nevmuy1rhk.execute-api.us-east-1.amazonaws.com/dev/badge/npm/@philipplgh/ethpkg)](https://github.com/PhilippLgh/ethereum-signed-packages)
+[![Ethereum Signed Package](https://nevmuy1rhk.execute-api.us-east-1.amazonaws.com/dev/badge/npm/@philipplgh/ethpkg?x=1)](https://github.com/PhilippLgh/ethereum-signed-packages)
 
 (ethpkg was used to sign itself - 🤯)
 
