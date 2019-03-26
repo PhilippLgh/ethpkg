@@ -14,6 +14,9 @@
   <br>
 </p>
 
+
+**Sign packages or npm modules with Ethereum keys and get a badge for your readme:**
+
 [![Ethereum Signed Package](https://nevmuy1rhk.execute-api.us-east-1.amazonaws.com/dev/badge/npm/@philipplgh/ethpkg?x=2)](https://github.com/PhilippLgh/ethereum-signed-packages)
 
 (ethpkg was used to sign itself - 🤯)
