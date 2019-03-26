@@ -57,6 +57,11 @@ export class SomeOptions extends Options {
     description: 'WARNING: will overwite package contents',
   })
   overwrite: boolean = false;
+  @option({
+    flag: 'p',
+    description: 'will trigger npm publish if a signed tarball is found',
+  })
+  publish: boolean = false;
 }
 
 @command({
@@ -82,7 +87,7 @@ export default class extends Command {
     const pkgJsonPath = path.join(process.cwd(), 'package.json')
     let npmPackageFlow = false
     let pkgFileName = ''
-    
+
     // used as script after `npm pack`
     if (!inputPath) {
       if (fs.existsSync(pkgJsonPath)) {
@@ -114,7 +119,6 @@ export default class extends Command {
       }
     }
 
-
     if (!keyFilePath && npmPackageFlow) {
       // TODO better default name
       const DEFAULT_KEY = 'code-sign-key.json'
@@ -129,7 +133,6 @@ export default class extends Command {
       inplace = true
     }
 
-
     if (keyFilePath) {
       const privateKey = await getPrivateKeyFromEthKeyfile(keyFilePath)
       if (!privateKey) {
@@ -138,7 +141,7 @@ export default class extends Command {
       }
       const res = await signFile(inputPath, privateKey, inplace)
 
-      if (npmPackageFlow) {
+      if (npmPackageFlow && (options && options.publish === true)) {
         try {
           runScriptSync('npm publish', [pkgFileName])
         } catch (error) {

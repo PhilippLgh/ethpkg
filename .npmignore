@@ -25,9 +25,11 @@ spec/
 example/
 .gitignore
 .editorconfig
-circle.yml
+.circleci/
 setup.sh
 Gruntfile.js
 tslint.json
 
 npm-debug.log
+
+code-sign-key.json

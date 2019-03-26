@@ -91,11 +91,6 @@ $ npm publish philipplgh-ethpkg-0.2.0.tgz
 
 If you want to display the signing status of your project on GitHub, you can use the following Markdown:
 
-```
-[![pkgsign status](https://us-central1-pkgsign.cloudfunctions.net/pkgsign-badge?name={name}&expectedIdentity={identity})](https://github.com/RedpointGames/pkgsign)
-```
-
-Replace `{name}` with the URL encoded package name on NPM, and `{identity}` with the URL encoded form of either `@name` for keybase.io identities, or the URL encoded form of the HTTPS URL for PGP identities.
 
 ***
 
