@@ -1,7 +1,7 @@
 {
   "name": "@philipplgh/ethpkg",
   "version": "0.2.2",
-  "description": "",
+  "description": "Sign your packages using crypto currency keys",
   "main": "./dist/index.js",
   "bin": {
     "ethpkg": "./dist/bin/ethpkg.js"
