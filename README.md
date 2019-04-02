@@ -94,6 +94,15 @@ $ npm publish philipplgh-ethpkg-0.2.0.tgz
 
 If you want to display the signing status of your project on GitHub, you can use the following Markdown:
 
+```
+[![ethpkg status](http://api.ethpkg.org/badge/:service/:author/:name)](https://github.com/PhilippLgh/ethereum-signed-packages)
+```
+
+The badge generator can currently verify packages hosted on NPM or GitHub (releases).
+To verify a package that is hosted e.g. on NPM or GitHub replace the `:service`, `:author`, and `:name` part of the url with the desired package info. For GitHub releases `:author` would be the repository owner and `:name` the repository name.
+
+**Example:** For the package `@philipplgh/ethpkg` (this package) the corresponding url is:
+`http://api.ethpkg.org/badge/npm/@philipplgh/ethpkg`
 
 ***
 
