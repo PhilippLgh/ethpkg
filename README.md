@@ -31,7 +31,7 @@ Open source developers already have too much on their plate and are not gaining 
 
 This project aims to change that: 
 
-**Package authors / developers** sign their modules to signal others that they care about security and to build up reputation. Signed modules become self-contained and portable. The delivery, authorship and security aspects are separated allowing modules to be mirrored, licensed, hosted in P2P registries or provided in other (=faster) ways. Packages are signed using cryptocurrency compatible keys so everyone who verifies or validates packages can use the author's address to send crypto.
+**Package authors / developers** sign their modules to signal others that they care about security and to build up reputation. Signed modules become self-contained and portable. The delivery, authorship and security aspects are separated allowing modules to be mirrored, licensed, hosted in P2P registries or provided in other (=faster) ways. Packages are signed using cryptocurrency compatible keys so everyone who verifies or validates packages can use the author's address to donate.
 
 **Projects that depend on secure modules** can express their gratitude for the open source work & extra security by sending package authors crypto currency. This is a win-win situation because it incentivizes development and covers maintenance costs. 
 
