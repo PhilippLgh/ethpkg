@@ -15,7 +15,7 @@
 </p>
 
 
-**Sign packages or npm modules with Ethereum keys and get a badge for your readme:**
+**Sign packages or npm modules with Ethereum keys and receive crypto currency from the community:**
 
 [![ethpkg status](http://api.ethpkg.org/badge/npm/@philipplgh/ethpkg)](https://github.com/PhilippLgh/ethereum-signed-packages)
 
@@ -25,7 +25,21 @@
 # Why?
 [![Watch the video](http://i3.ytimg.com/vi/1lH4q1-Ba0k/hqdefault.jpg)](https://www.youtube.com/watch?v=1lH4q1-Ba0k&t=813)
 
-#### **TL;DW: get paid for open source work while making the ecosystem more secure**
+
+Most Node.js modules and many other packages today are not code signed because the processes, tools or certificates are hard to understand, opaque and expensive.
+Open source developers already have too much on their plate and are not gaining anything from walking this extra mile.
+
+This project aims to change that: 
+
+**Package authors / developers** sign their modules to signal others that they care about security and to build up reputation. Signed modules become self-contained and portable. The delivery, authorship and security aspects are separated allowing modules to be mirrored, licensed, hosted in P2P registries or provided in other (=faster) ways. Packages are signed using cryptocurrency compatible keys so everyone who verifies or validates packages can use the author's address to send crypto.
+
+**Projects that depend on secure modules** can express their gratitude for the open source work & extra security by sending package authors crypto currency. This is a win-win situation because it incentives and supports the development and maintenances. 
+
+All the tools needed for this are free and available in this repository. There are no middleman or donation platforms involved - 100% of the funds sent go to the authors. 
+
+All donations are transparent and traceable. 
+
+Let's make the Internet a better place together! :)
 
 # Installation
 ```
@@ -64,8 +78,10 @@ $ ethpkg key new "<project name here>"
 "publish": "npm pack && ethpkg sign --publish true"
 ```
 
-From now on, publish with (!):
-**`npm run publish`** instead of `npm publish` to sign your releases.
+**Done.** From now on, publish with:
+**`npm run publish`** instead of `npm publish` to sign your releases!
+
+Add a badge to your readme to receive donations or project funding and indicate others that you care about module security.
 
 
 ### Example 2- Sign your NPM packages manually
@@ -88,7 +104,6 @@ $ npm publish philipplgh-ethpkg-0.2.0.tgz
 // 4.) Profit
 // add badge to receive donations
 ```
-
 
 ## Badges
 
