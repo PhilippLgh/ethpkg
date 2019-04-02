@@ -17,9 +17,9 @@
 
 **Sign packages or npm modules with Ethereum keys and get a badge for your readme:**
 
-[![Ethereum Signed Package](https://nevmuy1rhk.execute-api.us-east-1.amazonaws.com/dev/badge/npm/@philipplgh/ethpkg?x=2)](https://github.com/PhilippLgh/ethereum-signed-packages)
+[![ethpkg status](http://api.ethpkg.org/badge/npm/@philipplgh/ethpkg)](https://github.com/PhilippLgh/ethereum-signed-packages)
 
-(ethpkg was used to sign itself - 🤯)
+(ethpkg was used to sign itself 🤯)
 
 
 # Why?
@@ -69,7 +69,7 @@ From now on, publish with (!):
 
 
 ### Example 2- Sign your NPM packages manually
-*(replace "philipplgh-ethpkg-0.2.0.tgz" in thte example with your module name)*
+*(replace "philipplgh-ethpkg-0.2.0.tgz" in the example with your module name)*
 
 ```
 // 1.) pack before uploading it:
@@ -102,7 +102,10 @@ The badge generator can currently verify packages hosted on NPM or GitHub (relea
 To verify a package that is hosted e.g. on NPM or GitHub replace the `:service`, `:author`, and `:name` part of the url with the desired package info. For GitHub releases `:author` would be the repository owner and `:name` the repository name.
 
 **Example:** For the package `@philipplgh/ethpkg` (this package) the corresponding url is:
-`http://api.ethpkg.org/badge/npm/@philipplgh/ethpkg`
+`http://api.ethpkg.org/badge/npm/@philipplgh/ethpkg` and the badge code is:
+```
+[![ethpkg status](http://api.ethpkg.org/badge/npm/@philipplgh/ethpkg)](https://github.com/PhilippLgh/ethereum-signed-packages)
+```
 
 ***
 
