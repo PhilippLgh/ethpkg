@@ -4,11 +4,13 @@ import path from 'path'
 import { startTask, succeed, failed, progress } from '../task'
 
 import { Command, command, param, Options, option } from 'clime'
+import { prompt } from 'enquirer'
+
 import { pkgsign, util } from '../..';
 import { getUserFilePath } from '../lib/InputFilepath';
 import { getSingingMethod, SIGNING_METHOD, getPrivateKey, getExternalSigner } from '../lib/signFlow';
-import { getPrivateKeyFromEthKeyfile, getKeyFilePath } from '../lib/EthKeystore';
-import { runScriptSync } from '../../util'
+import { getPrivateKeyFromEthKeyfile, getKeyFilePath, questionKeySelect, listKeys } from '../lib/EthKeystore';
+import { runScriptSync, getKeystorePath } from '../../util'
 
 const signFile = async (inputFilePath : string, privateKey : Buffer, inplace = false) => {
   startTask('Signing file')
@@ -88,10 +90,12 @@ export default class extends Command {
     let npmPackageFlow = false
     let pkgFileName = ''
 
+    let pkgJson = null 
+
     // used as script after `npm pack`
     if (!inputPath) {
       if (fs.existsSync(pkgJsonPath)) {
-        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'))
+        pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'))
         let {name: pkgName, version: pkgVersion} = pkgJson
         pkgName = pkgName.replace('@', '')
         pkgName = pkgName.replace('/', '-')
@@ -120,11 +124,23 @@ export default class extends Command {
     }
 
     if (!keyFilePath && npmPackageFlow) {
-      // TODO better default name
-      const DEFAULT_KEY = 'code-sign-key.json'
-      if(fs.existsSync(DEFAULT_KEY)) {
-        console.log('INFO: no key file specified but default key found')
-        keyFilePath = DEFAULT_KEY
+      let projectName = pkgJson && pkgJson.name
+      projectName = projectName.replace('@', '')
+      projectName = projectName.replace('/', '-')
+
+      let keyfiles = listKeys()
+      keyfiles = keyfiles.filter(k => k.file.includes(projectName))
+
+      if (keyfiles.length > 1) {
+        // ambiguous keys:
+        let { selectedKey } = await prompt(questionKeySelect(keyfiles))
+        keyFilePath = selectedKey.keyFile
+      } else if (keyfiles.length === 1) {
+        keyFilePath = keyfiles[0].filePathFull
+        console.log('>> keyfile for project auto-detected: '+keyFilePath)
+      } else {
+        console.log('>> keyfile could not be auto-detected')
+        // ignore ?
       }
     }
 

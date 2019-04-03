@@ -1,6 +1,6 @@
 {
   "name": "@philipplgh/ethpkg",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Sign your packages using crypto currency keys",
   "main": "./dist/index.js",
   "bin": {
@@ -12,7 +12,7 @@
     "copy-build": "yarn static-files && tsc -p ./tsconfig.json",
     "build": "tsc -p ./tsconfig.json",
     "start": "node ./dist/index.js",
-    "publish": "npm pack && ethpkg sign"
+    "publish": "npm pack && ethpkg sign --publish true"
   },
   "repository": {
     "type": "git",

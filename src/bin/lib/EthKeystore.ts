@@ -8,7 +8,7 @@ import { startTask, succeed, failed, progress } from '../task'
 import { prompt } from 'enquirer'
 import { getUserFilePath } from './InputFilepath';
 
-const listKeys = () => {
+export const listKeys = () => {
   const keystore = getKeystorePath()
   // TODO we could filter keys here for e.g. a prefix like 'ethpkg' to avoid misuse
   const keyFiles = fs.readdirSync(keystore).map(f => {
@@ -21,7 +21,7 @@ const listKeys = () => {
   return keyFiles
 }
 
-const questionKeySelect = (keys: any) => [{
+export const questionKeySelect = (keys: any) => [{
   type: 'select',
   name: 'selectedKey',
   message: `Which key do you want to use?`,

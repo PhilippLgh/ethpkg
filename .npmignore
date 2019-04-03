@@ -31,5 +31,6 @@ Gruntfile.js
 tslint.json
 
 npm-debug.log
+yarn-error.log
 
 code-sign-key.json

@@ -109,10 +109,6 @@ export default class extends Command {
       outPath = path.join(__dirname, outPath)
     }
 
-    if (!outPath.endsWith('.json')) {
-      outPath += '.json'
-    }
-
     try {
       const result = fs.writeFileSync(outPath, JSON.stringify(keyObject, null, 2))
       succeed('Keyfile generated at '+outPath)
