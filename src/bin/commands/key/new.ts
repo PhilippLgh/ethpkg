@@ -65,7 +65,7 @@ export default class extends Command {
     const keystorePath = getKeystorePath()
     try {      
       if (!fs.existsSync(keystorePath)) {
-        fs.mkdirSync(keystorePath)
+        fs.mkdirSync(keystorePath, { recursive: true })
       }
     } catch (error) {
       failed(task, 'could not find or create keystore: '+ keystorePath)
@@ -108,7 +108,7 @@ export default class extends Command {
     if (!path.isAbsolute(outPath)){
       outPath = path.join(__dirname, outPath)
     }
-    
+
     if (!outPath.endsWith('.json')) {
       outPath += '.json'
     }
