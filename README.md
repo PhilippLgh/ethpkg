@@ -27,17 +27,17 @@
 
 
 Most Node.js modules and many other packages today are not code signed because the processes, tools or certificates are hard to understand, opaque and expensive.
-Open source developers already have too much on their plate and are not gaining anything from walking this extra mile.
+Open source developers are [burning out](https://motherboard.vice.com/en_us/article/43zak3/the-internet-was-built-on-the-free-labor-of-open-source-developers-is-that-sustainable) and are not gaining anything from walking this extra mile.
 
 This project aims to change that: 
 
-**Package authors / developers** sign their modules to signal others that they care about security and to build up reputation. Signed modules become self-contained and portable. The delivery, authorship and security aspects are separated allowing modules to be mirrored, licensed, hosted in P2P registries or provided in other (=faster) ways. Packages are signed using cryptocurrency compatible keys so everyone who verifies or validates packages can use the author's address to donate.
+**Package authors / developers** sign their modules to signal others that they care about security and to build up reputation and can stay anonymous in the process. Signed modules become self-contained and portable. The delivery, authorship and security aspects are separated allowing modules to be mirrored, licensed, hosted in P2P registries or provided in other (=faster) ways. Packages are signed using cryptocurrency compatible keys so everyone who verifies or validates packages can use the author's address to donate or pay for a license.
 
-**Projects that depend on secure modules** can express their gratitude for the open source work & extra security by sending package authors crypto currency. This is a win-win situation because it incentivizes development and covers maintenance costs. 
+**Projects that depend on secure modules** can express their gratitude for the open source work & extra security by sending package authors crypto currency. This is a win-win-win situation because it incentivizes open source development, increases code quality and covers maintenance costs.
 
-All the tools needed for this are free and available in this repository. There are no middleman or donation platforms involved - 100% of the funds sent go to the authors. 
+All the tools needed for this are free and available in this repository. There are no middlemen or donation platforms involved - 100% of the funds sent go to the authors. 
 
-All donations are transparent and traceable. 
+All donations are transparent and traceable.
 
 Let's make the Internet a better place together! :)
 
@@ -72,7 +72,8 @@ version - print version number
 $ yarn global add @philipplgh/ethpkg
 
 2. create project signing key in global keystore
-$ ethpkg key new "<project name here>"
+from project directory containing package.json run:
+$ ethpkg key new
 
 3. Add to the package.json scripts:
 "publish": "npm pack && ethpkg sign --publish true"
