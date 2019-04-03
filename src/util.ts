@@ -11,7 +11,7 @@ const asn1 = require('asn1.js')
 
 const getDefaultDataDir = () => {
   switch (process.platform) {
-    case 'win32': return '%APPDATA%/Ethereum'
+    case 'win32': return `${process.env.APPDATA}/Ethereum`
     case 'linux': return '~/.ethereum'
     case 'darwin': return '~/Library/Ethereum'
     default: return '~/.ethereum'

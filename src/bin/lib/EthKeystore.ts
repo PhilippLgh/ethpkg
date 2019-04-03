@@ -10,7 +10,7 @@ import { getUserFilePath } from './InputFilepath';
 
 const listKeys = () => {
   const keystore = getKeystorePath()
-  // TODO we could filter keys here for e.g. a prefix like 'codesign' to avoid misuse
+  // TODO we could filter keys here for e.g. a prefix like 'ethpkg' to avoid misuse
   const keyFiles = fs.readdirSync(keystore).map(f => {
     return {
       address: '0x' + f.split('--').pop(),
