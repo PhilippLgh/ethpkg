@@ -51,7 +51,7 @@ export const startSignFlow = async (inputPath: string, keyFilePath? : string) =>
   }
 }
 
-export class SomeOptions extends Options {
+export class SignOptions extends Options {
   @option({
     flag: 'o',
     description: 'WARNING: will overwite package contents',
@@ -81,7 +81,7 @@ export default class extends Command {
       required: false,
     })
     keyFilePath?: string,
-    options?: SomeOptions,
+    options?: SignOptions,
   ) {
 
     const pkgJsonPath = path.join(process.cwd(), 'package.json')

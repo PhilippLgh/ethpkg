@@ -32,9 +32,14 @@ export const progress = (msg : string) => {
   console.log(`${chalk.green('✔')} ${chalk.bold(msg)}`)
 }
 
-export const failed = (msg: string) => {
+export const failed = (msg: string, msgText?: string) => {
+  let task = ''
+  if (msgText) {
+    task = msg
+    msg = msgText
+  }
   // @ts-ignore
-  let t = chalk.white.bgRed.bold(spinner.t_org + ' FAILED: ' + (msg || ''))
+  let t = chalk.white.bgRed.bold((spinner.t_org || task) + ' FAILED: ' + (msg || ''))
   spinner.fail(t)
   process.exit()
 }
