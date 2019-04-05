@@ -31,7 +31,7 @@ Open source developers are [burning out](https://motherboard.vice.com/en_us/arti
 
 This project aims to change that: 
 
-**Package authors / developers** sign their modules to signal others that they care about security and to build up reputation and can stay anonymous in the process. Signed modules become self-contained and portable. The delivery, authorship and security aspects are separated allowing modules to be mirrored, licensed, hosted in P2P registries or provided in other (=faster) ways. Packages are signed using cryptocurrency compatible keys so everyone who verifies or validates packages can use the author's address to donate or pay for a license.
+**Package authors / developers** sign their modules to signal others that they care about security and to build up reputation. They can stay anonymous in the process. Signed modules become self-contained and portable. The delivery, authorship and security aspects are separated allowing modules to be mirrored, licensed, hosted in P2P registries or provided in other (=faster) ways. Packages are signed using cryptocurrency compatible keys so everyone who verifies or validates packages can use the author's address to donate or pay for a license.
 
 **Projects that depend on secure modules** can express their gratitude for the open source work & extra security by sending package authors crypto currency. This is a win-win-win situation because it incentivizes open source development, increases code quality and covers maintenance costs.
 
@@ -43,7 +43,7 @@ Let's make the Internet a better place together! :)
 
 # Installation
 ```
-yarn global add @philipplgh/ethpkg
+npm install -g @philipplgh/ethpkg
 ```
 
 # Specification
@@ -69,9 +69,9 @@ version - print version number
 
 ```
 1. install ethpkg
-$ yarn global add @philipplgh/ethpkg
+$ npm install -g ethpkg
 
-2. create project signing key in global keystore
+2. create project signing key in global keystore.
 from project directory containing package.json run:
 $ ethpkg key new
 
@@ -86,21 +86,21 @@ Add a badge to your readme to receive donations or project funding and indicate 
 
 
 ### Example 2- Sign your NPM packages manually
-*(replace "philipplgh-ethpkg-0.2.0.tgz" in the example with your module name)*
+*(replace "ethpkg-0.2.0.tgz" in the example with your module name)*
 
 ```
 // 1.) pack before uploading it:
 $ npm pack
 
 // 2.) sign the packed npm module:
-$ ethpkg sign philipplgh-ethpkg-0.2.0.tgz code-signing-key.json --overwrite true
+$ ethpkg sign ethpkg-0.2.0.tgz code-signing-key.json --overwrite true
 
 // (optionally) verify:
-$ ethpkg verify philipplgh-ethpkg-0.2.0.tgz
+$ ethpkg verify ethpkg-0.2.0.tgz
 >> √ package contents passed integrity checks and are signed by [0xe69c103f6fdc766459d1a1436c3a36518006867b]
 
 // 3.) publish
-$ npm publish philipplgh-ethpkg-0.2.0.tgz
+$ npm publish ethpkg-0.2.0.tgz
 
 // 4.) Profit
 // add badge to receive donations
@@ -111,17 +111,23 @@ $ npm publish philipplgh-ethpkg-0.2.0.tgz
 If you want to display the signing status of your project on GitHub, you can use the following Markdown:
 
 ```
-[![ethpkg status](http://api.ethpkg.org/badge/:service/:author/:name)](https://github.com/PhilippLgh/ethereum-signed-packages)
+[![ethpkg status](http://api.ethpkg.org/badge/:service/:author/:name)](http://ethpkg.org/:service/:author/:name)
 ```
 
 The badge generator can currently verify packages hosted on NPM or GitHub (releases).
-To verify a package that is hosted e.g. on NPM or GitHub replace the `:service`, `:author`, and `:name` part of the url with the desired package info. For GitHub releases `:author` would be the repository owner and `:name` the repository name.
+To verify a package that is hosted e.g. on NPM or GitHub replace the `:service`, `:author` (optional), and `:name` part of the url with the desired package info. For GitHub releases `:author` would be the repository owner and `:name` the repository name.
 
-**Example:** For the package `@philipplgh/ethpkg` (this package) the corresponding url is:
-`http://api.ethpkg.org/badge/npm/@philipplgh/ethpkg` and the badge code is:
+**Example:** For the package `ethpkg` (this package) the corresponding url is:
+`http://api.ethpkg.org/badge/npm/ethpkg` and the badge code is:
 ```
-[![ethpkg status](http://api.ethpkg.org/badge/npm/@philipplgh/ethpkg)](https://github.com/PhilippLgh/ethereum-signed-packages)
+[![ethpkg status](http://api.ethpkg.org/badge/npm/ethpkg)](http://ethpkg.org/npm/ethpkg)
 ```
+
+
+## Notary Service
+
+A hosted version of `ethpkg` is available at `api.ethpkg.org` (mirror at `api.ethpkg.dev`).
+
 
 ***
 
