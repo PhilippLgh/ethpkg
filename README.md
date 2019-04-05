@@ -17,7 +17,7 @@
 
 **Sign packages or npm modules with Ethereum keys and receive crypto currency from the community:**
 
-[![ethpkg status](http://api.ethpkg.org/badge/npm/ethpkg)](https://github.com/PhilippLgh/ethereum-signed-packages)
+[![ethpkg status](http://api.ethpkg.org/badge/npm/ethpkg)](http://ethpkg.org/npm/ethpkg)
 
 (ethpkg was used to sign itself 🤯)
 
