@@ -39,9 +39,9 @@ export const getKeyLocation = async () => {
     message: 'How is the private key stored?',
     initial: 0,
     choices: [
-      { name: `${KEY_STORAGE.ETH}`, message: 'Geth Keystore' },
-      { name: `${KEY_STORAGE.ETH_KEYFILE}`, message: 'Eth Keyfile' },
-      { name: `${KEY_STORAGE.PEM}`, message: 'PEM File' }
+      { name: `${KEY_STORAGE.ETH}`, message: 'Keystore' },
+      { name: `${KEY_STORAGE.ETH_KEYFILE}`, message: 'Keyfile' },
+      { name: `${KEY_STORAGE.PEM}`, message: 'PEM Keyfile' }
     ]
   }];
   const answerKeyLocation: any = await prompt(questionKeyStorage)

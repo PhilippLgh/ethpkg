@@ -60,6 +60,11 @@ export class SignOptions extends Options {
   })
   overwrite: boolean = false;
   @option({
+    flag: 'a',
+    description: 'tries to auto-detect correct key for project',
+  })
+  autodetectkey: boolean = false;
+  @option({
     flag: 'p',
     description: 'will trigger npm publish if a signed tarball is found',
   })
@@ -93,7 +98,8 @@ export default class extends Command {
     let pkgJson = null 
 
     // used as script after `npm pack`
-    if (!inputPath) {
+    // if (!inputPath) {
+    try {
       if (fs.existsSync(pkgJsonPath)) {
         pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'))
         let {name: pkgName, version: pkgVersion} = pkgJson
@@ -103,10 +109,14 @@ export default class extends Command {
         if(fs.existsSync(pkgFileName)) {
           console.log('INFO: no input file specified but npm package found')
           inputPath = pkgFileName
-          npmPackageFlow = true
+          // FIXME npmPackageFlow = true
         }
       }
-    }
+     } catch (error) {
+      console.log('>> could not parse package.json')
+     } 
+
+    // }
 
     if (!inputPath) {
       inputPath = await getUserFilePath('Which zip / tar file do you want to sign?')
@@ -123,7 +133,11 @@ export default class extends Command {
       }
     }
 
-    if (!keyFilePath && npmPackageFlow) {
+    let autoDetectKey = options && options.autodetectkey
+    if(autoDetectKey){
+      console.log('>> trying to find key for project...')
+    }
+    if ((!keyFilePath && npmPackageFlow) || autoDetectKey) {
       let projectName = pkgJson && pkgJson.name
       projectName = projectName.replace('@', '')
       projectName = projectName.replace('/', '-')
