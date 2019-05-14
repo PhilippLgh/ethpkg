@@ -24,9 +24,12 @@ export default class ZipPackage implements IPackage {
     // get entries
     let entries = [] as any
     this.zip.forEach((relativePath: string, file: any /**ZipObject */) => {
+      const {name, size, unixPermissions : mode, dir: isDir } = file
       let iFile : IFile = {
-        isDir: file.dir,
-        name: path.basename(file.name),
+        name: path.basename(name),
+        size,
+        mode,
+        isDir,
         readContent: async (t : string = 'nodebuffer') => {
           return file.async(t)
         }

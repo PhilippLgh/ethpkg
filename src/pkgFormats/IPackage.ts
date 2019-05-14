@@ -8,8 +8,10 @@ export interface IPackage {
 }
 
 export interface IFile {
-  isDir: boolean,
   name: string,
+  size: number,
+  mode?: number,
+  isDir: boolean,
   readContent: (format? : string) => Promise<Buffer>
 }
 

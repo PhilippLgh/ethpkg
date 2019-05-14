@@ -65,13 +65,15 @@ export default class TarPackage implements IPackage {
 
       extract.on('entry', (header : any, stream : any, next : any) => {
         let { name } = header
-        const { size, type} = header
+        const { size, type, mode} = header
         const relativePath = name as string
         name = path.basename(relativePath)
 
         let iFile : IFile = {
-          isDir: type === 'directory',
           name,
+          size,
+          mode,
+          isDir: type === 'directory',
           readContent: async (t : string = 'nodebuffer') => {
             const content = await this.getEntryData(relativePath)
             return content
