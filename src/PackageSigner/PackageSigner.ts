@@ -2,15 +2,15 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 
-import { IPackage, IPackageEntry } from './pkgFormats/IPackage'
+import { IPackage, IPackageEntry } from '../PackageManager/IPackage'
 
 import ethUtil from 'ethereumjs-util'
-import jws from './jws';
+import jws from '../jws';
 import base64url from 'base64url'
 import IExternalSigner from './IExternalSigner'
-import { IVerificationResult } from './IVerificationResult'
-import { pkg as ethpkg } from './pkgFormats/pkg'
-import { downloadNpmPackage } from './util';
+import { IVerificationResult } from '../IVerificationResult'
+import { default as ethpkg } from '../PackageManager/PackageManager'
+import { downloadNpmPackage } from '../util';
 
 const META_DIR = '_META_'
 const SIGNATURE_PREFIX = `${META_DIR}/_sig`
@@ -229,7 +229,11 @@ const verificationError = (errorCode : number, val = '') : IVerificationResult =
 
 export default class pkgsign {
 
-  static loadPackage = ethpkg.getPackage
+  static loadPackage = async (src: string | Buffer) => {
+    const pkg = await new ethpkg().getPackage(src)
+    if (!pkg) throw new Error('Package could not be loaded')
+    return pkg
+  } 
 
   static async isSigned(pkg : IPackage) {
     const signatures = await getSignaturesFromPackage(pkg)

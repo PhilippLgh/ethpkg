@@ -3,6 +3,7 @@ import { ICertificatePayload } from "./ICertificate";
 export interface ISignerInfo {
   address: string,
   certificates: ICertificatePayload[],
+  // FIXME date of signature
   coverage: number
 }
 
