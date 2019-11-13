@@ -8,6 +8,9 @@
   },
   "scripts": {
     "test": "mocha --require ts-node/register test/**/*.ts",
+    "test:manager": "mocha --require ts-node/register test/PackageManager.test.ts",
+    "test:fetcher": "nyc mocha --timeout=4000 --require ts-node/register test/PackageFetcher/Fetcher.test.ts",
+    "test:github": "mocha --require ts-node/register test/PackageFetcher/GitHubRepository.test.ts",
     "static-files": "copyfiles src/signer/eth/metamask/public/index.html -u 1 dist/",
     "copy-build": "yarn static-files && tsc -p ./tsconfig.json",
     "build": "tsc -p ./tsconfig.json",
@@ -32,16 +35,21 @@
     "@types/jszip": "^3.1.4",
     "@types/mocha": "^5.2.5",
     "@types/node": "^10.12.18",
+    "@types/npm-package-arg": "^6.1.0",
     "@types/ora": "^3.0.0",
+    "@types/semver": "^6.2.0",
     "chai": "^4.2.0",
     "copyfiles": "^2.1.0",
     "mocha": "^5.2.0",
+    "nyc": "^14.1.1",
     "ts-node": "^8.0.2",
     "typescript": "^3.3.3"
   },
   "dependencies": {
+    "@octokit/rest": "^16.35.0",
     "asn1.js": "^5.0.1",
     "base64url": "^3.0.1",
+    "boxen": "^4.1.0",
     "chalk": "^2.4.2",
     "clime": "^0.5.10",
     "enquirer": "^2.3.0",
@@ -50,8 +58,11 @@
     "jsonwebtoken": "^8.4.0",
     "jszip": "^3.1.5",
     "keythereum": "^1.0.4",
+    "npm-package-arg": "^7.0.0",
     "ora": "^3.1.0",
     "secp256k1": "^3.6.2",
-    "tar-stream": "^2.0.1"
+    "semver": "^6.3.0",
+    "tar-stream": "^2.0.1",
+    "xml2js": "^0.4.22"
   }
 }
