@@ -1,7 +1,7 @@
 import ethUtil from 'ethereumjs-util'
 const secp256k1 = require('secp256k1')
 import base64url from 'base64url'
-import IExternalSigner from '../IExternalSigner';
+import IExternalSigner from '../PackageSigner/IExternalSigner';
 
 // TODO this signing scheme is quite dangerous as users can be tricked into signing transactions
 // however hardware modules that implement secp256k1 are unlikely to implement ethereum personal message signing
