@@ -1,0 +1,38 @@
+[
+  {
+    "name": "a",
+    "version": "3.0.0" 
+  },
+  {
+    "name": "b",
+    "version": "2.0.0" 
+  },
+  {
+    "name": "c",
+    "version": "1.0.0" 
+  },
+  {
+    "name": "d2",
+    "version": "1.0.1-alpha" 
+  },
+  {
+    "name": "d3",
+    "version": "1.0.1-foo" 
+  },
+  {
+    "name": "d",
+    "version": "1.0.1-beta" 
+  },
+  {
+    "name": "e",
+    "version": "1.1.1-alpha" 
+  },
+  {
+    "name": "f",
+    "version": "1.0.2-alpha" 
+  },
+  {
+    "name": "g",
+    "version": "0.1.1" 
+  }
+]

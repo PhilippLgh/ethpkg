@@ -1,0 +1,10 @@
+[
+  {
+    "name": "valid release",
+    "version": "1.0.0"
+  },
+  {
+    "name": "invalid release",
+    "error": "has no version"
+  }
+]

@@ -1,0 +1,29 @@
+export interface FetchOptions {
+  filterInvalid?: boolean // if corrupted or invalid releases should be removed from list
+  sort? : boolean // if release list should be sorted. default: true - by version
+  semverFilter?: string // version or version range that should be returned
+  prefix? : string // server-side processed name- / path-filter. default: undefined
+  timeout? : number // time in ms for request timeouts.
+  skipCache? : boolean // if cached files should be ignored. default: false 
+  pagination?: boolean | number // is pagination should be used and number of pages
+  limit?: number // number of results
+}
+
+export interface IRelease {
+  name?: string;
+  version?: string;
+  channel?: string;
+  fileName?: string;
+
+  original?: any // the original response object before it was parsed
+  error?: string // error message
+
+  location?: string // download url or path to package
+  remote? : boolean // if package is available locallyor only remote
+}
+
+export interface IRepository {
+  readonly name : string // used e.g. for logging
+  // repositoryUrl?: string
+  listReleases(options?: FetchOptions): Promise<Array<(IRelease)>>
+}
