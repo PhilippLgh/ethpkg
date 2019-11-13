@@ -2,12 +2,24 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import stream from 'stream'
+import ZipPackage from './PackageManager/ZipPackage';
+import { IPackage } from '.';
+// @ts-ignore
+import { parseString } from 'xml2js'
 
-// import { prompt } from 'enquirer'
 const keythereum = require('keythereum')
 
 const secp256k1 = require('secp256k1')
 const asn1 = require('asn1.js')
+
+export function parseXml(xml : string | Buffer){
+  return new Promise((resolve, reject) => {
+    parseString(xml, (err : any, result : any) => {
+      if(err) return reject(err)
+      resolve(result)
+    })
+  });
+}
 
 const getDefaultDataDir = () => {
   switch (process.platform) {
@@ -16,6 +28,11 @@ const getDefaultDataDir = () => {
     case 'darwin': return '~/Library/Ethereum'
     default: return '~/.ethereum'
   }
+}
+
+export const formatBytes = (bytes : number) => {
+  const kb = bytes / 1024
+  return `${kb.toFixed(2)} KB`
 }
 
 export const getKeystorePath = () => {
@@ -107,6 +124,42 @@ export const getPrivateKeyFromPEM = (inputPath: string) => {
   }
 
   return privateKey
+}
+
+export const createPackage = (srcDir : string) => {
+
+  const excludeZipFiles = (e : string) => !/\.zip$/.test(e)
+
+  const pkg = new ZipPackage()
+
+  const addFile = (file : string) => {
+    const filePath = path.join(srcDir, file);
+  
+    const fileStats = fs.lstatSync(filePath);
+    if (fileStats.isDirectory()) {
+      console.log('>>>>>> Error adding subfolder not supported:', file)
+      // zip.addLocalFolder(filePath, file);
+    } else if (fileStats.isFile()) {
+      console.log('Adding file:', filePath);
+      pkg.addEntry(file, fs.readFileSync(filePath))
+    } else {
+      console.warn(
+        `[WARN] packageApp.js: File ${filePath} was not added to bundle.`
+      );
+    }
+  }
+
+  try {
+    const files = fs
+      .readdirSync(srcDir)
+      .filter(excludeZipFiles)
+      .forEach(addFile)
+
+    pkg.writePackage('mypackage.zip')
+    
+  } catch (e) {
+    console.log('[ERROR] creating package:', e);
+  }
 }
 
 
