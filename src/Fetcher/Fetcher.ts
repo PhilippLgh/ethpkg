@@ -25,13 +25,17 @@ const parseSpec = (spec: string) => {
   if (!spec) return undefined
   if (spec.startsWith('azure')) {
     const parts = spec.split(':')
-   return {
-     hosted: {
-       type: 'azure',
-       user: undefined,
-       project: parts[1]
-     }
-   }  
+    const _type = parts[0]
+    const package_parts = parts[1].split('/')
+    const project = package_parts[0]
+    const packageName = package_parts.length === 2 ? package_parts[1] : undefined
+    return {
+      hosted: {
+        type: _type,
+        user: undefined,
+        project
+      }
+    }  
   }
   let parsed = undefined
   try {
@@ -138,6 +142,7 @@ export default class Fetcher {
     }
 
     // sort releases using semver and return them descending (latest first)
+    // FIXME use releases by semver and date, do not consider prerelease info (alphabetically) if it is e.g. commit hash
     if (sort) {
       releases =  releases.sort(compareVersions)
     }
@@ -152,14 +157,12 @@ export default class Fetcher {
   }
   
   async getRelease(spec: PackageSpecifier, { 
-    listener = undefined,
+    listener = () => {},
     prefix = undefined
   } : FetchPackageOptions = {}) : Promise<IRelease | undefined> {
 
     // notify client about process start
-    if ((listener !== undefined) && (typeof listener === 'function')) {
-      listener(PROCESS_STATES.RESOLVE_PACKAGE_STARTED, {})
-    }
+    listener(PROCESS_STATES.RESOLVE_PACKAGE_STARTED, {})
     const releases = await this.listReleases(spec)
 
     // if more than one release is returned we default to returning the latest version
@@ -179,23 +182,17 @@ export default class Fetcher {
 
     if (!latest) {
       // FIXME failed
-      if ((listener !== undefined) && (typeof listener === 'function')) {
-        listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { latest })
-      }
+      listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { latest })
       return undefined
     }
 
     // notify client about process end
-    if ((listener !== undefined) && (typeof listener === 'function')) {
-      listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { latest })
-    }
+    listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { latest })
 
     return latest
   }
 
-  async downloadPackage(locator : PackageLocator, listener? : StateListener) : Promise<Buffer> {
-
-    const hasListener = (listener !== undefined) && (typeof listener === 'function')
+  async downloadPackage(locator : PackageLocator, listener : StateListener = () => {}) : Promise<Buffer> {
 
     // wrap onProgress
     let progress = 0;
@@ -204,22 +201,17 @@ export default class Fetcher {
       if (progressNew > progress) {
         progress = progressNew;
          // console.log(`downloading update..  ${pn}%`)
-        if ((listener !== undefined) && (typeof listener === 'function')) {
-          listener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress })
-        }
+        listener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress })
       }
     }
 
     // download release data / asset
     const { location } = locator as IRelease // FIXME
     if (!location) throw new Error('package location not found')
-    if ((listener !== undefined) && (typeof listener === 'function')) {
-      listener(PROCESS_STATES.DOWNLOAD_STARTED, { location })
-    }
+    listener(PROCESS_STATES.DOWNLOAD_STARTED, { location })
+
     const packageData = await download(location, _onProgress)
-    if ((listener !== undefined) && (typeof listener === 'function')) {
-      listener(PROCESS_STATES.DOWNLOAD_FINISHED, { location, size: packageData.length })
-    }
+    listener(PROCESS_STATES.DOWNLOAD_FINISHED, { location, size: packageData.length })
 
     return packageData
   }
