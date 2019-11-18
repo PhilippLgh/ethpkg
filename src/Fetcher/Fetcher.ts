@@ -6,6 +6,7 @@ import { compareVersions } from "../Utils/PackageUtils"
 import { download } from "../Downloader"
 import { StateListener, PROCESS_STATES } from "../IStateListener"
 import semver from 'semver'
+import { hasPackageExtension } from "../utils/FilenameUtils"
 
 // see https://github.com/npm/npm-package-arg
 type PackageSpecifier = string
@@ -126,6 +127,9 @@ export default class Fetcher {
     if (filterInvalid) {
       releases = releases.filter(release => !('error' in release && release.error))
     }
+
+    // filter non-package releases e.g. Github assets that are .txt, .json etc
+    releases = releases.filter(release => release.fileName && hasPackageExtension(release.fileName))
 
     // filter releases based on version or version range info
     if(semverFilter) {
