@@ -5,6 +5,14 @@ const semverMatcher = /\bv?(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\d
 
 export const extractVersionFromString = (str : string | undefined) => {
   if (str === undefined) return undefined
+  // first check segment by segment
+  const segments = str.split('_')
+  for (const segment of segments) {
+    const res = semver.clean(segment, { loose: true })
+    if (res) return res
+  }
+  // if nothing found try regex (more aggressively)
+  // FIXME regex will not include prerelease info
   semverMatcher.lastIndex = 0
   const result = semverMatcher.exec(str)
   const version = result && result.length > 0 ? result[0] : undefined
@@ -21,7 +29,8 @@ export const versionToDisplayVersion = (version : string | undefined) => {
   return `v${version}`
 }
 
-export const extractChannelFromVersionString = (versionString: string) : string | undefined => {
+export const extractChannelFromVersionString = (versionString?: string) : string | undefined => {
+  if (!versionString) return undefined
   const prereleaseInfo = semver.prerelease(versionString)
   const channel = prereleaseInfo && prereleaseInfo.length > 0 ? prereleaseInfo[0] : undefined
   return channel
