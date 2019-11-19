@@ -38,6 +38,13 @@ export const compareVersions = (a : {version?:string, channel?: string}, b : {ve
   return semComp
 }
 
-
+export const datestring = (d : Date | number) => {
+  if (typeof d === 'number') {
+    d = new Date(d)
+  }
+  return d.toISOString()
+    .replace(/T/, ' ')      // replace T with a space
+    .replace(/\..+/, '')     // delete the dot and everything after
+}
 
 
