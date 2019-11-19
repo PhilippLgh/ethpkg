@@ -3,6 +3,7 @@ import { download } from "../../Downloader"
 import { parseXml } from "../../util"
 import { hasPackageExtension, hasSignatureExtension, removeExtension } from "../../utils/FilenameUtils"
 import { extractPlatformFromString, extractArchitectureFromString, extractVersionFromString, versionToDisplayVersion } from "../../utils/FilenameHeuristics"
+import { datestring } from "../../Utils/PackageUtils"
 
 interface AzureBlob {
   Name: Array<string>
@@ -52,8 +53,6 @@ export default class AzureRepository implements IRepository {
     const platform = extractPlatformFromString(name)
     const arch = extractArchitectureFromString(name)
 
-    let _release = {}
-
     let md5AtoB = Buffer.from(md5, 'base64').toString('binary')
     md5AtoB = md5AtoB.split('').map(char => ('0' + char.charCodeAt(0).toString(16)).slice(-2)).join('')
 
@@ -62,11 +61,15 @@ export default class AzureRepository implements IRepository {
 
     const location = `${baseUrl}/${fileName}`
 
+    const updated_ts = new Date(lastModified).getTime()
+
     let release = {
       name,
       fileName,
       version,
       displayVersion,
+      updated_ts,
+      updated_at: datestring(updated_ts),
       platform,
       arch,
       tag: version,
@@ -78,7 +81,6 @@ export default class AzureRepository implements IRepository {
       checksums: {
         md5: md5AtoB
       },
-      ..._release, // overwrite with client values
       remote: true
     } as any
 

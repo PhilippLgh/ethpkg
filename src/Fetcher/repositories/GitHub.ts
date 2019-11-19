@@ -1,5 +1,7 @@
 import { IRepository, IRelease, FetchOptions } from "../IRepository"
 import GitHub, { ReposListReleasesResponseItem, ReposListReleasesResponseItemAssetsItem } from '@octokit/rest'
+import { extractVersionFromString, extractChannelFromVersionString } from "../../utils/FilenameHeuristics"
+import { datestring } from "../../Utils/PackageUtils"
 
 export default class GitHubRepository implements IRepository {
 
@@ -57,6 +59,9 @@ export default class GitHubRepository implements IRepository {
 
     let releases = assets.map((asset : ReposListReleasesResponseItemAssetsItem) => {
 
+      const version = extractVersionFromString(tag_name)
+      const channel = extractChannelFromVersionString(version)
+
       const {
         browser_download_url,
         content_type,
@@ -76,11 +81,15 @@ export default class GitHubRepository implements IRepository {
       let releaseInfoCopy = JSON.parse(JSON.stringify(releaseInfo))
       delete releaseInfoCopy.assets
 
+      const updated_ts = Date.parse(updated_at) // return timestamp
+
       return {
         name: releaseName,
-        version: '',
-        channel: '',
+        version,
+        channel,
         fileName: assetName,
+        updated_ts,
+        updated_at: datestring(updated_ts),
         location: browser_download_url,
         original: {
           releaseInfo: releaseInfoCopy,

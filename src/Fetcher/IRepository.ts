@@ -14,12 +14,14 @@ export interface IRelease {
   version?: string;
   channel?: string;
   fileName?: string;
+  updated_ts?: number; // timestamp: last date of modification / (re-) publishing
+  updated_at?: string; // display date version
 
-  original?: any // the original response object before it was parsed
-  error?: string // error message
+  original?: any; // the original response object before it was parsed
+  error?: string; // error message
 
-  location?: string // download url or path to package
-  remote? : boolean // if package is available locallyor only remote
+  location?: string; // download url or path to package
+  remote? : boolean; // if package is available locally or only remote
 }
 
 export interface IRepository {
