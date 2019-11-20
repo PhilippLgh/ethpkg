@@ -45,7 +45,10 @@ export default class extends Command {
         fetchTask.succeed(cb)
       }
     }
-    const pkg = await packageManager.getPackage(spec, { listener })
+    const pkg = await packageManager.getPackage({
+      spec,
+      listener
+    })
     if (!pkg) {
       return // TODO failed('Package not found')
     }
