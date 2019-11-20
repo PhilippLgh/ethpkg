@@ -1,12 +1,14 @@
 import GitHubRepository from "./GitHub"
 import AzureRepository from "./Azure"
+import NpmRepository from "./Npm"
 import { IRepository } from "../IRepository"
 
 type RepositoryMap = { [index: string] : Function /* constructor of IRepository */ }
 
-const repos : RepositoryMap = {
+export const repos : RepositoryMap = {
   'github': GitHubRepository,
-  'azure': AzureRepository
+  'azure': AzureRepository,
+  'npm': NpmRepository
 }
 
 const getRepository = (str: string, options: any) : IRepository | undefined => {
