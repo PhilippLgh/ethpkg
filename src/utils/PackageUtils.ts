@@ -38,6 +38,20 @@ export const compareVersions = (a : {version?:string, channel?: string}, b : {ve
   return semComp
 }
 
+export const compareDate = ({updated_ts: a} : {updated_ts?:number}, {updated_ts: b} : {updated_ts?:number}) => {
+  if (a && b) return  a > b ? -1 : (b > a ? 1 : 0)
+  if (a) return -1
+  return 1
+}
+
+export const multiSort = (fn1: Function, fn2: Function) => {
+  return (a: any, b: any) => {
+    const res1 = fn1(a, b)
+    const res2 = fn2(a, b)
+    return res1 + res2
+  }
+}
+
 export const datestring = (d : Date | number) => {
   if (typeof d === 'number') {
     d = new Date(d)

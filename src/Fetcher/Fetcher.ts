@@ -1,8 +1,8 @@
 import { IRepository, IRelease, FetchOptions } from "./IRepository"
-import pickRepository from "./repositories"
+import pickRepository, { repos } from "./repositories"
 import npa from 'npm-package-arg'
 import Mock from "./repositories/test/Mock"
-import { compareVersions } from "../Utils/PackageUtils"
+import { compareVersions, multiSort, compareDate } from "../Utils/PackageUtils"
 import { download } from "../Downloader"
 import { StateListener, PROCESS_STATES } from "../IStateListener"
 import semver from 'semver'
@@ -24,20 +24,23 @@ export interface FetchPackageOptions {
 
 const parseSpec = (spec: string) => {
   if (!spec) return undefined
-  if (spec.startsWith('azure')) {
-    const parts = spec.split(':')
+  const parts = spec.split(':')
+  // TODO const repoNames = Object.keys(repos)
+  const repoNames = ['azure', 'npm']
+  if (parts.length > 0 && repoNames.includes(parts[0])) {
     const _type = parts[0]
     const package_parts = parts[1].split('/')
-    const project = package_parts[0]
-    const packageName = package_parts.length === 2 ? package_parts[1] : undefined
+    const owner = package_parts.length > 1 ? package_parts[0] : undefined 
+    const project = package_parts.length === 1 ? package_parts[0] : package_parts[1]
     return {
       hosted: {
         type: _type,
-        user: undefined,
-        project
+        owner,
+        project,
       }
     }  
   }
+
   let parsed = undefined
   try {
     parsed = npa(spec)
@@ -100,16 +103,14 @@ export default class Fetcher {
       if (!hosted) {
         return []
       }
+
       const {
         type: repo, // e.g. github
-        user, // e.g. ethereum
-        project // e.g. grid
+        // owner, // e.g. ethereum
+        // project // e.g. grid
       } = hosted
   
-      repository = pickRepository(repo, {
-        owner: user,
-        project
-      })
+      repository = pickRepository(repo, hosted)
     }
 
     if (!repository) {
@@ -145,10 +146,11 @@ export default class Fetcher {
       })
     }
 
-    // sort releases using semver and return them descending (latest first)
-    // FIXME use releases by semver and date, do not consider prerelease info (alphabetically) if it is e.g. commit hash
+    // sort releases by semver and date, and return them descending (latest first)
+    // do not consider prerelease info (alphabetically) if it is e.g. commit hash
     if (sort) {
-      releases =  releases.sort(compareVersions)
+      releases =  releases.sort(multiSort(compareVersions, compareDate))
+      // releases =  releases.sort(compareVersions)
     }
 
     // only return "limit"-number of entries
