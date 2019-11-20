@@ -12,6 +12,7 @@ export interface FetchOptions {
 export interface IRelease {
   name?: string;
   version?: string;
+  displayVersion?: string; // v prefixed short version without prerelease info
   channel?: string;
   fileName?: string;
   updated_ts?: number; // timestamp: last date of modification / (re-) publishing
