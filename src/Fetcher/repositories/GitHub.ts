@@ -1,6 +1,6 @@
 import { IRepository, IRelease, FetchOptions } from "../IRepository"
 import GitHub, { ReposListReleasesResponseItem, ReposListReleasesResponseItemAssetsItem } from '@octokit/rest'
-import { extractVersionFromString, extractChannelFromVersionString } from "../../utils/FilenameHeuristics"
+import { extractVersionFromString, extractChannelFromVersionString, versionToDisplayVersion } from "../../utils/FilenameHeuristics"
 import { datestring } from "../../Utils/PackageUtils"
 
 export default class GitHubRepository implements IRepository {
@@ -60,6 +60,7 @@ export default class GitHubRepository implements IRepository {
     let releases = assets.map((asset : ReposListReleasesResponseItemAssetsItem) => {
 
       const version = extractVersionFromString(tag_name)
+      const displayVersion = versionToDisplayVersion(version)
       const channel = extractChannelFromVersionString(version)
 
       const {
@@ -86,6 +87,7 @@ export default class GitHubRepository implements IRepository {
       return {
         name: releaseName,
         version,
+        displayVersion,
         channel,
         fileName: assetName,
         updated_ts,
