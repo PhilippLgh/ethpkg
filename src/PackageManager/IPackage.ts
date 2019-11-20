@@ -2,7 +2,8 @@ export interface IPackage {
   fileName: string;
   loadBuffer(buf : Buffer) : Promise<void>;
   getEntries() : Promise<Array<IPackageEntry>>;
-  getEntry(relativePath : string) : Promise<IPackageEntry | null>;
+  getEntry(relativePath : string) : Promise<IPackageEntry | undefined>;
+  getContent(relativePath : string) : Promise<Buffer>; 
   addEntry(relativePath : string, content : string | Buffer) : Promise<string>;
   toBuffer() : Promise<Buffer>;
   writePackage(outPath: string): Promise<string>;

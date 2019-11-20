@@ -47,17 +47,25 @@ export default class ZipPackage implements IPackage {
   }
 
   // TODO can be performance optimized
-  async getEntry(relativePath : string) {
+  async getEntry(relativePath : string) : Promise<IPackageEntry | undefined> {
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
     try {
       let entries = await this.getEntries()
       let entry = entries.find((entry : IPackageEntry) => entry.relativePath === relativePath)
-      return entry || null
+      return entry || undefined
     } catch (error) {
-      return null
+      return undefined
     }
+  }
+
+  async getContent(relativePath: string) : Promise<Buffer> {
+    const entry = await this.getEntry(relativePath)
+    // TODO standardize errors
+    if (!entry) throw new Error('entry does not exist')
+    if (entry.file.isDir) throw new Error('entry is not a file')
+    return entry.file.readContent()
   }
 
   async addEntry(relativePath : string, content : string | Buffer) {

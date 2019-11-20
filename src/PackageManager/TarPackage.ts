@@ -58,6 +58,7 @@ export default class TarPackage implements IPackage {
       }
     });
   }
+  // see also https://github.com/yarnpkg/lets-dev-demo/blob/master/utilities.js
   async getEntries(): Promise<IPackageEntry[]> {
     const inputStream = this.getReadStream()
     const extract = tar.extract()
@@ -104,15 +105,24 @@ export default class TarPackage implements IPackage {
       }
     });
   }
-  async getEntry(relativePath : string) {
+  async getEntry(relativePath : string) : Promise<IPackageEntry | undefined> {
     try {
       let entries = await this.getEntries()
       let entry = entries.find((entry : IPackageEntry) => entry.relativePath === relativePath)
-      return entry || null
+      return entry || undefined
     } catch (error) {
-      return null
+      return undefined
     }
   }
+
+  async getContent(relativePath : string) : Promise<Buffer> {
+    const entry = await this.getEntry(relativePath)
+    // TODO standardize errors
+    if (!entry) throw new Error('entry does not exist')
+    if (entry.file.isDir) throw new Error('entry is not a file')
+    return entry.file.readContent()
+  }
+
   // TODO very poor performance - this can probably be optimized a LOT :(
   async addEntry(relativePath: string, content: string | Buffer): Promise<string> {
     // prepare in / out streams
