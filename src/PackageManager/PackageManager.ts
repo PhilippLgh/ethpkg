@@ -11,8 +11,8 @@ import Fetcher from '../Fetcher'
 import PackageSigner from '../PackageSigner'
 
 import { StateListener } from '../IStateListener'
-import { IRelease, FetchOptions } from '../Fetcher/IRepository';
-import { FetchPackageOptions } from '../Fetcher/Fetcher';
+import { IRelease, FetchOptions } from '../Fetcher/IRepository'
+import { FetchPackageOptions, instanceofFetchPackageOptions } from '../Fetcher/Fetcher'
 
 // @ts-ignore
 const excludedFiles = e => !/\.zip$/.test(e)
@@ -31,11 +31,14 @@ const isFile = async (pkgPath: string) => {
 // FIXME
 const isSpec = async (str : string) => str.includes(':') && !fs.existsSync(str)
 
+const noop : StateListener = (state, args) => {}
+
 class PackageManager {
 
-  private async getPackageFromBuffer(pkgBuf : Buffer, pkgFileName? : string) {
+  private async getPackageFromBuffer(pkgBuf : Buffer, pkgFileName? : string) : Promise<IPackage> {
     const bufferType = fileType(pkgBuf)
     if (!bufferType) {
+      console.log('bad buffer', pkgBuf)
       throw new Error('bad input buffer')
     }
     if(bufferType.mime === 'application/gzip') {
@@ -123,12 +126,21 @@ class PackageManager {
   /**
    * Creates and returns an IPackage based on a filepath, url, or package specifier
    */
-  getPackage = async (pkgSrc : PackageSpecifier | Buffer, {
-    listener = undefined
-  } : FetchPackageOptions = {}) : Promise<IPackage | undefined> => {
-    if(typeof pkgSrc === 'string'){
-      if (await isSpec(pkgSrc)) {
-        const release = await this.findPackage(pkgSrc, { listener })
+  getPackage = async (pkgSpec : PackageSpecifier | Buffer | FetchPackageOptions) : Promise<IPackage | undefined> => {
+    
+    let listener = noop
+
+    if (instanceofFetchPackageOptions(pkgSpec)) {
+      const { spec, version, platform, prefix, listener: l } = pkgSpec
+      listener = l || listener
+      // TODO remove once spec is required prop
+      if (spec === undefined) throw new Error('no package specifier provided')
+      pkgSpec = spec 
+    }
+
+    if(typeof pkgSpec === 'string'){
+      if (await isSpec(pkgSpec)) {
+        const release = await this.findPackage(pkgSpec, { listener })
         if (!release) {
           return undefined
         }
@@ -138,14 +150,14 @@ class PackageManager {
         const pkg = await this.getPackageFromBuffer(buf, fileName)
         return pkg
       }
-      if (await isFile(pkgSrc)) {
-        return this.getPackageFromFile(pkgSrc)
+      if (await isFile(pkgSpec)) {
+        return this.getPackageFromFile(pkgSpec)
       } else {
         throw new Error('package source is not a file')
       }
     }
-    else if(Buffer.isBuffer(pkgSrc)) {
-      return this.getPackageFromBuffer(pkgSrc)
+    else if(Buffer.isBuffer(pkgSpec)) {
+      return this.getPackageFromBuffer(pkgSpec)
     } else {
       throw new Error('unsupported input type for package')
     }
