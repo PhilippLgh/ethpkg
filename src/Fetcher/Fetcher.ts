@@ -16,28 +16,45 @@ type PackageUrl = string
 type PackageLocator = PackageUrl | IRelease | PackageSpecifier
 
 export interface FetchPackageOptions {
+  spec?: string, // FIXME make required
   version?: string;
   platform?: string;
   prefix?: string; // pass through for performance
   listener?: StateListener
 }
 
+export function instanceofFetchPackageOptions(object: any): object is FetchPackageOptions {
+  return typeof object === 'object' && ('spec' in object)
+}
+
+/**
+ * TODO add more unit testing for parser
+ * example: npm:@philipplgh/ethpkg@^1.2.3
+ * => <repo>:<owner>/<project>@<version>
+ * @param spec 
+ */
 const parseSpec = (spec: string) => {
   if (!spec) return undefined
   const parts = spec.split(':')
   // TODO const repoNames = Object.keys(repos)
   const repoNames = ['azure', 'npm']
   if (parts.length > 0 && repoNames.includes(parts[0])) {
-    const _type = parts[0]
+    const repo = parts[0]
     const package_parts = parts[1].split('/')
     const owner = package_parts.length > 1 ? package_parts[0] : undefined 
-    const project = package_parts.length === 1 ? package_parts[0] : package_parts[1]
+    let project = package_parts.length === 1 ? package_parts[0] : package_parts[1]
+    // parses ethpkg@1.0.0
+    const project_parts = project.split('@')
+    const version = project_parts.length > 1 ? project_parts[1] : undefined
+    if (project_parts.length > 1) {
+      project = project.substring(0, project.indexOf('@'))
+    }
     return {
-      hosted: {
-        type: _type,
-        owner,
-        project,
-      }
+      type: 'custom',
+      repo,
+      owner,
+      project,
+      version
     }  
   }
 
@@ -92,6 +109,7 @@ export default class Fetcher {
   } : FetchOptions = {}): Promise<IRelease[]> {
 
     let repository = undefined
+    let versionSpecifier : string | undefined = undefined
     if (spec.startsWith('mock')) {
       const testCase = spec.split(':')[1]
       repository = new Mock(testCase)
@@ -99,18 +117,17 @@ export default class Fetcher {
       const parsed = parseSpec(spec)
       if (!parsed) throw new Error(`Unsupported or invalid package specification: "${spec}"`)
   
-      const { hosted } = parsed
-      if (!hosted) {
-        return []
+      // custom parser was used
+      if (parsed.type && parsed.type === 'custom') {
+        // @ts-ignore FIXME
+        const { repo, version } = parsed
+        versionSpecifier = version
+        repository = pickRepository(repo, parsed)
+      } else {
+        // @ts-ignore FIXME
+        repository = pickRepository(parsed.hosted.type, parsed.hosted)
       }
-
-      const {
-        type: repo, // e.g. github
-        // owner, // e.g. ethereum
-        // project // e.g. grid
-      } = hosted
   
-      repository = pickRepository(repo, hosted)
     }
 
     if (!repository) {
@@ -133,7 +150,8 @@ export default class Fetcher {
     releases = releases.filter(release => release.fileName && hasPackageExtension(release.fileName))
 
     // filter releases based on version or version range info
-    if(semverFilter) {
+    const versionFilter = semverFilter || versionSpecifier
+    if(versionFilter) {
       // TODO move filter in utils
       releases = releases.filter(release => {
         if (!('version' in release)) {
@@ -142,7 +160,7 @@ export default class Fetcher {
         const coercedVersion = semver.coerce(release.version)
         const release_version = coercedVersion ? coercedVersion.version : release.version
         if (release_version === undefined) return false
-        return semver.satisfies(release_version, semverFilter)
+        return semver.satisfies(release_version, versionFilter)
       })
     }
 
