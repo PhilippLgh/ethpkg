@@ -55,7 +55,7 @@ class PackageManager {
     }
   }
 
-  private async getPackageFromFile(pkgSrc : string) {
+  private async getPackageFromFile(pkgSrc : string) : Promise<IPackage> {
     if(!fs.existsSync(pkgSrc)) {
       throw new Error('package not found')
     }
@@ -109,11 +109,9 @@ class PackageManager {
     return spec
   }
 
-  findPackage = async (spec : PackageSpecifier, {
-    listener = undefined
-  } : FetchPackageOptions = {}) : Promise<IRelease | undefined> => {
+  findPackage = async (spec : PackageSpecifier, options? : FetchPackageOptions) : Promise<IRelease | undefined> => {
     const fetcher = new Fetcher()
-    const release = await fetcher.getRelease(spec, { listener })
+    const release = await fetcher.getRelease(spec, options)
     return release
   }
 
@@ -129,25 +127,34 @@ class PackageManager {
   getPackage = async (pkgSpec : PackageSpecifier | Buffer | FetchPackageOptions) : Promise<IPackage | undefined> => {
     
     let listener = noop
-
+    let options = undefined
     if (instanceofFetchPackageOptions(pkgSpec)) {
-      const { spec, version, platform, prefix, listener: l } = pkgSpec
-      listener = l || listener
+      options = pkgSpec
+      listener = options.listener || noop
       // TODO remove once spec is required prop
-      if (spec === undefined) throw new Error('no package specifier provided')
-      pkgSpec = spec 
+      if (options.spec === undefined) throw new Error('no package specifier provided')
+      pkgSpec = options.spec 
     }
 
     if(typeof pkgSpec === 'string'){
       if (await isSpec(pkgSpec)) {
-        const release = await this.findPackage(pkgSpec, { listener })
+        const release = await this.findPackage(pkgSpec, options)
         if (!release) {
           return undefined
         }
+        if (options && options.cache && fs.existsSync(options.cache)) {
+          let cachedData = path.join(options.cache, release.fileName)
+          if (fs.existsSync(cachedData)) {
+            const pkg = await this.getPackageFromFile(cachedData)
+            pkg.metadata = release
+            return pkg
+          }
+        } 
         const fetcher = new Fetcher()
         const buf = await fetcher.downloadPackage(release, listener)
         const {fileName } = release
         const pkg = await this.getPackageFromBuffer(buf, fileName)
+        pkg.metadata = release
         return pkg
       }
       if (await isFile(pkgSpec)) {

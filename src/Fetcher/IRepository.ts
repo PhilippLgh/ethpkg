@@ -1,4 +1,5 @@
 export interface FetchOptions {
+  filter?: (release: IRelease) => boolean; // custom filter logic
   filterInvalid?: boolean // if corrupted or invalid releases should be removed from list
   sort? : boolean // if release list should be sorted. default: true - by version
   semverFilter?: string // version or version range that should be returned
@@ -14,7 +15,7 @@ export interface IRelease {
   version?: string;
   displayVersion?: string; // v prefixed short version without prerelease info
   channel?: string;
-  fileName?: string;
+  fileName: string;
   updated_ts?: number; // timestamp: last date of modification / (re-) publishing
   updated_at?: string; // display date version
 
