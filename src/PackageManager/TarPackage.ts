@@ -1,8 +1,9 @@
 import fs, { read } from 'fs'
 import path from 'path'
 import zlib from 'zlib'
-import { IPackage, IPackageEntry, IFile } from './IPackage'
-import { bufferToStream, streamToBuffer } from '../util'
+import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
+import { bufferToStream, streamToBuffer, extractPackage } from '../util'
+import { IRelease } from '../Fetcher/IRepository'
 const tar = require('tar-stream')
 
 export default class TarPackage implements IPackage {
@@ -11,6 +12,7 @@ export default class TarPackage implements IPackage {
   private isGzipped: boolean;
   tarbuf?: Buffer;
   fileName = '<unknown>'
+  metadata?: IRelease
 
   constructor(packagePath? : string, compressed = true) {
     this.packagePath = packagePath || ''
@@ -118,7 +120,7 @@ export default class TarPackage implements IPackage {
   async getContent(relativePath : string) : Promise<Buffer> {
     const entry = await this.getEntry(relativePath)
     // TODO standardize errors
-    if (!entry) throw new Error('entry does not exist')
+    if (!entry) throw new Error('entry does not exist: '+relativePath)
     if (entry.file.isDir) throw new Error('entry is not a file')
     return entry.file.readContent()
   }
@@ -191,6 +193,11 @@ export default class TarPackage implements IPackage {
   toBuffer(): Promise<Buffer> {
     throw new Error("Method not implemented.");
   }
+
+  async extract(destPath: string, onProgress: ProgressListener = (p, f) => {}) : Promise<string> {
+    return extractPackage(this, destPath, onProgress)
+  }
+
   writePackage(outPath: string): Promise<string> {
     if (!this.tarbuf) {
       throw new Error("cannot create tar file - empty buffer")

@@ -1,12 +1,15 @@
 import path from 'path'
 import fs from 'fs'
-import { IPackage, IPackageEntry, IFile } from './IPackage'
+import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
 import JSZip from 'jszip'
+import { extractPackage } from '../util'
+import { IRelease } from '../Fetcher/IRepository'
 
 export default class ZipPackage implements IPackage {
 
   private zip : JSZip | undefined
   fileName = '<unknown>'
+  metadata?: IRelease
 
   constructor(fileName? : string) {
     this.fileName = fileName || this.fileName
@@ -82,6 +85,10 @@ export default class ZipPackage implements IPackage {
     }
     let buf = await this.zip.generateAsync({type: "nodebuffer", compression: "DEFLATE"})
     return buf
+  }
+
+  async extract(destPath: string, onProgress: ProgressListener = (p, f) => {}) : Promise<string> {
+    return extractPackage(this, destPath, onProgress)
   }
 
   async writePackage(filePath : string, useCompression = true) {

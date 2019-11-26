@@ -6,8 +6,9 @@ import ZipPackage from './PackageManager/ZipPackage';
 import { IPackage } from '.';
 // @ts-ignore
 import { parseString } from 'xml2js'
+import { ProgressListener } from './PackageManager/IPackage';
 
-const keythereum = require('keythereum')
+// const keythereum = require('keythereum')
 
 const secp256k1 = require('secp256k1')
 const asn1 = require('asn1.js')
@@ -79,7 +80,7 @@ export const getPrivateKeyFromKeystore = async (keyFile : string, keyFilePasswor
     console.log('>> keyfile could not be accessed')
     return
   }
-  const privateKey = keythereum.recover(keyFilePassword, keyObject)
+  const privateKey = undefined // FIXME keythereum.recover(keyFilePassword, keyObject)
   return privateKey
 } 
 
@@ -162,6 +163,56 @@ export const createPackage = (srcDir : string) => {
   }
 }
 
+// FIXME note that this is not performance optimized and we do multiple runs on the package data stream
+export const extractPackage = async (pkg : IPackage, destPath: string, onProgress: ProgressListener = (p, f) => {}) => {
+  // get a list of all entries in the package
+  const entries = await pkg.getEntries()
+  // iterate over all entries and write them to disk next to the package
+  // WARNING packages can have different structures: if the .tar.gz has a nested dir it is fine
+  // if not the files will directly be in the directory which can cause all kinds of problems
+  // in this case we should try to create an extra subdir
+  const extractedPackagePath = destPath
+  if (!fs.existsSync(extractedPackagePath)) {
+    fs.mkdirSync(extractedPackagePath, {
+      recursive: true
+    })
+  }
+  let i = 0
+  for (const entry of entries) {
+    // the full path where we want to write the package entry's contents on disk
+    const destPath = path.join(extractedPackagePath, entry.relativePath)
+    // console.log('create dir sync', destPath)
+    if (entry.file.isDir) {
+      if (!fs.existsSync(destPath)) {
+        fs.mkdirSync(destPath, {
+          recursive: true
+        })
+      }
+    } else {
+      try {
+        // try to overwrite
+        if (fs.existsSync(destPath)) {
+          fs.unlinkSync(destPath)
+        }
+        // IMPORTANT: if the binary already exists the mode cannot be set
+        // FIXME make sure the written file has same attributes / mode / permissions etc
+        fs.writeFileSync(destPath, await entry.file.readContent())
+      } catch (error) {
+        console.log('error during extraction', error)
+      }
+    }
+    // TODO change to size based progress?
+    const progress = Math.floor((100 / entries.length) * ++i)
+    if (onProgress) {
+      try {
+        onProgress(progress, entry.file.name)
+      } catch (error) {
+        console.log('error in onProgress handler')
+      }
+    }
+  }
+  return extractedPackagePath
+}
 
 export function runScriptSync (scriptName : string, scriptArgs : any, cwd? : any) {
   const scriptCommand = `${scriptName} ${scriptArgs.join(' ')}`

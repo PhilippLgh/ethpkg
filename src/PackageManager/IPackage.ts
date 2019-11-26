@@ -1,5 +1,10 @@
+import { IRelease } from "../Fetcher/IRepository";
+
+export type ProgressListener = (progress: number, filePath: string) => void
+
 export interface IPackage {
   fileName: string;
+  metadata?: IRelease;
   loadBuffer(buf : Buffer) : Promise<void>;
   getEntries() : Promise<Array<IPackageEntry>>;
   getEntry(relativePath : string) : Promise<IPackageEntry | undefined>;
@@ -7,6 +12,7 @@ export interface IPackage {
   addEntry(relativePath : string, content : string | Buffer) : Promise<string>;
   toBuffer() : Promise<Buffer>;
   writePackage(outPath: string): Promise<string>;
+  extract(destPath: string, onProgress?: ProgressListener) : Promise<string>;
 }
 
 export interface IFile {
