@@ -19,8 +19,18 @@ export interface FetchPackageOptions {
   spec?: string, // FIXME make required
   version?: string;
   platform?: string;
-  prefix?: string; // pass through for performance
   listener?: StateListener
+
+  cache?: string;
+
+  // pass-through for FetchOptions
+  filter?: (release: IRelease) => boolean; // custom filter logic
+  semverFilter?: string // version or version range that should be returned
+  prefix? : string // server-side processed name- / path-filter. default: undefined
+  timeout? : number // time in ms for request timeouts.
+  skipCache? : boolean // if cached files should be ignored. default: false 
+  pagination?: boolean | number // is pagination should be used and number of pages
+  limit?: number // number of results
 }
 
 export function instanceofFetchPackageOptions(object: any): object is FetchPackageOptions {
@@ -37,12 +47,12 @@ const parseSpec = (spec: string) => {
   if (!spec) return undefined
   const parts = spec.split(':')
   // TODO const repoNames = Object.keys(repos)
-  const repoNames = ['azure', 'npm']
+  const repoNames = ['azure', 'npm', 'bintray']
   if (parts.length > 0 && repoNames.includes(parts[0])) {
     const repo = parts[0]
     const package_parts = parts[1].split('/')
-    const owner = package_parts.length > 1 ? package_parts[0] : undefined 
-    let project = package_parts.length === 1 ? package_parts[0] : package_parts[1]
+    const owner = package_parts.length > 1 ? package_parts.shift() : undefined 
+    let project = package_parts.length === 1 ? package_parts[0] : package_parts.join('/')
     // parses ethpkg@1.0.0
     const project_parts = project.split('@')
     const version = project_parts.length > 1 ? project_parts[1] : undefined
@@ -98,6 +108,7 @@ export default class Fetcher {
    * @param options : FetchOptions
    */
   async listReleases(spec: PackageSpecifier, {
+    filter = undefined,
     filterInvalid = true,
     sort = true,
     semverFilter = undefined,
@@ -157,11 +168,13 @@ export default class Fetcher {
         if (!('version' in release)) {
           return false
         }
-        const coercedVersion = semver.coerce(release.version)
-        const release_version = coercedVersion ? coercedVersion.version : release.version
-        if (release_version === undefined) return false
+        const release_version = release.version as string
         return semver.satisfies(release_version, versionFilter)
       })
+    }
+
+    if(filter && typeof filter === 'function') {
+      releases = releases.filter(filter)
     }
 
     // sort releases by semver and date, and return them descending (latest first)
@@ -182,12 +195,28 @@ export default class Fetcher {
   
   async getRelease(spec: PackageSpecifier, { 
     listener = () => {},
-    prefix = undefined
+    filter = undefined,
+    semverFilter = undefined,
+    prefix = undefined,
+    timeout = 0,
+    skipCache = false,
+    pagination = false,
+    limit = 0
   } : FetchPackageOptions = {}) : Promise<IRelease | undefined> {
 
     // notify client about process start
     listener(PROCESS_STATES.RESOLVE_PACKAGE_STARTED, {})
-    const releases = await this.listReleases(spec)
+    const releases = await this.listReleases(spec, {
+      filter,
+      filterInvalid: true,
+      sort: true,
+      semverFilter,
+      prefix,
+      timeout,
+      skipCache,
+      pagination,
+      limit
+    })
 
     // if more than one release is returned we default to returning the latest version
     let latest = undefined
@@ -206,12 +235,12 @@ export default class Fetcher {
 
     if (!latest) {
       // FIXME failed
-      listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { latest })
+      listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { release: latest })
       return undefined
     }
 
     // notify client about process end
-    listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { latest })
+    listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { release: latest })
 
     return latest
   }
