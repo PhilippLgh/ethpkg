@@ -1,6 +1,8 @@
 import GitHubRepository from "./GitHub"
 import AzureRepository from "./Azure"
 import NpmRepository from "./Npm"
+import BintrayRepository from "./Bintray"
+
 import { IRepository } from "../IRepository"
 
 type RepositoryMap = { [index: string] : Function /* constructor of IRepository */ }
@@ -8,7 +10,8 @@ type RepositoryMap = { [index: string] : Function /* constructor of IRepository 
 export const repos : RepositoryMap = {
   'github': GitHubRepository,
   'azure': AzureRepository,
-  'npm': NpmRepository
+  'npm': NpmRepository,
+  'bintray': BintrayRepository
 }
 
 const getRepository = (str: string, options: any) : IRepository | undefined => {
