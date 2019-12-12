@@ -8,8 +8,7 @@ export const PROCESS_STATES = {
   DOWNLOAD_FINISHED: 'download_finished',
   VERIFICATION_ERROR: 'verification_error',
   VERIFICATION_FAILED: 'verification_failed',
-  PACKAGE_WRITTEN: 'package_written',
-  BINARY_EXTRACTED: 'binary_extracted'
+  PACKAGE_WRITTEN: 'package_written'
 }
 
 export type StateListener = (newState: string, args: any) => void
