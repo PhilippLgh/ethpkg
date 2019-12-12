@@ -7,6 +7,8 @@ import { download } from "../Downloader"
 import { StateListener, PROCESS_STATES } from "../IStateListener"
 import semver from 'semver'
 import { hasPackageExtension } from "../utils/FilenameUtils"
+import { isUrl } from "../util"
+import url from "url"
 
 // see https://github.com/npm/npm-package-arg
 type PackageSpecifier = string
@@ -45,6 +47,27 @@ export function instanceofFetchPackageOptions(object: any): object is FetchPacka
  */
 const parseSpec = (spec: string) => {
   if (!spec) return undefined
+  if (isUrl(spec)) {
+    try {
+      const parsedUrl = url.parse(spec)
+      const { pathname, host} = parsedUrl
+      // @ts-ignore
+      const hostParts = host.split('.')
+      // @ts-ignore
+      let pathParts = pathname.split('/')
+      pathParts = pathParts.filter(p => p && p !== '')
+      const result = {
+        type: 'custom',
+        repo: hostParts[0], // TODO does this cover api.host.com?
+        owner: pathParts[0],
+        project: pathParts[1],
+        version: undefined
+      }
+      return result
+    } catch (error) {
+      return undefined
+    }
+  }
   const parts = spec.split(':')
   // TODO const repoNames = Object.keys(repos)
   const repoNames = ['azure', 'npm', 'bintray']
@@ -204,8 +227,11 @@ export default class Fetcher {
     limit = 0
   } : FetchPackageOptions = {}) : Promise<IRelease | undefined> {
 
+    const platform = process.platform // FIXME this info is only implemented via filters
+    const version = semverFilter || 'latest'
+
     // notify client about process start
-    listener(PROCESS_STATES.RESOLVE_PACKAGE_STARTED, {})
+    listener(PROCESS_STATES.RESOLVE_PACKAGE_STARTED, { platform, version })
     const releases = await this.listReleases(spec, {
       filter,
       filterInvalid: true,
@@ -235,12 +261,12 @@ export default class Fetcher {
 
     if (!latest) {
       // FIXME failed
-      listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { release: latest })
+      listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { release: latest, platform, version })
       return undefined
     }
 
     // notify client about process end
-    listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { release: latest })
+    listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { release: latest, platform, version })
 
     return latest
   }
