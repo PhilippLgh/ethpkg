@@ -6,7 +6,10 @@ export { PackageManager }
 export default new PackageManager()
 
 import * as util from './util'
-export {util as util}
+export {util}
+
+import { PROCESS_STATES } from './IStateListener'
+export { PROCESS_STATES }
 
 export {default as pkgsign} from './PackageSigner'
 export {default as cert} from './cert'
