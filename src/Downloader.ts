@@ -49,7 +49,7 @@ export function request(method : string, _url : string, opts : any = {}) : Promi
     console.log('format form data')
     let form = new FormData()
     // FIXME filename in multipart form
-    form.append('bla.tar', opts.Body)
+    form.append('data', opts.Body, { filename: 'foo.tar'})
     opts = {
       headers: form.getHeaders()
     }
