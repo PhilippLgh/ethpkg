@@ -13,6 +13,7 @@ import PackageSigner from '../PackageSigner'
 import { StateListener } from '../IStateListener'
 import { IRelease, FetchOptions } from '../Fetcher/IRepository'
 import { FetchPackageOptions, instanceofFetchPackageOptions } from '../Fetcher/Fetcher'
+import { isDirSync } from '../util'
 
 // @ts-ignore
 const excludedFiles = e => !/\.zip$/.test(e)
@@ -76,32 +77,16 @@ class PackageManager {
     }
   }
 
-  createPackage = async (pkgDirPath : string, pkgOutPath? : string) => {
-
-    if(!lstatSync(pkgDirPath).isDirectory()) {
+  createPackage = async (contentDirPath : string, pkgOutPath? : string) => {
+    if(!lstatSync(contentDirPath).isDirectory()) {
       throw new Error('package source is not a directory')
     }
-  
-    const addFile = (src : string, f : string, pkg : IPackage) => {
-      pkg.addEntry(f, fs.readFileSync(path.join(src, f)))
-    }
-  
     // FIXME determine the package type e.g zip / tar based on out path
-    const zip = new ZipPackage()
-    zip.init() // create new empty package
-  
-    const files = fs
-      .readdirSync(pkgDirPath)
-      .filter(excludedFiles)
-      .forEach(f => addFile(pkgDirPath, f, zip))
-    
-    
+    const pkg = await TarPackage.create(contentDirPath)
     if(pkgOutPath) {
-      zip.writePackage(pkgOutPath)
+      pkg.writePackage(pkgOutPath)
     }
-  
-    return zip
-  
+    return pkg
   }
 
   resolve = async (spec : PackageSpecifier) : Promise<string> => {
