@@ -1,7 +1,7 @@
 import { IRepository, IRelease, FetchOptions } from "./IRepository"
-import pickRepository, { repos } from "./repositories"
+import pickRepository, { repos } from "../Repositories"
 import npa from 'npm-package-arg'
-import Mock from "./repositories/test/Mock"
+import Mock from "../Repositories/test/Mock"
 import { compareVersions, multiSort, compareDate } from "../Utils/PackageUtils"
 import { download } from "../Downloader"
 import { StateListener, PROCESS_STATES } from "../IStateListener"

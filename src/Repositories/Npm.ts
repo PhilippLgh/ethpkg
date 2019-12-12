@@ -1,7 +1,7 @@
 import path from 'path'
-import { IRepository, FetchOptions, IRelease } from "../IRepository"
-import { download, downloadJson } from "../../Downloader"
-import { datestring } from '../../Utils/PackageUtils';
+import { IRepository, FetchOptions, IRelease } from "../Fetcher/IRepository"
+import { download, downloadJson } from "../Downloader"
+import { datestring } from '../Utils/PackageUtils';
 
 export default class NpmRepository implements IRepository {
   

@@ -1,9 +1,9 @@
-import { IRepository, IRelease, FetchOptions } from "../IRepository"
-import { download } from "../../Downloader"
-import { parseXml } from "../../util"
-import { hasPackageExtension, hasSignatureExtension, removeExtension } from "../../utils/FilenameUtils"
-import { extractPlatformFromString, extractArchitectureFromString, extractVersionFromString, versionToDisplayVersion } from "../../utils/FilenameHeuristics"
-import { datestring } from "../../Utils/PackageUtils"
+import { IRepository, IRelease, FetchOptions } from "../Fetcher/IRepository"
+import { download } from "../Downloader"
+import { parseXml } from "../util"
+import { hasPackageExtension, hasSignatureExtension, removeExtension } from "../utils/FilenameUtils"
+import { extractPlatformFromString, extractArchitectureFromString, extractVersionFromString, versionToDisplayVersion } from "../utils/FilenameHeuristics"
+import { datestring } from "../Utils/PackageUtils"
 
 interface AzureBlob {
   Name: Array<string>

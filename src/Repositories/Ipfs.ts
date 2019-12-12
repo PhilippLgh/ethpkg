@@ -1,6 +1,6 @@
-import { IRepository, IRelease, FetchOptions } from "../IRepository"
-import { extractVersionFromString, extractChannelFromVersionString, versionToDisplayVersion } from "../../utils/FilenameHeuristics"
-import { datestring } from "../../Utils/PackageUtils"
+import { IRepository, IRelease, FetchOptions } from "../Fetcher/IRepository"
+import { extractVersionFromString, extractChannelFromVersionString, versionToDisplayVersion } from "../utils/FilenameHeuristics"
+import { datestring } from "../Utils/PackageUtils"
 
 export default class IpfsRepository implements IRepository {
 

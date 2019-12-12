@@ -1,7 +1,7 @@
-import { IRepository, IRelease, FetchOptions } from "../IRepository"
-import { downloadJson } from "../../Downloader"
-import { datestring } from "../../Utils/PackageUtils"
-import { removeExtension } from "../../utils/FilenameUtils"
+import { IRepository, IRelease, FetchOptions } from "../Fetcher/IRepository"
+import { downloadJson } from "../Downloader"
+import { datestring } from "../Utils/PackageUtils"
+import { removeExtension } from "../utils/FilenameUtils"
 
 export default class BintrayRepository  implements IRepository {
 
