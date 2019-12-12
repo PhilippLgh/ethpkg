@@ -4,7 +4,7 @@ import { prompt } from 'enquirer'
 import fs from 'fs'
 import path from 'path'
 // @ts-ignore
-import keythereum from 'keythereum'
+// import keythereum from 'keythereum'
 import { getKeystorePath } from '../../../util';
 import { failed, succeed } from '../../task';
 
@@ -94,10 +94,13 @@ export default class extends Command {
       return failed(task, 'password empty or invalid')
     }
 
+    /*
     const dk = keythereum.create()
     const keyObject = keythereum.dump(password, dk.privateKey, dk.salt, dk.iv)
     keyObject.usage = `ethpkg-${projectName}`
     keyObject.version = ('ethpkg-'+keyObject.version)
+    */
+    const keyObject = {} // FIXME find keythereum replacement
 
     if(!outPath) {
       // @ts-ignore
