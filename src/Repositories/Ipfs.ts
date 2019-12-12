@@ -27,4 +27,8 @@ export default class IpfsRepository implements IRepository {
     return []
   }
 
+  async publish() {
+    throw new Error('not implemented')
+  }
+
 }

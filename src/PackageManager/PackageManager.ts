@@ -11,9 +11,10 @@ import Fetcher from '../Fetcher'
 import PackageSigner from '../PackageSigner'
 
 import { StateListener } from '../IStateListener'
-import { IRelease, FetchOptions } from '../Fetcher/IRepository'
+import { IRelease, FetchOptions, IRepository } from '../Repositories/IRepository'
 import { FetchPackageOptions, instanceofFetchPackageOptions } from '../Fetcher/Fetcher'
 import { isDirSync } from '../util'
+import getRepository from '../Repositories'
 
 // @ts-ignore
 const excludedFiles = e => !/\.zip$/.test(e)
@@ -89,11 +90,6 @@ class PackageManager {
     return pkg
   }
 
-  resolve = async (spec : PackageSpecifier) : Promise<string> => {
-    throw new Error('not implemented!')
-    return spec
-  }
-
   findPackage = async (spec : PackageSpecifier, options? : FetchPackageOptions) : Promise<IRelease | undefined> => {
     const fetcher = new Fetcher()
     const release = await fetcher.getRelease(spec, options)
@@ -150,7 +146,8 @@ class PackageManager {
     }
     else if(Buffer.isBuffer(pkgSpec)) {
       return this.getPackageFromBuffer(pkgSpec)
-    } else {
+    } 
+    else {
       throw new Error('unsupported input type for package')
     }
   }
@@ -162,8 +159,12 @@ class PackageManager {
   /**
    * Downloads a package to disk
    */
-  downloadPackage = async (spec : PackageSpecifier, dest? : string) => {
+  downloadPackage = async (spec : PackageSpecifier, dest : string = '.') => {
+    dest = path.resolve(dest)
     const pkg = await this.getPackage(spec)
+    if (!pkg) {
+      throw new Error('Package could not be fetched')
+    }
     /*
     let addressOrEnsName = undefined
     if (verifyWith.length > 0) {
@@ -175,15 +176,26 @@ class PackageManager {
       }
     }
     */
-    // await pkg.writePackage()
+    await pkg.writePackage(dest)
     return pkg
   }
 
   /**
    * 
    */
-  publishPackage = async (packagePath: string) => {
-
+  publishPackage = async (pkgSpec: string | IPackage, repoSpecifier: string = 'ipfs') => {
+    const pkg = typeof pkgSpec === 'string' ? await this.getPackage(pkgSpec) : pkgSpec
+    const repo = await getRepository(repoSpecifier, {})
+    if (!repo) {
+      throw new Error('Repository not found for specifier: '+repoSpecifier)
+    }
+    // @ts-ignore
+    if (typeof repo.publish !== 'function') {
+      throw new Error('Repository does not implement publish')
+    }
+    // @ts-ignore
+    const result = await repo.publish(pkg)
+    return result
   }
 
 }
