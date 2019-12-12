@@ -1,6 +1,8 @@
 import { IRepository, IRelease, FetchOptions } from "./IRepository"
 import { extractVersionFromString, extractChannelFromVersionString, versionToDisplayVersion } from "../utils/FilenameHeuristics"
 import { datestring } from "../Utils/PackageUtils"
+import { request, downloadStreamToBuffer } from "../Downloader";
+import { IPackage } from ".."
 
 export default class IpfsRepository implements IRepository {
 
@@ -27,8 +29,14 @@ export default class IpfsRepository implements IRepository {
     return []
   }
 
-  async publish() {
-    throw new Error('not implemented')
+  async publish(pkg: IPackage) {
+    const response = await request('POST', 'https://ipfs.infura.io:5001/api/v0/add?pin=false', {
+      'Content-Type': 'multipart/form-data',
+      Body: await pkg.toBuffer()
+    })
+    console.log('response', response.statusCode)
+    const resp : any = await downloadStreamToBuffer(response)
+    console.log('hash: ', JSON.parse(resp.toString()).Hash)
   }
 
 }
