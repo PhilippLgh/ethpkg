@@ -23,8 +23,8 @@ export default class extends Command {
     if (isDirSync(packagePath)) {
       console.log('publish target is directory')
       const pkg = await packageManager.createPackage(packagePath)
-      await packageManager.publishPackage(pkg, 'ipfs')
-    }
+      return await packageManager.publishPackage(pkg, 'ipfs')
+    } 
     await packageManager.publishPackage(packagePath, 'ipfs')
   }
 }
