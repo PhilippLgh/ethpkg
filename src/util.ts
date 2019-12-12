@@ -1,7 +1,7 @@
-import fs from 'fs'
+import fs, { WriteStream } from 'fs'
 import path from 'path'
 import os from 'os'
-import stream from 'stream'
+import stream, { Readable, Writable } from 'stream'
 import ZipPackage from './PackageManager/ZipPackage';
 import { IPackage } from '.';
 // @ts-ignore
@@ -127,6 +127,16 @@ export const getPrivateKeyFromPEM = (inputPath: string) => {
   return privateKey
 }
 
+export const isDirSync = (filePath : string) => {
+  try {
+    const fileStats = fs.lstatSync(filePath);
+    return fileStats.isDirectory()
+  } catch (error) {
+    return false
+  }
+}
+
+// FIXME remove in favor of PackageManager
 export const createPackage = (srcDir : string) => {
 
   const excludeZipFiles = (e : string) => !/\.zip$/.test(e)
@@ -283,7 +293,7 @@ class WritableMemoryStream extends stream.Writable {
   }
 }
 
-export const streamToBuffer = async (stream : fs.ReadStream, size? : number) : Promise<Buffer> => {
+export const streamToBuffer = async (stream : Readable, size? : number) : Promise<Buffer> => {
   return new Promise((resolve, reject) => {
     let mStream = new WritableMemoryStream()
     // let fStream = fs.createWriteStream(__dirname+'/test')
@@ -298,13 +308,38 @@ export const streamToBuffer = async (stream : fs.ReadStream, size? : number) : P
     stream.on("error", (error : any) => {
       reject(error)
     });
-    stream.on('end', () => {
-      // console.log( ((Date.now()-t0) / 1000) , ' finished processing')
-      // console.log('end of stream', completed, '/',  size)
-      // TODO make sure that buffer also contains bytes stream.end vs mStream.end
+    mStream.once('finish', () => {
       resolve(mStream.buffer)
     })
+    /*
+    stream.on('end', () => {
+      // console.log( ((Date.now()-t0) / 1000) , ' finished processing')
+      console.log('end of stream', completed, '/',  size)
+      if (!mStream.buffer) {
+        mStream.once('finish', () => {
+          console.log('finish called!!!')
+        })
+      } else {
+        // TODO make sure that buffer also contains bytes stream.end vs mStream.end
+        resolve(mStream.buffer)
+      }
+    })
+    */
   })
+}
+
+export const streamPromise = (stream : WriteStream | Writable) : Promise<string> => {
+  return new Promise((resolve, reject) => {
+    stream.on('end', () => {
+        resolve('end');
+    });
+    stream.on('finish', () => {
+        resolve('finish');
+    });
+    stream.on('error', (error: Error) => {
+        reject(error);
+    });
+  });
 }
 
 export const bufferToStream = (buf : Buffer) => {
@@ -313,4 +348,10 @@ export const bufferToStream = (buf : Buffer) => {
   readable.push(buf)
   readable.push(null)
   return readable
+}
+
+export const isUrl = (str : string) => {
+  const urlRegex = '^(?!mailto:)(?:(?:http|https|ftp)://)(?:\\S+(?::\\S*)?@)?(?:(?:(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}(?:\\.(?:[0-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))|(?:(?:[a-z\\u00a1-\\uffff0-9]+-?)*[a-z\\u00a1-\\uffff0-9]+)(?:\\.(?:[a-z\\u00a1-\\uffff0-9]+-?)*[a-z\\u00a1-\\uffff0-9]+)*(?:\\.(?:[a-z\\u00a1-\\uffff]{2,})))|localhost)(?::\\d{2,5})?(?:(/|\\?|#)[^\\s]*)?$';
+  const url = new RegExp(urlRegex, 'i');
+  return str.length < 2083 && url.test(str);
 }
