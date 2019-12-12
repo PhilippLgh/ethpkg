@@ -1,24 +1,25 @@
-import fs, { read } from 'fs'
 import path from 'path'
-import zlib from 'zlib'
+import fs from 'fs'
 import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
-import { bufferToStream, streamToBuffer, extractPackage } from '../util'
-import { IRelease } from '../Fetcher/IRepository'
-const tar = require('tar-stream')
+import tar, { FileStat } from 'tar'
+import { streamToBuffer, bufferToStream, streamPromise } from '../util';
 
 export default class TarPackage implements IPackage {
 
-  private packagePath: string;
-  private isGzipped: boolean;
+  fileName: string = '<unknown>';  
+  metadata?: import("../Fetcher/IRepository").IRelease | undefined;
+  packagePath: string;
+  isGzipped: boolean;
   tarbuf?: Buffer;
-  fileName = '<unknown>'
-  metadata?: IRelease
 
   constructor(packagePath? : string, compressed = true) {
     this.packagePath = packagePath || ''
     this.isGzipped = compressed
   }
-  loadBuffer(buf: Buffer): Promise<void> {
+
+  init() { /* no op */}
+
+  async loadBuffer(buf: Buffer): Promise<void> {
     this.tarbuf = buf
     return Promise.resolve()
   }
@@ -29,53 +30,34 @@ export default class TarPackage implements IPackage {
       return fs.createReadStream(this.packagePath, {highWaterMark: Math.pow(2,16)})
     }
   }
-  private async getEntryData(entryPath : string) : Promise<Buffer> {
-    const inputStream = this.getReadStream()
-    const extract = tar.extract()
-    return new Promise((resolve, reject) => {
-      extract.on('entry', async (header : any, stream : any, next : any) => {
-        let { name } = header
-        const { size, type} = header
-        const relPath = name as string
-        name = path.basename(relPath)
-        if(relPath === entryPath){
-          let fileData = await streamToBuffer(stream, size)
-          resolve(fileData)
-          // TODO close here
-          next()
-        } else {
-          stream.on('end', function() {
-            next() // ready for next entry
-          })
-          stream.resume()
-        }
-      })
-      extract.on('finish', () => {
-        // resolve(entries)
-      })
-      if(this.isGzipped) {
-        inputStream.pipe(zlib.createGunzip()).pipe(extract)
-      } else {
-        inputStream.pipe(extract)
+  // see: https://github.com/npm/node-tar/issues/181
+  private async getEntryData(relPath: string) : Promise<Buffer> {
+    const data : Array<any> = []
+    const onentry = (entry: tar.FileStat)  => {
+      if (entry.header.path === relPath) {
+        entry.on('data', c =>  {
+          data.push(c)
+        })
       }
-    });
+    }
+    const writeStream = tar.t({
+      onentry
+    })
+    const s = this.getReadStream().pipe(writeStream)
+    await streamPromise(s)
+    return Buffer.concat(data)
   }
-  // see also https://github.com/yarnpkg/lets-dev-demo/blob/master/utilities.js
   async getEntries(): Promise<IPackageEntry[]> {
-    const inputStream = this.getReadStream()
-    const extract = tar.extract()
-    return new Promise((resolve, reject) => {
-      const entries : IPackageEntry[] = []
-
-      extract.on('entry', (header : any, stream : any, next : any) => {
-        let { name } = header
-        const { size, type, mode} = header
-        const relativePath = name as string
-        name = path.basename(relativePath)
-
+    const entries : Array<IPackageEntry> = []
+    const writeStream = tar.t({
+      onentry: (entry: FileStat) => {
+        // console.log('entry', entry)
+        const { header } = entry
+        const { path : relativePath, size, mode, type } = header
+        const name = path.basename(relativePath)
         let iFile : IFile = {
           name,
-          size,
+          size: size || 0,
           mode,
           isDir: type === 'directory',
           readContent: async (t : string = 'nodebuffer') => {
@@ -87,27 +69,15 @@ export default class TarPackage implements IPackage {
           relativePath,
           file: iFile
         })
-        
-        stream.on('end', function() {
-          next() // ready for next entry
-        })
-        stream.resume()
-        
-      })
-
-      extract.on('finish', () => {
+      }
+    })
+    return new Promise((resolve, reject) => {
+      this.getReadStream().pipe(writeStream).on('finish', () => {
         resolve(entries)
       })
-
-      // extract file and
-      if(this.isGzipped) {
-        inputStream.pipe(zlib.createGunzip()).pipe(extract)
-      } else {
-        inputStream.pipe(extract)
-      }
-    });
+    })
   }
-  async getEntry(relativePath : string) : Promise<IPackageEntry | undefined> {
+  async getEntry(relativePath: string): Promise<IPackageEntry | undefined> {
     try {
       let entries = await this.getEntries()
       let entry = entries.find((entry : IPackageEntry) => entry.relativePath === relativePath)
@@ -116,94 +86,50 @@ export default class TarPackage implements IPackage {
       return undefined
     }
   }
-
-  async getContent(relativePath : string) : Promise<Buffer> {
+  async getContent(relativePath: string): Promise<Buffer> {
     const entry = await this.getEntry(relativePath)
     // TODO standardize errors
     if (!entry) throw new Error('entry does not exist: '+relativePath)
     if (entry.file.isDir) throw new Error('entry is not a file')
     return entry.file.readContent()
   }
-
-  // TODO very poor performance - this can probably be optimized a LOT :(
-  async addEntry(relativePath: string, content: string | Buffer): Promise<string> {
-    // prepare in / out streams
-    let inputStream
-    // if tarbuf exists use instead of org file or it would overwite intermediate changes
-    inputStream = this.getReadStream()
-
-    // 
-    const pack = tar.pack() // pack is a streams2 stream
-    const extract = tar.extract()
-   
-    // prepare compression
-    const gzip = zlib.createGzip()
-
-    let wasOverwritten = false
-
-    extract.on('entry', (header : any, stream : any, next : any) => {
-      let { name } = header
-      const { size, type} = header
-      // apparently a tar can contain multiple
-      // files with the same name / relative path
-      // in order to avoid duplicates we must overwrite existing entries
-      if(name === relativePath) {
-        wasOverwritten = true
-        let entry = pack.entry({ name }, content)
-        entry.end()
-        stream.on('end', function() {
-          console.log('end')
-          next() // ready for next entry
-        })
-        stream.resume() // just auto drain the stream
-      } else {
-        // write the unmodified entry to the pack stream
-        stream.pipe(pack.entry(header, next))
-      }
-    });
-
-    extract.on('finish', function() {
-      // add new entries here:
-      if(!wasOverwritten) {
-        let entry = pack.entry({ name: relativePath }, content)
-        // all entries done - lets finalize it
-        entry.on('finish', () => {
-          pack.finalize()
-        })
-        entry.end()
-      } else {
-        pack.finalize()
-      }
-    })
-
-    // read input
-    if(this.isGzipped) {
-      inputStream.pipe(zlib.createGunzip()).pipe(extract)
-    } else {
-      inputStream.pipe(extract)
-    }
-
-    // write new tar to buffer
-    let strm = pack.pipe(gzip)
-    // @ts-ignore
-    this.tarbuf = await streamToBuffer(strm)
-
+  async addEntry(relativePath: string, filePath: string): Promise<string> {
+    throw new Error('not implemented')
+    tar.r({
+      file: this.packagePath
+    }, [ filePath ])
     return relativePath
   }
-  toBuffer(): Promise<Buffer> {
+  async toBuffer(): Promise<Buffer> {
+    if (!this.tarbuf) {
+      if (this.packagePath) {
+        this.tarbuf = fs.readFileSync(this.packagePath)
+      } else {
+        throw new Error('Could not create package buffer')
+      }
+    }
+    return Promise.resolve(this.tarbuf)
+  }
+  async writePackage(outPath: string): Promise<string> {
+    const s = this.getReadStream().pipe(fs.createWriteStream(outPath))
+    await streamPromise(s)
+    return outPath
+  }
+  extract(destPath: string, onProgress?: ProgressListener | undefined): Promise<string> {
     throw new Error("Method not implemented.");
   }
-
-  async extract(destPath: string, onProgress: ProgressListener = (p, f) => {}) : Promise<string> {
-    return extractPackage(this, destPath, onProgress)
+  async printEntries() {
+    const entries = await this.getEntries()
+    console.log(entries.map(e => e.relativePath).join('\n'))
   }
-
-  writePackage(outPath: string): Promise<string> {
-    if (!this.tarbuf) {
-      throw new Error("cannot create tar file - empty buffer")
-    }
-    fs.writeFileSync(outPath, this.tarbuf)
-    return Promise.resolve(outPath)
+  static async create(dirPath : string) : Promise<TarPackage> {
+    const files = fs.readdirSync(dirPath)
+    const readStream = await tar.c({
+      cwd: dirPath,
+    }, [ ...files ])
+    const buf = await streamToBuffer(readStream)
+    const _tar = new TarPackage()
+    _tar.loadBuffer(buf)
+    return _tar
   }
-
 }
