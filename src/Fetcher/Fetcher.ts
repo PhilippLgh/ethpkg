@@ -1,14 +1,12 @@
-import { IRepository, IRelease, FetchOptions } from "./IRepository"
-import pickRepository, { repos } from "../Repositories"
-import npa from 'npm-package-arg'
+import { IRepository, IRelease, FetchOptions } from "../Repositories/IRepository"
+import getRepository from "../Repositories"
 import Mock from "../Repositories/test/Mock"
 import { compareVersions, multiSort, compareDate } from "../Utils/PackageUtils"
 import { download } from "../Downloader"
 import { StateListener, PROCESS_STATES } from "../IStateListener"
 import semver from 'semver'
 import { hasPackageExtension } from "../utils/FilenameUtils"
-import { isUrl } from "../util"
-import url from "url"
+import Parser from "../SpecParser"
 
 // see https://github.com/npm/npm-package-arg
 type PackageSpecifier = string
@@ -37,68 +35,6 @@ export interface FetchPackageOptions {
 
 export function instanceofFetchPackageOptions(object: any): object is FetchPackageOptions {
   return typeof object === 'object' && ('spec' in object)
-}
-
-/**
- * TODO add more unit testing for parser
- * example: npm:@philipplgh/ethpkg@^1.2.3
- * => <repo>:<owner>/<project>@<version>
- * @param spec 
- */
-const parseSpec = (spec: string) => {
-  if (!spec) return undefined
-  if (isUrl(spec)) {
-    try {
-      const parsedUrl = url.parse(spec)
-      const { pathname, host} = parsedUrl
-      // @ts-ignore
-      const hostParts = host.split('.')
-      // @ts-ignore
-      let pathParts = pathname.split('/')
-      pathParts = pathParts.filter(p => p && p !== '')
-      const result = {
-        type: 'custom',
-        repo: hostParts[0], // TODO does this cover api.host.com?
-        owner: pathParts[0],
-        project: pathParts[1],
-        version: undefined
-      }
-      return result
-    } catch (error) {
-      return undefined
-    }
-  }
-  const parts = spec.split(':')
-  // TODO const repoNames = Object.keys(repos)
-  const repoNames = ['azure', 'npm', 'bintray']
-  if (parts.length > 0 && repoNames.includes(parts[0])) {
-    const repo = parts[0]
-    const package_parts = parts[1].split('/')
-    const owner = package_parts.length > 1 ? package_parts.shift() : undefined 
-    let project = package_parts.length === 1 ? package_parts[0] : package_parts.join('/')
-    // parses ethpkg@1.0.0
-    const project_parts = project.split('@')
-    const version = project_parts.length > 1 ? project_parts[1] : undefined
-    if (project_parts.length > 1) {
-      project = project.substring(0, project.indexOf('@'))
-    }
-    return {
-      type: 'custom',
-      repo,
-      owner,
-      project,
-      version
-    }  
-  }
-
-  let parsed = undefined
-  try {
-    parsed = npa(spec)
-    // console.log('parsed ->', parsed)
-  } catch (ex) {
-    console.error('NPA parser error', ex.message)
-  }
-  return parsed
 }
 
 const LOGLEVEL = {
@@ -148,7 +84,7 @@ export default class Fetcher {
       const testCase = spec.split(':')[1]
       repository = new Mock(testCase)
     } else {
-      const parsed = parseSpec(spec)
+      const parsed = Parser.parseSpec(spec)
       if (!parsed) throw new Error(`Unsupported or invalid package specification: "${spec}"`)
   
       // custom parser was used
@@ -156,10 +92,10 @@ export default class Fetcher {
         // @ts-ignore FIXME
         const { repo, version } = parsed
         versionSpecifier = version
-        repository = pickRepository(repo, parsed)
+        repository = getRepository(repo, parsed)
       } else {
-        // @ts-ignore FIXME
-        repository = pickRepository(parsed.hosted.type, parsed.hosted)
+        // @ts-ignore
+        repository = getRepository(parsed.hosted.type, parsed.hosted)
       }
   
     }
