@@ -1,4 +1,4 @@
-import { IRepository, IRelease, FetchOptions } from "../Fetcher/IRepository"
+import { IRepository, IRelease, FetchOptions } from "./IRepository"
 import GitHub, { ReposListReleasesResponseItem, ReposListReleasesResponseItemAssetsItem } from '@octokit/rest'
 import { extractVersionFromString, extractChannelFromVersionString, versionToDisplayVersion } from "../utils/FilenameHeuristics"
 import { datestring } from "../Utils/PackageUtils"

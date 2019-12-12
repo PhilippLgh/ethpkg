@@ -3,7 +3,7 @@ import fs from 'fs'
 import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
 import JSZip from 'jszip'
 import { extractPackage } from '../util'
-import { IRelease } from '../Fetcher/IRepository'
+import { IRelease } from '../Repositories/IRepository'
 
 export default class ZipPackage implements IPackage {
 

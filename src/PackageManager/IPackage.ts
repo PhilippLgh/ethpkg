@@ -1,4 +1,4 @@
-import { IRelease } from "../Fetcher/IRepository";
+import { IRelease } from "../Repositories/IRepository";
 
 export type ProgressListener = (progress: number, filePath: string) => void
 

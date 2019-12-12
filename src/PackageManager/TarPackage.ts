@@ -7,7 +7,7 @@ import { streamToBuffer, bufferToStream, streamPromise } from '../util';
 export default class TarPackage implements IPackage {
 
   fileName: string = '<unknown>';  
-  metadata?: import("../Fetcher/IRepository").IRelease | undefined;
+  metadata?: import("../Repositories/IRepository").IRelease | undefined;
   packagePath: string;
   isGzipped: boolean;
   tarbuf?: Buffer;

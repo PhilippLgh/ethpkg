@@ -3,7 +3,7 @@ import path from 'path'
 import zlib from 'zlib'
 import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
 import { bufferToStream, streamToBuffer, extractPackage } from '../util'
-import { IRelease } from '../Fetcher/IRepository'
+import { IRelease } from '../Repositories/IRepository'
 const tar = require('tar-stream')
 
 export default class TarPackage implements IPackage {

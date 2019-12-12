@@ -1,4 +1,4 @@
-import { IRepository, IRelease, FetchOptions } from "../Fetcher/IRepository"
+import { IRepository, IRelease, FetchOptions } from "./IRepository"
 import { downloadJson } from "../Downloader"
 import { datestring } from "../Utils/PackageUtils"
 import { removeExtension } from "../utils/FilenameUtils"

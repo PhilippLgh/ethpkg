@@ -1,4 +1,4 @@
-import { IRepository, FetchOptions, IRelease } from "../../Fetcher/IRepository"
+import { IRepository, FetchOptions, IRelease } from "../IRepository"
 
 /**
  * Shuffles array in place.

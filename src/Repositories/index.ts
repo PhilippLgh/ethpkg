@@ -3,7 +3,7 @@ import AzureRepository from "./Azure"
 import NpmRepository from "./Npm"
 import BintrayRepository from "./Bintray"
 
-import { IRepository } from "../Fetcher/IRepository"
+import { IRepository } from "./IRepository"
 
 type RepositoryMap = { [index: string] : Function /* constructor of IRepository */ }
 

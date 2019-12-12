@@ -1,4 +1,4 @@
-import { IRepository, IRelease, FetchOptions } from "../Fetcher/IRepository"
+import { IRepository, IRelease, FetchOptions } from "./IRepository"
 import { download } from "../Downloader"
 import { parseXml } from "../util"
 import { hasPackageExtension, hasSignatureExtension, removeExtension } from "../utils/FilenameUtils"
