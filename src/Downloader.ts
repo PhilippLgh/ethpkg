@@ -2,6 +2,7 @@ import http from 'http'
 import https from 'https'
 import url from "url"
 import stream from 'stream'
+import FormData from 'form-data'
 
 class WritableMemoryStream extends stream.Writable {
   
@@ -37,25 +38,41 @@ class WritableMemoryStream extends stream.Writable {
   */
 }
 
-export function request(method : string, _url : string, opts = {}) : Promise<http.IncomingMessage> {
+export function request(method : string, _url : string, opts : any = {}) : Promise<http.IncomingMessage> {
   const parsedURL = url.parse(_url);
   const {protocol, hostname, port, path} = parsedURL
 
   let protocolHandler = protocol === "https:" ? https : http;
 
+  let stream : any = undefined
+  if (opts['Content-Type'] && opts['Content-Type'] === 'multipart/form-data') {
+    console.log('format form data')
+    let form = new FormData()
+    // FIXME filename in multipart form
+    form.append('bla.tar', opts.Body)
+    opts = {
+      headers: form.getHeaders()
+    }
+    stream = form
+  }
+
   const options = {
+    method,
     protocol,
     hostname,
     port, 
-    method,
     path,
     ...opts
   };
+  console.log('options', options)
 
   return new Promise((resolve, reject) => {
     let req = protocolHandler.request(options, res => {
       resolve(res);
     });
+    if (stream) {
+      stream.pipe(req)
+    }
     req.on("error", e => {
       reject(e);
     });
