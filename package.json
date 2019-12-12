@@ -1,6 +1,6 @@
 {
   "name": "ethpkg",
-  "version": "0.3.0",
+  "version": "0.6.0",
   "description": "Sign your packages using crypto currency keys",
   "main": "./dist/index.js",
   "bin": {
@@ -11,11 +11,12 @@
     "test:manager": "mocha --require ts-node/register test/PackageManager.test.ts",
     "test:fetcher": "nyc mocha --timeout=4000 --require ts-node/register test/PackageFetcher/Fetcher.test.ts",
     "test:github": "mocha --require ts-node/register test/PackageFetcher/GitHubRepository.test.ts",
+    "test:packages": "mocha --require ts-node/register test/packages/*",
     "static-files": "copyfiles src/signer/eth/metamask/public/index.html -u 1 dist/",
     "copy-build": "yarn static-files && tsc -p ./tsconfig.json",
     "build": "tsc -p ./tsconfig.json",
     "start": "node ./dist/index.js",
-    "publish": "npm pack && ethpkg sign --publish true"
+    "_publish": "npm pack && ethpkg sign --publish true"
   },
   "repository": {
     "type": "git",
@@ -39,6 +40,7 @@
     "@types/npm-package-arg": "^6.1.0",
     "@types/ora": "^3.0.0",
     "@types/semver": "^6.2.0",
+    "@types/tar": "^4.0.3",
     "chai": "^4.2.0",
     "copyfiles": "^2.1.0",
     "mocha": "^5.2.0",
@@ -63,6 +65,7 @@
     "ora": "^3.1.0",
     "secp256k1": "^3.6.2",
     "semver": "^6.3.0",
+    "tar": "^5.0.5",
     "tar-stream": "^2.0.1",
     "xml2js": "^0.4.22"
   }
