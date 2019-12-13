@@ -84,19 +84,12 @@ export default class Fetcher {
       const testCase = spec.split(':')[1]
       repository = new Mock(testCase)
     } else {
-      const parsed = Parser.parseSpec(spec)
+      const parsed = await Parser.parseSpec(spec)
       if (!parsed) throw new Error(`Unsupported or invalid package specification: "${spec}"`)
   
-      // custom parser was used
-      if (parsed.type && parsed.type === 'custom') {
-        // @ts-ignore FIXME
-        const { repo, version } = parsed
-        versionSpecifier = version
-        repository = getRepository(repo, parsed)
-      } else {
-        // @ts-ignore
-        repository = getRepository(parsed.hosted.type, parsed.hosted)
-      }
+      const { repo, version } = parsed
+      versionSpecifier = version
+      repository = getRepository(repo, parsed)
   
     }
 
@@ -105,6 +98,15 @@ export default class Fetcher {
     }
 
     let releases = await repository.listReleases()
+
+    // filter non-package releases e.g. Github assets that are .txt, .json etc
+    releases = releases.map(release => {
+      if(release.fileName && hasPackageExtension(release.fileName)) {
+        return release
+      }
+      release.error = 'Release has no file name information or unsupported package extension'
+      return release
+    })
 
     // filter invalid releases i.e. releases that have the error field set
     const invalid = releases.filter(release => ('error' in release && release.error))
@@ -115,9 +117,6 @@ export default class Fetcher {
     if (filterInvalid) {
       releases = releases.filter(release => !('error' in release && release.error))
     }
-
-    // filter non-package releases e.g. Github assets that are .txt, .json etc
-    releases = releases.filter(release => release.fileName && hasPackageExtension(release.fileName))
 
     // filter releases based on version or version range info
     const versionFilter = semverFilter || versionSpecifier
@@ -139,7 +138,7 @@ export default class Fetcher {
     // sort releases by semver and date, and return them descending (latest first)
     // do not consider prerelease info (alphabetically) if it is e.g. commit hash
     if (sort) {
-      releases =  releases.sort(multiSort(compareVersions, compareDate))
+      releases = releases.sort(multiSort(compareVersions, compareDate))
       // releases =  releases.sort(compareVersions)
     }
 
