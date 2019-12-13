@@ -4,137 +4,158 @@
 </p>
 
 <div align="center">
-<h1>Ethereum Signed Packages</h1>
+<h1>ethpkg - Ethereum Flavored Packages</h1>
 </div>
 <p align="center">
-  <a href="https://circleci.com/gh/PhilippLgh/ethereum-signed-packages"><img src="https://img.shields.io/circleci/project/github/PhilippLgh/ethereum-signed-packages/master.svg" alt="Build Status"></a>
+  <a href="https://circleci.com/gh/PhilippLgh/ethpkg"><img src="https://img.shields.io/circleci/project/github/PhilippLgh/ethpkg/master.svg" alt="Build Status"></a>
   <a href="https://npmcharts.com/compare/ethpkg?minimal=true"><img src="https://img.shields.io/npm/dm/ethpkg.svg" alt="Downloads"></a>
   <a href="https://www.npmjs.com/package/ethpkg"><img src="https://img.shields.io/npm/v/ethpkg.svg" alt="Version"></a>
   <a href="https://www.npmjs.com/package/ethpkg"><img src="https://img.shields.io/npm/l/ethpkg.svg" alt="License"></a>
   <br>
 </p>
 
+# Table of Contents <!-- omit in toc -->
+- [Installation](#installation)
+- [CLI](#cli)
+  - [List Packages](#list-packages)
+    - [Example: List packages on Ipfs](#example-list-packages-on-ipfs)
+    - [Example: List GitHub releases with download counts](#example-list-github-releases-with-download-counts)
+    - [Example: List packages on Microsoft Azure](#example-list-packages-on-microsoft-azure)
+    - [Example: List packages on NPM](#example-list-packages-on-npm)
+    - [Example: List packages on Bintray](#example-list-packages-on-bintray)
+  - [Find Packages](#find-packages)
+    - [Example: Latest Version](#example-latest-version)
+    - [Example: Specific Version](#example-specific-version)
+  - [Inspect Packages](#inspect-packages)
+    - [Example: &quot;Unsigned&quot; package](#example-quotunsignedquot-package)
+    - [Example: Signed package](#example-signed-package)
+  - [Download Packages](#download-packages)
+  - [Create Packages](#create-packages)
+  - [Publish Packages](#publish-packages)
+  - [Sign Packages](#sign-packages)
+  - [Verify Packages](#verify-packages)
+    - [Online](#online)
+    - [Locally](#locally)
+  - [Donate to a Package](#donate-to-a-package)
 
-**Sign packages or npm modules with Ethereum keys and receive crypto currency from the community:**
-
-[![ethpkg status](http://api.ethpkg.org/badge/npm/ethpkg)](http://ethpkg.org/npm/ethpkg)
-
-(ethpkg was used to sign itself 🤯)
-
-
-# Why?
-[![Watch the video](http://i3.ytimg.com/vi/1lH4q1-Ba0k/hqdefault.jpg)](https://www.youtube.com/watch?v=1lH4q1-Ba0k&t=813)
-
-
-Most Node.js modules and many other packages today are not code signed because the processes, tools or certificates are hard to understand, opaque and expensive.
-Open source developers are [burning out](https://motherboard.vice.com/en_us/article/43zak3/the-internet-was-built-on-the-free-labor-of-open-source-developers-is-that-sustainable) and are not gaining anything from walking this extra mile.
-
-This project aims to change that: 
-
-**Package authors / developers** sign their modules to signal others that they care about security and to build up reputation. They can stay anonymous in the process. Signed modules become self-contained and portable. The delivery, authorship and security aspects are separated allowing modules to be mirrored, licensed, hosted in P2P registries or provided in other (=faster) ways. Packages are signed using cryptocurrency compatible keys so everyone who verifies or validates packages can use the author's address to donate or pay for a license.
-
-**Projects that depend on secure modules** can express their gratitude for the open source work & extra security by sending package authors crypto currency. This is a win-win-win situation because it incentivizes open source development, increases code quality and covers maintenance costs.
-
-All the tools needed for this are free and available in this repository. There are no middlemen or donation platforms involved - 100% of the funds sent go to the authors. 
-
-All donations are transparent and traceable.
-
-Let's make the Internet a better place together! :)
 
 # Installation
-```
-npm install -g ethpkg
-```
-
-# Specification
-
-Please see [the specifcation draft](spec/README.md) for details about the signing and verification process and the respective data structures and formats.
-
-
-# CLI Commands
-
-```
-key     - generate and manage keys
-cert    - create certificates
-pack    - create unsigned packages from dir
-sign    - sign packages
-verify  - verify packages
-version - print version number
-```
-
-
-# Quickstart
-
-### Example 1- Sign your NPM packages automatically
-
-```
-1. install ethpkg
-$ npm install -g ethpkg
-
-2. create project signing key in global keystore.
-from project directory containing package.json run:
-$ ethpkg key new
-
-3. Add to the package.json scripts:
-"publish": "npm pack && ethpkg sign --publish true"
-```
-
-**Done.** From now on, publish with:
-**`npm run publish`** instead of `npm publish` to sign your releases!
-
-Add a badge to your readme to receive donations or project funding and indicate others that you care about module security.
-
-
-### Example 2- Sign your NPM packages manually
-*(replace "ethpkg-0.2.0.tgz" in the example with your module name)*
-
-```
-// 1.) pack before uploading it:
-$ npm pack
-
-// 2.) sign the packed npm module:
-$ ethpkg sign ethpkg-0.2.0.tgz code-signing-key.json --overwrite true
-
-// (optionally) verify:
-$ ethpkg verify ethpkg-0.2.0.tgz
->> √ package contents passed integrity checks and are signed by [0xe69c103f6fdc766459d1a1436c3a36518006867b]
-
-// 3.) publish
-$ npm publish ethpkg-0.2.0.tgz
-
-// 4.) Profit
-// add badge to receive donations
-```
-
-## Badges
-
-If you want to display the signing status of your project on GitHub, you can use the following Markdown:
-
-```
-[![ethpkg status](http://api.ethpkg.org/badge/:service/:author/:name)](http://ethpkg.org/:service/:author/:name)
-```
-
-The badge generator can currently verify packages hosted on NPM or GitHub (releases).
-To verify a package that is hosted e.g. on NPM or GitHub replace the `:service`, `:author` (optional), and `:name` part of the url with the desired package info. For GitHub releases `:author` would be the repository owner and `:name` the repository name.
-
-**Example:** For the package `ethpkg` (this package) the corresponding url is:
-`http://api.ethpkg.org/badge/npm/ethpkg` and the badge code is:
-```
-[![ethpkg status](http://api.ethpkg.org/badge/npm/ethpkg)](http://ethpkg.org/npm/ethpkg)
-```
-
-
-## Notary Service
-
-A hosted version of `ethpkg` is available at `api.ethpkg.org` (mirror at `api.ethpkg.dev`).
-
-
-***
 
 # CLI
 
-More instructions how to use the CLI can be found in the [CLI Docs](docs/CLI.md)
+## List Packages
 
-# API
+### Example: List packages on Ipfs
 
-More instructions how to use `ethpkg` within another project can be found in the [API Docs](docs/API.md)
+### Example: List GitHub releases with download counts
+
+### Example: List packages on Microsoft Azure
+`ethpkg list azure:gethstore --attributes fileName,version,channel`
+
+```
+┌───────────────────────────────────────────────────────────┬─────────────────────────┬───────────────────┐
+│ fileName                                                  │ version                 │ channel           │
+├───────────────────────────────────────────────────────────┼─────────────────────────┼───────────────────┤
+│ geth-alltools-darwin-amd64-1.9.8-unstable-22e3bbbf.tar.gz │ 1.9.8-unstable-22e3bbbf │ unstable-22e3bbbf │
+├───────────────────────────────────────────────────────────┼─────────────────────────┼───────────────────┤
+│ geth-alltools-darwin-amd64-1.9.8-unstable-4b8f56cf.tar.gz │ 1.9.8-unstable-4b8f56cf │ unstable-4b8f56cf │
+├───────────────────────────────────────────────────────────┼─────────────────────────┼───────────────────┤
+│ geth-alltools-darwin-amd64-1.9.8-unstable-4ea9b62b.tar.gz │ 1.9.8-unstable-4ea9b62b │ unstable-4ea9b62b │
+├───────────────────────────────────────────────────────────┼─────────────────────────┼───────────────────┤
+│ geth-alltools-darwin-amd64-1.9.8-unstable-765fe446.tar.gz │ 1.9.8-unstable-765fe446 │ unstable-765fe446 │
+├───────────────────────────────────────────────────────────┼─────────────────────────┼───────────────────┤
+│ geth-alltools-darwin-amd64-1.9.8-unstable-9504c5c3.tar.gz │ 1.9.8-unstable-9504c5c3 │ unstable-9504c5c3 │
+├───────────────────────────────────────────────────────────┼─────────────────────────┼───────────────────┤
+│ geth-alltools-darwin-amd64-1.9.8-unstable-987648b0.tar.gz │ 1.9.8-unstable-987648b0 │ unstable-987648b0 │
+├───────────────────────────────────────────────────────────┼─────────────────────────┼───────────────────┤
+│ geth-alltools-darwin-amd64-1.9.8-unstable-adf007da.tar.gz │ 1.9.8-unstable-adf007da │ unstable-adf007da │
+├───────────────────────────────────────────────────────────┼─────────────────────────┼───────────────────┤
+│ geth-alltools-darwin-amd64-1.9.8-unstable-afe0b654.tar.gz │ 1.9.8-unstable-afe0b654 │ unstable-afe0b654 │
+├───────────────────────────────────────────────────────────┼─────────────────────────┼───────────────────┤
+│ geth-alltools-darwin-amd64-1.9.8-unstable-bf5c6b29.tar.gz │ 1.9.8-unstable-bf5c6b29 │ unstable-bf5c6b29 │
+├───────────────────────────────────────────────────────────┼─────────────────────────┼───────────────────┤
+│ geth-alltools-darwin-amd64-1.9.8-unstable-de2259d2.tar.gz │ 1.9.8-unstable-de2259d2 │ unstable-de2259d2 │
+└───────────────────────────────────────────────────────────┴─────────────────────────┴───────────────────┘
+```
+
+### Example: List packages on NPM
+
+Use ethpkg to list all of its own NPM releases:
+
+`ethpkg list npm:philipplgh/ethpkg`
+
+```
+┌───────────────────┬─────────┬─────────────────────┐
+│ fileName          │ version │ updated_at          │
+├───────────────────┼─────────┼─────────────────────┤
+│ ethpkg-0.3.0.tgz  │ 0.3.0   │ 2019-04-03 14:16:53 │
+├───────────────────┼─────────┼─────────────────────┤
+│ ethpkg-0.2.2.tgz  │ 0.2.2   │ 2019-03-21 18:47:03 │
+├───────────────────┼─────────┼─────────────────────┤
+│ ethpkg-0.2.0.tgz  │ 0.2.0   │ 2019-03-19 15:44:57 │
+├───────────────────┼─────────┼─────────────────────┤
+│ ethpkg-0.1.14.tgz │ 0.1.14  │ 2019-03-03 17:44:27 │
+                        ...
+├───────────────────┼─────────┼─────────────────────┤
+│ ethpkg-0.1.4.tgz  │ 0.1.4   │ 2019-02-12 18:03:31 │
+├───────────────────┼─────────┼─────────────────────┤
+│ ethpkg-0.1.3.tgz  │ 0.1.3   │ 2019-02-12 17:38:08 │
+├───────────────────┼─────────┼─────────────────────┤
+│ ethpkg-0.1.2.tgz  │ 0.1.2   │ 2019-02-12 17:36:27 │
+├───────────────────┼─────────┼─────────────────────┤
+│ ethpkg-0.1.1.tgz  │ 0.1.1   │ 2019-02-12 17:33:45 │
+├───────────────────┼─────────┼─────────────────────┤
+│ ethpkg-0.1.0.tgz  │ 0.1.0   │ 2019-02-12 17:28:32 │
+└───────────────────┴─────────┴─────────────────────┘
+```
+
+### Example: List packages on Bintray
+
+`ethpkg list bintray:hyperledger-org/besu-repo/besu`
+
+## Find Packages
+
+### Example: Latest Version
+`ethpkg find azure:gethstore`
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│{                                                                                                                               │
+│  "name": "geth-alltools-linux-mips64le-1.9.10-unstable-191364c3",                                                              │
+│  "fileName": "geth-alltools-linux-mips64le-1.9.10-unstable-191364c3.tar.gz",                                                   │
+│  "version": "1.9.10-unstable-191364c3",                                                                                        │
+│  "displayVersion": "v1.9.10",                                                                                                  │
+│  "updated_ts": 1576144519000,                                                                                                  │
+│  "updated_at": "2019-12-12 09:55:19",                                                                                          │
+│  "platform": "linux",                                                                                                          │
+│  "arch": "32 Bit",                                                                                                             │
+│  "tag": "1.9.10-unstable-191364c3",                                                                                            │
+│  "size": "85917352",                                                                                                           │
+│  "channel": "unstable-191364c3",                                                                                               │
+│  "location": "https://gethstore.blob.core.windows.net/builds/geth-alltools-linux-mips64le-1.9.10-unstable-191364c3.tar.gz",    │
+│  "checksums": {                                                                                                                │
+│    "md5": "5c8c13f9702b67804c7b171bcf1db601"                                                                                   │
+│  },                                                                                                                            │
+│  "remote": true,                                                                                                               │
+│  "signature": "https://gethstore.blob.core.windows.net/builds/geth-alltools-linux-mips64le-1.9.10-unstable-191364c3.tar.gz.asc"│
+│}                                                                                                                               │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Example: Specific Version
+
+## Inspect Packages
+
+### Example: "Unsigned" package
+`ethpkg inspect azure:gethstore/geth-alltools-darwin-amd64-1.9.8-unstable-22e3bbbf.tar.gz`
+
+### Example: Signed package
+
+## Download Packages
+## Create Packages
+## Publish Packages
+## Sign Packages
+## Verify Packages
+### Online
+### Locally
+## Donate to a Package
