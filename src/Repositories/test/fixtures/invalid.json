@@ -1,10 +1,12 @@
 [
   {
     "name": "valid release",
+    "fileName": "valid_release.tar",
     "version": "1.0.0"
   },
   {
     "name": "invalid release",
+    "fileName": "invalid_release.jpeg",
     "error": "has no version"
   }
 ]

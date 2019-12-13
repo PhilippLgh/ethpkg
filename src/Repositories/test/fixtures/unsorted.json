@@ -1,38 +1,47 @@
 [
   {
     "name": "a",
+    "fileName": "a.tar",
     "version": "3.0.0" 
   },
   {
     "name": "b",
+    "fileName": "b.tar",
     "version": "2.0.0" 
   },
   {
     "name": "c",
+    "fileName": "c.tar",
     "version": "1.0.0" 
   },
   {
     "name": "d2",
+    "fileName": "d2.tar",
     "version": "1.0.1-alpha" 
   },
   {
     "name": "d3",
+    "fileName": "d3.tar",
     "version": "1.0.1-foo" 
   },
   {
     "name": "d",
+    "fileName": "d.tar",
     "version": "1.0.1-beta" 
   },
   {
     "name": "e",
+    "fileName": "e.tar",
     "version": "1.1.1-alpha" 
   },
   {
     "name": "f",
+    "fileName": "f.tar",
     "version": "1.0.2-alpha" 
   },
   {
     "name": "g",
+    "fileName": "g.tar",
     "version": "0.1.1" 
   }
 ]
