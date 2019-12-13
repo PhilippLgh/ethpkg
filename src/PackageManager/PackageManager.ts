@@ -15,6 +15,8 @@ import { IRelease, FetchOptions, IRepository } from '../Repositories/IRepository
 import { FetchPackageOptions, instanceofFetchPackageOptions } from '../Fetcher/Fetcher'
 import { isDirSync } from '../util'
 import getRepository from '../Repositories'
+import { IVerificationResult } from '../IVerificationResult'
+import IExternalSigner from '../PackageSigner/IExternalSigner'
 
 // @ts-ignore
 const excludedFiles = e => !/\.zip$/.test(e)
@@ -96,7 +98,7 @@ class PackageManager {
     return release
   }
 
-  listPackages = async (spec : PackageSpecifier, options?: FetchOptions) => {
+  listPackages = async (spec : PackageSpecifier, options?: FetchOptions) : Promise<Array<IRelease>> => {
     const fetcher = new Fetcher()
     const releases = await fetcher.listReleases(spec, options)
     return releases
@@ -152,7 +154,11 @@ class PackageManager {
     }
   }
 
-  verifyPackage = async (pkg : IPackage, addressOrEnsName? : string) => {
+  signPackage = async (pkgSrc: string | Buffer, privateKey? : Buffer | IExternalSigner, pkgPathOut? : string) : Promise<IPackage | undefined> => {
+    return PackageSigner.sign(pkgSrc, privateKey, pkgPathOut)
+  }
+
+  verifyPackage = async (pkg : IPackage, addressOrEnsName? : string) : Promise<IVerificationResult> => {
     return PackageSigner.verify(pkg, addressOrEnsName)
   }
 
