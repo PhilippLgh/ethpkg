@@ -66,13 +66,13 @@ describe("Fetcher", () => {
   })
 
   describe('async getRelease(spec: PackageSpecifier, options: FetchPackageOptions = {}) : Promise<IRelease | undefined>', () => {
-    it ('creates a package from dir', async () => {
+    it ('does something', async () => {
 
     })
   })
   
   describe('async downloadPackage(locator : PackageLocator, listener : StateListener = () => {}) : Promise<Buffer>', () => {
-    it ('creates a package from dir', async () => {
+    it ('does something', async () => {
 
     })
   })

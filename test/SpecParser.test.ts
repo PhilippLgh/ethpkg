@@ -17,7 +17,7 @@ describe("SpecParser", () => {
     'azure:gethstore@<=1.5.0',
   ]
   
-  describe('static parseSpec(spec: string)', () => {
+  describe('static async parseSpec(spec: string) : Promise<ParsedSpec>', () => {
     for (const spec of specs) {
       it (`parses ${spec}`, async () => {
         const result = await SpecParser.parseSpec(spec)
