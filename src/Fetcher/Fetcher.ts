@@ -1,7 +1,7 @@
 import { IRepository, IRelease, FetchOptions } from "../Repositories/IRepository"
 import getRepository from "../Repositories"
 import Mock from "../Repositories/test/Mock"
-import { compareVersions, multiSort, compareDate } from "../Utils/PackageUtils"
+import { compareVersions, multiSort, compareDate } from "../utils/PackageUtils"
 import { download } from "../Downloader"
 import { StateListener, PROCESS_STATES } from "../IStateListener"
 import semver from 'semver'

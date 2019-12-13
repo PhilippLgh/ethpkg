@@ -1,7 +1,7 @@
 import { IRepository, IRelease, FetchOptions } from "./IRepository"
 import GitHub, { ReposListReleasesResponseItem, ReposListReleasesResponseItemAssetsItem } from '@octokit/rest'
 import { extractVersionFromString, extractChannelFromVersionString, versionToDisplayVersion } from "../utils/FilenameHeuristics"
-import { datestring } from "../Utils/PackageUtils"
+import { datestring } from "../utils/PackageUtils"
 
 export default class GitHubRepository implements IRepository {
 

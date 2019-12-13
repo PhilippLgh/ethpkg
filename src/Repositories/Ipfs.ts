@@ -1,6 +1,6 @@
 import { IRepository, IRelease, FetchOptions } from "./IRepository"
 import { extractVersionFromString, extractChannelFromVersionString, versionToDisplayVersion } from "../utils/FilenameHeuristics"
-import { datestring } from "../Utils/PackageUtils"
+import { datestring } from "../utils/PackageUtils"
 import { request, downloadStreamToBuffer, downloadJson, download } from "../Downloader";
 import { IPackage } from ".."
 

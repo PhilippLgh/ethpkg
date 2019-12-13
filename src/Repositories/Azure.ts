@@ -3,7 +3,7 @@ import { download } from "../Downloader"
 import { parseXml } from "../util"
 import { hasPackageExtension, hasSignatureExtension, removeExtension } from "../utils/FilenameUtils"
 import { extractPlatformFromString, extractArchitectureFromString, extractVersionFromString, versionToDisplayVersion } from "../utils/FilenameHeuristics"
-import { datestring } from "../Utils/PackageUtils"
+import { datestring } from "../utils/PackageUtils"
 
 interface AzureBlob {
   Name: Array<string>
