@@ -80,8 +80,9 @@ export default class TarPackage implements IPackage {
   async getEntry(relativePath: string): Promise<IPackageEntry | undefined> {
     try {
       let entries = await this.getEntries()
-      let entry = entries.find((entry : IPackageEntry) => entry.relativePath === relativePath)
-      return entry || undefined
+      // remove leading ./ from relative path and try different prefixes
+      let entry = entries.find((entry : IPackageEntry) => ['', '/', './'].some(prefix => `${prefix}${entry.relativePath.replace(/^\.\/+/g, '')}` === relativePath ))
+      return entry
     } catch (error) {
       return undefined
     }

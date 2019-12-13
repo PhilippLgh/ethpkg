@@ -10,13 +10,21 @@ export default class ZipPackage implements IPackage {
   private zip : JSZip | undefined
   fileName = '<unknown>'
   metadata?: IRelease
+  private packagePath: string | undefined
 
-  constructor(fileName? : string) {
-    this.fileName = fileName || this.fileName
+  constructor(packagePath? : string) {
+    this.packagePath = packagePath
   }
 
   init(){
     this.zip = new JSZip()
+  }
+
+  private async tryLoad() {
+    if(!this.zip && this.packagePath) {
+      const buf = fs.readFileSync(this.packagePath)
+      await this.loadBuffer(buf)
+    }
   }
 
   async loadBuffer(buf : Buffer) {
@@ -24,6 +32,7 @@ export default class ZipPackage implements IPackage {
   }
 
   async getEntries() : Promise<Array<IPackageEntry>>{
+    await this.tryLoad()
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
@@ -51,12 +60,13 @@ export default class ZipPackage implements IPackage {
 
   // TODO can be performance optimized
   async getEntry(relativePath : string) : Promise<IPackageEntry | undefined> {
+    await this.tryLoad()
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
     try {
       let entries = await this.getEntries()
-      let entry = entries.find((entry : IPackageEntry) => entry.relativePath === relativePath)
+      let entry = entries.find((entry : IPackageEntry) => ['', '/', './'].some(prefix => `${prefix}${entry.relativePath.replace(/^\.\/+/g, '')}` === relativePath ))
       return entry || undefined
     } catch (error) {
       return undefined
@@ -72,6 +82,7 @@ export default class ZipPackage implements IPackage {
   }
 
   async addEntry(relativePath : string, content : string | Buffer) {
+    await this.tryLoad()
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
@@ -80,6 +91,7 @@ export default class ZipPackage implements IPackage {
   }
 
   async toBuffer() {
+    await this.tryLoad()
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
@@ -92,6 +104,7 @@ export default class ZipPackage implements IPackage {
   }
 
   async writePackage(filePath : string, useCompression = true) {
+    await this.tryLoad()
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
