@@ -46,9 +46,9 @@ export function request(method : string, _url : string, opts : any = {}) : Promi
 
   let stream : any = undefined
   if (opts['Content-Type'] && opts['Content-Type'] === 'multipart/form-data') {
-    console.log('format form data')
     let form = new FormData()
     // FIXME filename in multipart form
+    // https://github.com/form-data/form-data#alternative-submission-methods
     form.append('data', opts.Body, { filename: 'foo.tar'})
     opts = {
       headers: form.getHeaders()
@@ -64,7 +64,6 @@ export function request(method : string, _url : string, opts : any = {}) : Promi
     path,
     ...opts
   };
-  console.log('options', options)
 
   return new Promise((resolve, reject) => {
     let req = protocolHandler.request(options, res => {
@@ -162,6 +161,9 @@ export async function download(_url : string, onProgress = (progress : number) =
   if (headers.location) {
     _url = headers.location
     return download(_url, onProgress, redirectCount++, options)
+  }
+  if (response.statusCode !== 200) {
+    throw new Error("Http(s) error: response returned status code "+response.statusCode)
   }
   // console.log('download', _url, redirectCount)
   const buf = await downloadStreamToBuffer(response, onProgress)
