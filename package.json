@@ -7,16 +7,25 @@
     "ethpkg": "./dist/bin/ethpkg.js"
   },
   "scripts": {
-    "test": "mocha --require ts-node/register test/**/*.ts",
-    "test:manager": "mocha --require ts-node/register test/PackageManager.test.ts",
-    "test:fetcher": "nyc mocha --timeout=4000 --require ts-node/register test/PackageFetcher/Fetcher.test.ts",
-    "test:github": "mocha --require ts-node/register test/PackageFetcher/GitHubRepository.test.ts",
-    "test:packages": "mocha --require ts-node/register test/packages/*",
+    "test": "nyc mocha",
     "static-files": "copyfiles src/signer/eth/metamask/public/index.html -u 1 dist/",
     "copy-build": "yarn static-files && tsc -p ./tsconfig.json",
     "build": "tsc -p ./tsconfig.json",
     "start": "node ./dist/index.js",
     "_publish": "npm pack && ethpkg sign --publish true"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "exclude": [
+      "test",
+      "_test",
+      "src/bin",
+      "**/*.d.ts"
+    ],
+    "all": true
   },
   "repository": {
     "type": "git",
@@ -37,7 +46,6 @@
     "@types/jszip": "^3.1.4",
     "@types/mocha": "^5.2.5",
     "@types/node": "^10.12.18",
-    "@types/npm-package-arg": "^6.1.0",
     "@types/ora": "^3.0.0",
     "@types/semver": "^6.2.0",
     "@types/tar": "^4.0.3",
@@ -62,7 +70,6 @@
     "form-data": "^3.0.0",
     "jsonwebtoken": "^8.4.0",
     "jszip": "^3.1.5",
-    "npm-package-arg": "^7.0.0",
     "ora": "^3.1.0",
     "secp256k1": "^3.6.2",
     "semver": "^6.3.0",
