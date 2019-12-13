@@ -1,6 +1,15 @@
 import { isUrl } from "./util"
 import url from "url"
-import npa from 'npm-package-arg'
+
+export interface ParsedSpec {
+  repo: string;
+  owner?: string;
+  project: string;
+  version?: string
+}
+
+// FIXME receive from repositories/index
+const SUPPORTED_REPOS = ['azure', 'npm', 'bintray', 'ipfs', 'github']
 
 export default class Parser {
   /**
@@ -9,8 +18,8 @@ export default class Parser {
    * => <repo>:<owner>/<project>@<version>
    * @param spec 
    */
-  static parseSpec(spec: string) {
-    if (!spec) return undefined
+  static async parseSpec(spec: string) : Promise<ParsedSpec> {
+    if (!spec) throw new Error('spec cannot be parsed - spec is undefined')
     if (isUrl(spec)) {
       try {
         const parsedUrl = url.parse(spec)
@@ -21,7 +30,6 @@ export default class Parser {
         let pathParts = pathname.split('/')
         pathParts = pathParts.filter(p => p && p !== '')
         const result = {
-          type: 'custom',
           repo: hostParts[0], // TODO does this cover api.host.com?
           owner: pathParts[0],
           project: pathParts[1],
@@ -29,13 +37,12 @@ export default class Parser {
         }
         return result
       } catch (error) {
-        return undefined
+        throw new Error(`SpecParser error for "${spec}": ${error.message}`)
       }
     }
     const parts = spec.split(':')
     // TODO const repoNames = Object.keys(repos)
-    const repoNames = ['azure', 'npm', 'bintray']
-    if (parts.length > 0 && repoNames.includes(parts[0])) {
+    if (parts.length > 0 && SUPPORTED_REPOS.includes(parts[0])) {
       const repo = parts[0]
       const package_parts = parts[1].split('/')
       const owner = package_parts.length > 1 ? package_parts.shift() : undefined
@@ -47,21 +54,12 @@ export default class Parser {
         project = project.substring(0, project.indexOf('@'))
       }
       return {
-        type: 'custom',
         repo,
         owner,
         project,
         version
       }
     }
-
-    let parsed = undefined
-    try {
-      parsed = npa(spec)
-      // console.log('parsed ->', parsed)
-    } catch (ex) {
-      console.error('NPA parser error', ex.message)
-    }
-    return parsed
+    throw new Error(`SpecParser error: no parser found for "${spec}"`)
   }
 }
