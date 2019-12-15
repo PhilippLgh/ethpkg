@@ -41,7 +41,8 @@ export const compareVersions = (a : {version?:string, channel?: string}, b : {ve
 export const compareDate = ({updated_ts: a} : {updated_ts?:number}, {updated_ts: b} : {updated_ts?:number}) => {
   if (a && b) return  a > b ? -1 : (b > a ? 1 : 0)
   if (a) return -1
-  return 1
+  if (b) return 1
+  return 0
 }
 
 export const multiSort = (fn1: Function, fn2: Function) => {
@@ -52,7 +53,7 @@ export const multiSort = (fn1: Function, fn2: Function) => {
   }
 }
 
-export const datestring = (d : Date | number) => {
+export const datestring = (d : Date | number) : string => {
   if (typeof d === 'number') {
     d = new Date(d)
   }
