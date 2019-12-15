@@ -3,7 +3,7 @@ import semver from 'semver'
 // https://github.com/sindresorhus/semver-regex
 const semverMatcher = /\bv?(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\da-z-]+(?:\.[\da-z-]+)*)?(?:\+[\da-z-]+(?:\.[\da-z-]+)*)?\b/ig;
 
-export const extractVersionFromString = (str : string | undefined) => {
+export const extractVersionFromString = (str : string | undefined) :string | undefined => {
   if (str === undefined) return undefined
   // first check segment by segment
   const segments = str.split('_')
