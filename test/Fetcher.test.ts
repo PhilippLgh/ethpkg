@@ -57,7 +57,6 @@ describe("Fetcher", () => {
       const fetcher = new Fetcher()
       const spec = 'mock:unsorted'
       const result = await fetcher.listReleases(spec)
-      console.log('unsorted releases length', result.length)
       const versions = result.map(r => r.version).join(',')
       const expected = '3.0.0,2.0.0,1.1.1-alpha,1.0.2-alpha,1.0.1-beta,1.0.1-alpha,1.0.1-foo,1.0.0,0.1.1'
       assert.equal(versions, expected)
