@@ -81,11 +81,12 @@ export default class ZipPackage implements IPackage {
     return entry.file.readContent()
   }
 
-  async addEntry(relativePath : string, content : string | Buffer) {
+  async addEntry(relativePath : string, file: IFile) {
     await this.tryLoad()
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
+    const content = await file.readContent()
     this.zip.file(relativePath, content);
     return relativePath
   }
