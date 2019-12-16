@@ -2,7 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import { assert } from 'chai'
-import Github from '../../src/Repositories/Github'
+import Github from '../../src/Repositories/GitHub'
 import nock from 'nock'
 import { fetch } from '../../src/Downloader'
 
