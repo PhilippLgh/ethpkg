@@ -1,4 +1,4 @@
-import GitHubRepository from "./GitHub"
+import GitHubRepository from "./Github"
 import AzureRepository from "./Azure"
 import NpmRepository from "./Npm"
 import BintrayRepository from "./Bintray"
