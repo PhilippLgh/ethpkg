@@ -31,7 +31,7 @@ describe("Azure", () => {
     it('fetches a list of releases', async () => {
       const azure = new Azure({ project: 'gethstore' })
       const releases = await azure.listReleases()
-      assert.equal(releases.length, 2342)
+      assert.equal(releases.length, 2369)
     });
   })
 
