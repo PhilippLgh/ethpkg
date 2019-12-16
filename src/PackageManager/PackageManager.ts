@@ -1,6 +1,6 @@
 import fs, { lstatSync } from 'fs'
 import path from 'path'
-import { IPackage } from './IPackage'
+import { IPackage, instanceofIPackage } from './IPackage'
 
 import ZipPackage from './ZipPackage'
 import TarPackage from './TarPackage'
@@ -104,11 +104,34 @@ class PackageManager {
     return releases
   }
 
+  loadPackage = async (pkgSpec : IPackage | Buffer | string) : Promise<IPackage> => {
+    if (instanceofIPackage(pkgSpec)){
+      return pkgSpec
+    } 
+    else if(Buffer.isBuffer(pkgSpec)) {
+      const pkg = await this.getPackageFromBuffer(pkgSpec)
+      if (!pkg) {
+        throw new Error('Package buffer could not be loaded')
+      }
+      return pkg
+    } 
+    else if(typeof pkgSpec === 'string') {
+      if (await isFile(pkgSpec)) {
+        return this.getPackageFromFile(pkgSpec)
+      }
+    } 
+    throw new Error('Package could not be loaded')
+  }
+
   /**
    * Creates and returns an IPackage based on a filepath, url, or package specifier
    */
-  getPackage = async (pkgSpec : PackageSpecifier | Buffer | FetchPackageOptions) : Promise<IPackage | undefined> => {
+  getPackage = async (pkgSpec : IPackage | PackageSpecifier | Buffer | FetchPackageOptions) : Promise<IPackage | undefined> => {
     
+    if (instanceofIPackage(pkgSpec)){
+      return pkgSpec
+    }
+
     let listener = noop
     let options = undefined
     if (instanceofFetchPackageOptions(pkgSpec)) {
