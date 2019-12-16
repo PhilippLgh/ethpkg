@@ -9,10 +9,14 @@ export interface IPackage {
   getEntries() : Promise<Array<IPackageEntry>>;
   getEntry(relativePath : string) : Promise<IPackageEntry | undefined>;
   getContent(relativePath : string) : Promise<Buffer>; 
-  addEntry(relativePath : string, content : string | Buffer) : Promise<string>;
+  addEntry(relativePath : string, file: IFile) : Promise<string>;
   toBuffer() : Promise<Buffer>;
   writePackage(outPath: string): Promise<string>;
   extract(destPath: string, onProgress?: ProgressListener) : Promise<string>;
+}
+
+export function instanceofIPackage(object: any): object is IPackage {
+  return typeof object === 'object' && (typeof object.loadBuffer === 'function') && (typeof object.getEntries === 'function')
 }
 
 export interface IFile {

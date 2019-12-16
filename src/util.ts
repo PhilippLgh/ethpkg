@@ -6,7 +6,7 @@ import ZipPackage from './PackageManager/ZipPackage';
 import { IPackage } from '.';
 // @ts-ignore
 import { parseString } from 'xml2js'
-import { ProgressListener } from './PackageManager/IPackage';
+import { ProgressListener, IFile } from './PackageManager/IPackage';
 
 // const keythereum = require('keythereum')
 
@@ -133,43 +133,6 @@ export const isDirSync = (filePath : string) => {
     return fileStats.isDirectory()
   } catch (error) {
     return false
-  }
-}
-
-// FIXME remove in favor of PackageManager
-export const createPackage = (srcDir : string) => {
-
-  const excludeZipFiles = (e : string) => !/\.zip$/.test(e)
-
-  const pkg = new ZipPackage()
-
-  const addFile = (file : string) => {
-    const filePath = path.join(srcDir, file);
-  
-    const fileStats = fs.lstatSync(filePath);
-    if (fileStats.isDirectory()) {
-      console.log('>>>>>> Error adding subfolder not supported:', file)
-      // zip.addLocalFolder(filePath, file);
-    } else if (fileStats.isFile()) {
-      console.log('Adding file:', filePath);
-      pkg.addEntry(file, fs.readFileSync(filePath))
-    } else {
-      console.warn(
-        `[WARN] packageApp.js: File ${filePath} was not added to bundle.`
-      );
-    }
-  }
-
-  try {
-    const files = fs
-      .readdirSync(srcDir)
-      .filter(excludeZipFiles)
-      .forEach(addFile)
-
-    pkg.writePackage('mypackage.zip')
-    
-  } catch (e) {
-    console.log('[ERROR] creating package:', e);
   }
 }
 
@@ -354,4 +317,17 @@ export const isUrl = (str : string) => {
   const urlRegex = '^(?!mailto:)(?:(?:http|https|ftp)://)(?:\\S+(?::\\S*)?@)?(?:(?:(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}(?:\\.(?:[0-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))|(?:(?:[a-z\\u00a1-\\uffff0-9]+-?)*[a-z\\u00a1-\\uffff0-9]+)(?:\\.(?:[a-z\\u00a1-\\uffff0-9]+-?)*[a-z\\u00a1-\\uffff0-9]+)*(?:\\.(?:[a-z\\u00a1-\\uffff]{2,})))|localhost)(?::\\d{2,5})?(?:(/|\\?|#)[^\\s]*)?$';
   const url = new RegExp(urlRegex, 'i');
   return str.length < 2083 && url.test(str);
+}
+
+export const localFileToIFile = (filePath: string) : IFile => {
+  const name = path.basename(filePath)
+  const isDir = isDirSync(filePath)
+  const _content = fs.readFileSync(filePath)
+  const file : IFile = {
+    name,
+    size: _content.length,
+    isDir,
+    readContent: () => Promise.resolve(_content)
+  }
+  return file
 }

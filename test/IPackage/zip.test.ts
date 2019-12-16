@@ -3,6 +3,8 @@ import path from 'path'
 import ZipPackage from '../../src/PackageManager/ZipPackage'
 import { assert } from "chai"
 import { IPackage } from '../../src'
+import { IFile } from '../../src/PackageManager/IPackage'
+import { localFileToIFile } from '../../src/util'
 
 describe("ZipPackage (IPackage)", () => {
 
@@ -45,10 +47,14 @@ describe("ZipPackage (IPackage)", () => {
     })
   })
 
-  describe("async addEntry(relativePath: string, filePath: string | Buffer): Promise<string>", async () => {
-    it('adds a file to an existing package', async () => {
+  describe("addEntry(relativePath: string, file: IFile) : Promise<string>", async () => {
+    it.skip('adds a file to an existing <uncompressed> zip package', async () => {
+      // needs fixture data
+    })
+    it('adds a file to an existing <compressed> zip package', async () => {
       const pkg : IPackage = new ZipPackage(FOO_PACKAGE)
-      await pkg.addEntry('baz.txt', fs.readFileSync(BAZ_TXT).toString())
+      const file = localFileToIFile(BAZ_TXT)
+      await pkg.addEntry('baz.txt', file)
       const content = await pkg.getContent('baz.txt')
       assert.equal(content.toString(), 'baz')
     })

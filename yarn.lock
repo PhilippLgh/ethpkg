@@ -231,6 +231,13 @@
   resolved "https://registry.yarnpkg.com/@types/semver/-/semver-6.2.0.tgz#d688d574400d96c5b0114968705366f431831e1a"
   integrity sha512-1OzrNb4RuAzIT7wHSsgZRlMBlNsJl+do6UblR7JMW4oB7bbR+uBEYtUh7gEc/jM84GGilh68lSOokyM/zNUlBA==
 
+"@types/tar-stream@^1.6.1":
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/@types/tar-stream/-/tar-stream-1.6.1.tgz#67d759068ff781d976cad978893bb7a334ec8809"
+  integrity sha512-pYCDOPuRE+4tXFk1rSMYiuI+kSrXiJ4av1bboQbkcEBA2rqwEWfIn9kdMSH+5nYu58WksHuxwx+7kVbtg0Le7w==
+  dependencies:
+    "@types/node" "*"
+
 "@types/tar@^4.0.3":
   version "4.0.3"
   resolved "https://registry.yarnpkg.com/@types/tar/-/tar-4.0.3.tgz#e2cce0b8ff4f285293243f5971bd7199176ac489"

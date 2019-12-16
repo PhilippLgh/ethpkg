@@ -1,8 +1,11 @@
 import path from 'path'
 import fs from 'fs'
+import zlib from 'zlib'
 import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
 import tar, { FileStat } from 'tar'
-import { streamToBuffer, bufferToStream, streamPromise } from '../util';
+import tarStream from 'tar-stream'
+import { streamToBuffer, bufferToStream, streamPromise } from '../util'
+import { getExtension } from '../utils/FilenameUtils'
 
 export default class TarPackage implements IPackage {
 
@@ -14,7 +17,7 @@ export default class TarPackage implements IPackage {
 
   constructor(packagePath? : string, compressed = true) {
     this.packagePath = packagePath || ''
-    this.isGzipped = compressed
+    this.isGzipped = this.packagePath ? ['.tgz', '.tar.gz'].includes(getExtension(this.packagePath)) : compressed
   }
 
   init() { /* no op */}
@@ -94,11 +97,73 @@ export default class TarPackage implements IPackage {
     if (entry.file.isDir) throw new Error('entry is not a file')
     return entry.file.readContent()
   }
-  async addEntry(relativePath: string, filePath: string): Promise<string> {
-    throw new Error('not implemented')
-    tar.r({
-      file: this.packagePath
-    }, [ filePath ])
+
+  async addEntry(relativePath: string, file: IFile) : Promise<string> {
+    
+    // create read stream of current archive
+    const inputStream = this.getReadStream()
+
+    // this is used to transform the input stream into an extracted stream
+    const extract = tarStream.extract()
+    // create pack stream for new archive
+    const pack = tarStream.pack() // pack is a streams2 stream
+
+    let wasOverwritten = false
+
+    const content = await file.readContent()
+
+    // first scan the package and check if the entry exists
+    // if it exists overwrite it
+    extract.on('entry', function(header, stream, next) {
+      // header is the tar header
+      // stream is the content body (might be an empty stream)
+      // call next when you are done with this entry
+
+      const { name: entryRelativePath } = header
+      // const { size, type} = header
+      // apparently a tar can contain multiple
+      // files with the same name / relative path
+      // in order to avoid duplicates we must overwrite existing entries
+      // TODO move to helper
+      if(['', '/', './'].some(prefix => `${prefix}${entryRelativePath.replace(/^\.\/+/g, '')}` === relativePath)) {
+        wasOverwritten = true
+        // overwrite entry in pack stream
+        let entry = pack.entry({ name: entryRelativePath }, content)
+        entry.end()
+        stream.on('end', next)
+        stream.resume() // just auto drain the stream
+      } else {
+        // write the unmodified entry to the pack stream
+        stream.pipe(pack.entry(header, next))
+      }
+    })
+
+    // if file was not replaced add it as new entry here (before finalize):
+    extract.on('finish', function() {
+      // add new entries here:
+      if(!wasOverwritten) {
+        let entry = pack.entry({ name: relativePath }, content)
+        // all entries done - lets finalize it
+        entry.on('finish', () => {
+          pack.finalize()
+        })
+        entry.end()
+      } else {
+        pack.finalize()
+      }
+    })
+
+    // start the process by piping the input stream in the transformer (extract)
+    if(this.isGzipped) {
+      inputStream.pipe(zlib.createGunzip()).pipe(extract)
+    } else {
+      inputStream.pipe(extract)
+    }
+
+    // write new tar to buffer (this consumes the input stream)
+    let strm = this.isGzipped ? pack.pipe(zlib.createGzip()) : pack
+    this.tarbuf = await streamToBuffer(strm)
+    
     return relativePath
   }
   async toBuffer(): Promise<Buffer> {
@@ -116,7 +181,7 @@ export default class TarPackage implements IPackage {
     await streamPromise(s)
     return outPath
   }
-  extract(destPath: string, onProgress?: ProgressListener | undefined): Promise<string> {
+  async extract(destPath: string, onProgress?: ProgressListener | undefined): Promise<string> {
     throw new Error("Method not implemented.");
   }
   async printEntries() {

@@ -49,6 +49,7 @@
     "@types/ora": "^3.0.0",
     "@types/semver": "^6.2.0",
     "@types/tar": "^4.0.3",
+    "@types/tar-stream": "^1.6.1",
     "chai": "^4.2.0",
     "copyfiles": "^2.1.0",
     "mocha": "^5.2.0",
