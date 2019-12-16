@@ -10,9 +10,9 @@ export default class BintrayRepository  implements IRepository {
   repo: string
   package: any
 
-  constructor(options: any) {
-    this.owner = options.owner
-    const parts = options.project.split('/')
+  constructor({ owner, project } : {[index: string] : string}) {
+    this.owner = owner
+    const parts = project.split('/')
     this.repo = parts[0]
     this.package = parts[1]
     this.toRelease = this.toRelease.bind(this)
