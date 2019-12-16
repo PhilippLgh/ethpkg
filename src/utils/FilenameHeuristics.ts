@@ -6,7 +6,7 @@ const semverMatcher = /\bv?(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\d
 export const extractVersionFromString = (str : string | undefined) :string | undefined => {
   if (str === undefined) return undefined
   // first check segment by segment
-  const segments = str.split('_')
+  const segments = str.split(/(-|_)+/)
   for (const segment of segments) {
     const res = semver.clean(segment, { loose: true })
     if (res) return res
