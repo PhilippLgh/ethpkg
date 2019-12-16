@@ -1,6 +1,7 @@
 import http from 'http'
 import https from 'https'
 import url from "url"
+import zlib from "zlib"
 import stream from 'stream'
 import FormData from 'form-data'
 
@@ -77,6 +78,16 @@ export function request(method : string, _url : string, opts : any = {}) : Promi
     });
     req.end();
   });
+}
+
+export async function fetch(method : string, _url : string, opts : any = {}) : Promise<Buffer> {
+  const dataStream = await request(method, _url, opts)
+  let buf = await downloadStreamToBuffer(dataStream)
+  // TODO move logic to reqeust
+  if (dataStream.headers['content-encoding'] == 'gzip') { 
+    buf = zlib.gunzipSync(buf)
+  }
+  return buf
 }
 
 export async function downloadStreamToBuffer(response : http.IncomingMessage, progress = (p : number) => {}) : Promise<Buffer>{
