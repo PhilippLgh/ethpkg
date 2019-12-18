@@ -90,6 +90,9 @@ describe.only("TarPackage (IPackage)", () => {
       const content = await pkg.getContent('foo.txt')
       assert.equal(content.toString(), 'foo')
     })
+    it.skip('create a tar archive from a directory with nested subdirectories', async () => {
+      // TODO needs implementation
+    })
   })
 
 })

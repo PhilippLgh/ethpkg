@@ -48,7 +48,6 @@
     "@types/node": "^10.12.18",
     "@types/ora": "^3.0.0",
     "@types/semver": "^6.2.0",
-    "@types/tar": "^4.0.3",
     "@types/tar-stream": "^1.6.1",
     "chai": "^4.2.0",
     "copyfiles": "^2.1.0",
@@ -76,7 +75,6 @@
     "ora": "^3.1.0",
     "secp256k1": "^3.6.2",
     "semver": "^6.3.0",
-    "tar": "^5.0.5",
     "tar-stream": "^2.0.1",
     "xml2js": "^0.4.22"
   }
