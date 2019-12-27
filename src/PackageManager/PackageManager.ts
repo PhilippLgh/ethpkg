@@ -2,21 +2,23 @@ import fs, { lstatSync } from 'fs'
 import path from 'path'
 import { IPackage, instanceofIPackage } from './IPackage'
 
-import ZipPackage from './ZipPackage'
 import TarPackage from './TarPackage'
-
-import fileType from 'file-type'
 import Fetcher from '../Fetcher'
-
 import PackageSigner from '../PackageSigner'
-
 import { StateListener } from '../IStateListener'
 import { IRelease, FetchOptions, IRepository } from '../Repositories/IRepository'
 import { FetchPackageOptions, instanceofFetchPackageOptions } from '../Fetcher/Fetcher'
-import { isDirSync } from '../util'
 import getRepository from '../Repositories'
 import { IVerificationResult } from '../IVerificationResult'
 import IExternalSigner from '../PackageSigner/IExternalSigner'
+import { readFileToBuffer } from '../utils/BrowserUtils'
+import { hasPackageExtension } from '../utils/FilenameUtils'
+import { getPackageFromBuffer, getPackageFromFile, getPackage } from './PackageService'
+
+// browser / webpack support
+if (!fs.existsSync) {
+  fs.existsSync = () => false
+}
 
 // @ts-ignore
 const excludedFiles = e => !/\.zip$/.test(e)
@@ -37,48 +39,9 @@ const isSpec = async (str : string) => str.includes(':') && !fs.existsSync(str)
 
 const noop : StateListener = (state, args) => {}
 
-class PackageManager {
+export default class PackageManager {
 
-  private async getPackageFromBuffer(pkgBuf : Buffer, pkgFileName? : string) : Promise<IPackage> {
-    const bufferType = fileType(pkgBuf)
-    if (!bufferType) {
-      console.log('bad buffer', pkgBuf)
-      throw new Error('bad input buffer')
-    }
-    if(bufferType.mime === 'application/gzip') {
-      const tar = new TarPackage()
-      await tar.loadBuffer(pkgBuf)
-      return tar
-    }
-    else if (bufferType.mime === 'application/zip') {
-      const zip = new ZipPackage(pkgFileName)
-      await zip.loadBuffer(pkgBuf)
-      return zip
-    } else {
-      throw new Error('unsupported input buffer'+bufferType.mime)
-    }
-  }
-
-  private async getPackageFromFile(pkgSrc : string) : Promise<IPackage> {
-    if(!fs.existsSync(pkgSrc)) {
-      throw new Error('package not found')
-    }
-
-    if (pkgSrc.endsWith('.tgz') || pkgSrc.endsWith('.tar.gz')) {
-      const tar = new TarPackage(pkgSrc)
-      return tar
-    } 
-    else if (pkgSrc.endsWith('.zip')) {
-      const zip = new ZipPackage()
-      const pgkContent = fs.readFileSync(pkgSrc)
-      await zip.loadBuffer(pgkContent)
-      return zip
-    } 
-    else {
-      let ext = path.extname(pkgSrc)
-      throw new Error('unsupported package type: ' + ext)
-    }
-  }
+  public addRepository(repo: IRepository) {}
 
   createPackage = async (contentDirPath : string, pkgOutPath? : string) => {
     if(!lstatSync(contentDirPath).isDirectory()) {
@@ -105,28 +68,13 @@ class PackageManager {
   }
 
   loadPackage = async (pkgSpec : IPackage | Buffer | string) : Promise<IPackage> => {
-    if (instanceofIPackage(pkgSpec)){
-      return pkgSpec
-    } 
-    else if(Buffer.isBuffer(pkgSpec)) {
-      const pkg = await this.getPackageFromBuffer(pkgSpec)
-      if (!pkg) {
-        throw new Error('Package buffer could not be loaded')
-      }
-      return pkg
-    } 
-    else if(typeof pkgSpec === 'string') {
-      if (await isFile(pkgSpec)) {
-        return this.getPackageFromFile(pkgSpec)
-      }
-    } 
-    throw new Error('Package could not be loaded')
+    return getPackage(pkgSpec)
   }
 
   /**
    * Creates and returns an IPackage based on a filepath, url, or package specifier
    */
-  getPackage = async (pkgSpec : IPackage | PackageSpecifier | Buffer | FetchPackageOptions) : Promise<IPackage | undefined> => {
+  getPackage = async (pkgSpec : IPackage | PackageSpecifier | Buffer | File | FetchPackageOptions) : Promise<IPackage | undefined> => {
     
     if (instanceofIPackage(pkgSpec)){
       return pkgSpec
@@ -151,7 +99,7 @@ class PackageManager {
         if (options && options.cache && fs.existsSync(options.cache)) {
           let cachedData = path.join(options.cache, release.fileName)
           if (fs.existsSync(cachedData)) {
-            const pkg = await this.getPackageFromFile(cachedData)
+            const pkg = await getPackageFromFile(cachedData)
             pkg.metadata = release
             return pkg
           }
@@ -159,25 +107,33 @@ class PackageManager {
         const fetcher = new Fetcher()
         const buf = await fetcher.downloadPackage(release, listener)
         const {fileName } = release
-        const pkg = await this.getPackageFromBuffer(buf, fileName)
+        const pkg = await getPackageFromBuffer(buf, fileName)
         pkg.metadata = release
         return pkg
       }
       if (await isFile(pkgSpec)) {
-        return this.getPackageFromFile(pkgSpec)
+        return getPackageFromFile(pkgSpec)
       } else {
         throw new Error('package source is not a file')
       }
     }
     else if(Buffer.isBuffer(pkgSpec)) {
-      return this.getPackageFromBuffer(pkgSpec)
+      return getPackageFromBuffer(pkgSpec)
     } 
+    // browser support:
+    else if (pkgSpec instanceof File && hasPackageExtension(pkgSpec.name)) {
+      const fileBuffer = await readFileToBuffer(pkgSpec)
+      return getPackageFromBuffer(fileBuffer)
+    }
     else {
       throw new Error('unsupported input type for package')
     }
   }
 
-  signPackage = async (pkgSrc: string | Buffer, privateKey? : Buffer | IExternalSigner, pkgPathOut? : string) : Promise<IPackage | undefined> => {
+  /**
+   * Signs a package or directory
+   */
+  signPackage = async (pkgSrc: string | Buffer | IPackage, privateKey: Buffer | IExternalSigner, pkgPathOut? : string) : Promise<IPackage | undefined> => {
     return PackageSigner.sign(pkgSrc, privateKey, pkgPathOut)
   }
 
@@ -226,7 +182,4 @@ class PackageManager {
     const result = await repo.publish(pkg)
     return result
   }
-
 }
-
-export default PackageManager
