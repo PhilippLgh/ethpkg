@@ -1,12 +1,13 @@
+import fs from 'fs'
 import { IPackage, IPackageEntry } from '../PackageManager/IPackage'
 
 import ethUtil from 'ethereumjs-util'
 import jws from '../jws';
 import IExternalSigner from './IExternalSigner'
 import { IVerificationResult } from '../IVerificationResult'
-import ethpkg from '../'
-import { downloadNpmPackage } from '../util'
 import * as SignerUtils from './SignerUtils'
+import { isKeyfile, getPrivateKey } from './KeyStoreUtils'
+import { getPackage } from '../PackageManager/PackageService';
 
 const VERIFICATION_ERRORS : any = {
   UNSIGNED: 0,
@@ -36,28 +37,51 @@ const verificationError = (errorCode : number, val = '') : IVerificationResult =
 
 export default class pkgsign {
 
-  static async isSigned(pkg : IPackage | Buffer) : Promise<boolean> {
-    pkg = await ethpkg.loadPackage(pkg)
+  static async isSigned(pkg: IPackage | Buffer) : Promise<boolean> {
+    pkg = await getPackage(pkg)
     const signatures = await SignerUtils.getSignaturesFromPackage(pkg)
     return signatures.length > 0
   }
 
+  static async isValid(pkg: IPackage | Buffer) : Promise<boolean> {
+    return false
+  }
+
+  static async isTrusted(pkg: IPackage | Buffer, ensOrCert: string) : Promise<boolean> {
+    return false
+  }
+
   static async sign(
-    pkgSrc: string | Buffer, 
-    privateKey? : Buffer | IExternalSigner,
+    pkgSrc: string | Buffer | IPackage, 
+    privateKey : string | Buffer | IExternalSigner,
     pkgPathOut? : string
   ) : Promise<IPackage | undefined> {
+    
+    let pkg 
+    try {
+      pkg = await getPackage(pkgSrc)
+    } catch (error) {
+      throw new Error(VERIFICATION_ERRORS.BAD_PACKAGE)
+    }
 
-    let pkg = await ethpkg.loadPackage(pkgSrc)
+    if (typeof privateKey === 'string') {
+      // TODO private key can be path to pem or keystore file
+      if (await isKeyfile(privateKey)) {
+        const privateKeyPath = privateKey
+        const password = '' // FIXME
+        privateKey = await getPrivateKey(privateKeyPath, password)
+      }
+      else {
+        privateKey = Buffer.from(privateKey, 'hex')
+      }
+    }
 
-    if(!privateKey) {
+    if(!privateKey || (Buffer.isBuffer(privateKey) && !ethUtil.isValidPrivate(privateKey))) {
       // TODO support external signers
       throw new Error('private key not provided or malformed')
     }
-    
-    /*
-    1.  Create the content to be used as the JWS Payload.
-    */
+  
+    // 1.  Create the content to be used as the JWS Payload.
     const payload = await SignerUtils.createPayload(pkg)
     const checksumsPath = await SignerUtils.checksumsPath(pkg)
     const checksumsFile = SignerUtils.toIFile(checksumsPath, JSON.stringify(payload.data, null, 2))
@@ -85,9 +109,9 @@ export default class pkgsign {
       return
     }
 
-    const _signaturePath = await SignerUtils.signaturePath(address, pkg)
-    const flattenedJsonSerializationFile = SignerUtils.toIFile(_signaturePath, JSON.stringify(flattenedJwsSerialization, null, 2))
-    await pkg.addEntry(_signaturePath, flattenedJsonSerializationFile)
+    const signaturePath = await SignerUtils.signaturePath(address, pkg)
+    const flattenedJsonSerializationFile = SignerUtils.toIFile(signaturePath, JSON.stringify(flattenedJwsSerialization, null, 2))
+    await pkg.addEntry(signaturePath, flattenedJsonSerializationFile)
 
     if (pkgPathOut) {
       await pkg.writePackage(pkgPathOut)
@@ -100,29 +124,37 @@ export default class pkgsign {
     return ''
   }
 
-  // TODO add ENS support
-  static async verify(pkgSrc: string | Buffer | IPackage, addressOrEnsName? : string) : Promise<IVerificationResult> {
+  /**
+   * 
+   * @param pkgSrc 
+   * @param addressOrEnsNameOrCert 
+   */
+  static async verify(pkgSrc: string | Buffer | IPackage, addressOrEnsNameOrCert?: string) : Promise<IVerificationResult> {
     
     let pkg 
     try {
-      pkg = await ethpkg.loadPackage(pkgSrc)
+      pkg = await getPackage(pkgSrc)
+      if (!pkg) throw new Error('Package could not be fetched for specifier: '+pkgSrc)
     } catch (error) {
       return verificationError(VERIFICATION_ERRORS.BAD_PACKAGE)
     }
 
-    const signatures = await SignerUtils.getSignaturesFromPackage(pkg, addressOrEnsName)
-
-    if (addressOrEnsName && signatures.length <= 0) {  // signature not found
-      return verificationError(VERIFICATION_ERRORS.UNSIGNED_BY, addressOrEnsName) 
-    }
+    const signatures = await SignerUtils.getSignaturesFromPackage(pkg, addressOrEnsNameOrCert)
 
     if (signatures.length === 0) {
       return verificationError(VERIFICATION_ERRORS.UNSIGNED)
     }
 
+    // TODO if addressOrEnsNameOrCert is cert
+    // TODO if addressOrEnsNameOrCert is ens
+
     const payloadPkg = await SignerUtils.createPayload(pkg)
     const promises = signatures.map(sig => SignerUtils.verifySignature(sig, payloadPkg))
     const signatureInfos = await Promise.all(promises)
+
+    if (addressOrEnsNameOrCert && signatureInfos.find(info => info.signerAddress.toLowerCase() === addressOrEnsNameOrCert.toLowerCase())) {  // signature not found
+      return verificationError(VERIFICATION_ERRORS.UNSIGNED_BY, addressOrEnsNameOrCert) 
+    }
 
     /*
     in order for a package to be verified, it
@@ -132,8 +164,8 @@ export default class pkgsign {
     - all (valid) signatures MUST cover combined 100% of the package's contents TODO partial signatures currently not supported
 
     in order for a package to be trusted it
-    - MUST have a valid certificate
-    - with a proof or signed by a trusted CA
+    - MUST have a valid certificate OR ENS name
+    - with a proof of identity or signed by a trusted CA
     - 100% of the package contents must be signed by at least one valid certificate
     */
     let isValid = true
@@ -154,15 +186,4 @@ export default class pkgsign {
     return verificationResult
   }
 
-  static async verifyNpm(pkgName : string, addressOrEnsName? : string) : Promise<IVerificationResult> {
-    try {      
-      let pkgPath = await downloadNpmPackage(pkgName)
-      if (!pkgPath) {
-        return verificationError(VERIFICATION_ERRORS.BAD_PACKAGE)
-      }
-      return this.verify(pkgPath, addressOrEnsName)
-    } catch (error) {
-      return verificationError(VERIFICATION_ERRORS.PACKAGE_DOWNLOAD)
-    }
-  }
 }
