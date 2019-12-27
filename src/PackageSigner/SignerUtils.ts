@@ -1,9 +1,11 @@
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 import { IPackage, IPackageEntry, IFile } from '../PackageManager/IPackage'
 import ethUtil from 'ethereumjs-util'
 import base64url from 'base64url'
+import { IVerificationResult } from '../IVerificationResult'
 
 const META_DIR = '_META_'
 const SIGNATURE_PREFIX = `${META_DIR}/_sig`
@@ -15,9 +17,16 @@ const shasum = (data : any, alg? : string) => {
     .digest('hex')
 }
 
-interface Digests {[index:string] : {[index:string] : string} }
+export const checksumsPath = async (pkg : IPackage) => {
+  const shouldPrefix = await isNPM(pkg)
+  let prefixNpm = (shouldPrefix ? 'package/' : '')
+  return `${prefixNpm + META_DIR}/_checksums.json`
+}
 
-export const calculateDigests = async (entries : Array<IPackageEntry>, alg = 'sha512') => {
+export interface Digests {[index:string] : {[index:string] : string} }
+
+export const calculateDigests = async (pkg: IPackage, alg = 'sha512') : Promise<Digests> => {
+  const entries = await pkg.getEntries()
   const digests : Digests = {}
   digests[alg] = {}
   for (let index = 0; index < entries.length; index++) {
@@ -26,14 +35,14 @@ export const calculateDigests = async (entries : Array<IPackageEntry>, alg = 'sh
     if(file.isDir){continue}
     // skip META DIR contents
     if(relativePath.includes(META_DIR)){continue}
-    const decompressedData = await file.readContent("nodebuffer")
+    const decompressedData = await file.readContent('nodebuffer')
     const checksum = shasum(decompressedData, alg)
     digests[alg][relativePath] = checksum
   }
   return digests
 }
 
-export const compareDigests = (digestsFile: Digests, calculatedDigests: Digests) => {
+export const compareDigests = (digestsFile: Digests, calculatedDigests: Digests) : boolean => {
   let checksumsFile = digestsFile['sha512']
   let checksumsCalc = calculatedDigests['sha512']
 
@@ -41,11 +50,9 @@ export const compareDigests = (digestsFile: Digests, calculatedDigests: Digests)
   let filesCheck =  Object.keys(checksumsFile)
   if (filesCalc.length !== filesCheck.length)
   {
-    
     let difference = filesCalc
                  .filter(x => !filesCheck.includes(x))
                  .concat(filesCheck.filter(x => !filesCalc.includes(x)))
-
     throw new Error(`package contains more files than checksums: \n${difference.join('\n')} \n\n`)
   }
   for (const prop in checksumsCalc) {
@@ -57,8 +64,7 @@ export const compareDigests = (digestsFile: Digests, calculatedDigests: Digests)
 }
 
 export const createPayload = async (pkg : IPackage) => {
-  const entries = await pkg.getEntries()
-  const digests = await calculateDigests(entries)
+  const digests = await calculateDigests(pkg)
 
   // TODO make sure JSON.stringify(digests) is deterministic: see
   // https://github.com/brianloveswords/node-jws/pull/83
@@ -72,6 +78,20 @@ export const createPayload = async (pkg : IPackage) => {
   return payload
 }
 
+export const verifyIntegrity = async (payloadPkg : any, signatureObj : any) : Promise<boolean> => {
+  const { payload } = signatureObj
+  const { data } = payload
+  let digestsMatch = false
+  try {
+    // note we can only compare the digests but not "issue date" etc fields here
+    digestsMatch = compareDigests(data, payloadPkg.data)
+  } catch (error) {
+    console.log('error: ', error)
+    return false
+  }
+  return digestsMatch === true
+}
+
 export const formatAddressHex = (address : string) => {
   address = address.toLowerCase()
   if (!address.startsWith('0x')){
@@ -80,9 +100,9 @@ export const formatAddressHex = (address : string) => {
   return address
 }
 
-const isNPM = async (pkg : IPackage) => {
-  const packageJson= await pkg.getEntry('package/package.json')
-  return packageJson != null
+const isNPM = async (pkg : IPackage) : Promise<Boolean> => {
+  const packageJson = await pkg.getEntry('package/package.json')
+  return !!packageJson
 }
 
 export const signaturePath = async (address : string, pkg : IPackage) => {
@@ -90,12 +110,6 @@ export const signaturePath = async (address : string, pkg : IPackage) => {
   const shouldPrefix = await isNPM(pkg)
   let prefixNpm = (shouldPrefix ? 'package/' : '')
   return `${prefixNpm + META_DIR}/_sig_${address}.json`
-}
-
-export const checksumsPath = async (pkg : IPackage) => {
-  const shouldPrefix = await isNPM(pkg)
-  let prefixNpm = (shouldPrefix ? 'package/' : '')
-  return `${prefixNpm + META_DIR}/_checksums.json`
 }
 
 export const recoverAddress = async (signatureObj : any) => {
@@ -116,22 +130,6 @@ export const recoverAddress = async (signatureObj : any) => {
   const address = formatAddressHex(ethUtil.pubToAddress(pub).toString('hex'))
   // console.log('recovered: ', address)
   return address
-}
-
-export const verifyIntegrity = async (payloadPkg : any, signatureObj : any) => {
-  const { payload } = signatureObj
-  const { data } = payload
-
-  let digestsMatch = false
-  try {
-    // note we can only compare the digests but not "issue date" etc fields here
-    digestsMatch = compareDigests(data, payloadPkg.data)
-  } catch (error) {
-    console.log('error: ', error)
-    return false
-  }
-
-  return digestsMatch === true
 }
 
 export const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any) => {
@@ -181,7 +179,7 @@ export const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg
   return verificationResult
 }
 
-export const getSignaturesFromPackage = async (pkg : IPackage, address? : string) => {
+export const getSignaturesFromPackage = async (pkg : IPackage, address? : string) : Promise<Array<IPackageEntry>> => {
   if (address) {
     const _signaturePath = await signaturePath(address, pkg)
     const sig = await pkg.getEntry(_signaturePath)
@@ -204,3 +202,9 @@ export const toIFile = (relPath: string, content: string | Buffer) : IFile => {
     readContent: () => Promise.resolve(contentBuf)
   }
 }
+
+export const containsSignature = (verificationResult: IVerificationResult, addressOrEnsNameOrCert: string) : boolean => {
+  const { signers } = verificationResult
+  return signers.find(info => info.address.toLowerCase() === addressOrEnsNameOrCert.toLowerCase()) !== undefined
+}
+
