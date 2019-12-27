@@ -5,7 +5,7 @@ export type ProgressListener = (progress: number, filePath: string) => void
 export interface IPackage {
   fileName: string;
   metadata?: IRelease;
-  loadBuffer(buf : Buffer) : Promise<void>;
+  loadBuffer(buf : Buffer) : Promise<IPackage>;
   getEntries() : Promise<Array<IPackageEntry>>;
   getEntry(relativePath : string) : Promise<IPackageEntry | undefined>;
   getContent(relativePath : string) : Promise<Buffer>; 

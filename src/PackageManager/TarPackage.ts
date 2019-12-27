@@ -16,14 +16,17 @@ export default class TarPackage implements IPackage {
 
   constructor(packagePath? : string, compressed = true) {
     this.packagePath = packagePath || ''
+    if (this.packagePath) {
+      this.fileName = path.basename(this.packagePath)
+    }
     this.isGzipped = this.packagePath ? ['.tgz', '.tar.gz'].includes(getExtension(this.packagePath)) : compressed
   }
 
   init() { /* no op */}
 
-  async loadBuffer(buf: Buffer): Promise<void> {
+  async loadBuffer(buf: Buffer): Promise<IPackage> {
     this.tarbuf = buf
-    return Promise.resolve()
+    return this
   }
   private getReadStream() {
     if(this.tarbuf) {
@@ -39,6 +42,7 @@ export default class TarPackage implements IPackage {
 
     // this is used to transform the input stream into an extracted stream
     const extract = tarStream.extract()
+
     // create pack stream for new archive
     const pack = tarStream.pack() // pack is a streams2 stream
 
@@ -76,6 +80,7 @@ export default class TarPackage implements IPackage {
       inputStream.pipe(extract)
     }
 
+    // FIXME make write stream otional: seek operations do not need it and it costs perf
     // write new tar to buffer (this consumes the input stream)
     let strm = this.isGzipped ? pack.pipe(zlib.createGzip()) : pack
     return streamToBuffer(strm)

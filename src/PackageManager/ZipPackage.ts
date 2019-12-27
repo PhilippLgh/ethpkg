@@ -27,8 +27,9 @@ export default class ZipPackage implements IPackage {
     }
   }
 
-  async loadBuffer(buf : Buffer) {
+  async loadBuffer(buf : Buffer) : Promise<IPackage> {
     this.zip = await JSZip.loadAsync(buf)
+    return this
   }
 
   async getEntries() : Promise<Array<IPackageEntry>>{
@@ -117,4 +118,9 @@ export default class ZipPackage implements IPackage {
     fs.writeFileSync(filePath, content)
     return filePath
   }
+
+  static async create(dirPath : string) : Promise<ZipPackage> {
+    return new ZipPackage()
+  }
+
 }
