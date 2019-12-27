@@ -1,3 +1,5 @@
+import fs from 'fs'
+import path from 'path'
 import { IRepository, FetchOptions, IRelease } from "../IRepository"
 
 /**
@@ -23,11 +25,19 @@ export default class Mock implements IRepository {
   constructor(testCase: string) {
     this.testCase = testCase
   }
+
+  private getJson(name: string) {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', `${name}.json`), 'utf8'))
+    } catch (error) {
+      return []
+    }
+  }
   
   async listReleases(options?: FetchOptions | undefined): Promise<IRelease[]> {
     switch (this.testCase) {
-      case 'unsorted': return require('./fixtures/unsorted.json')
-      case 'invalid': return require('./fixtures/invalid.json')
+      case 'unsorted': return this.getJson('unsorted')
+      case 'invalid': return this.getJson('invalid')
       default: return []
     }
   }
