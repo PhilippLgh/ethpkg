@@ -4,7 +4,7 @@ import { IPackage, instanceofIPackage } from './IPackage'
 
 import TarPackage from './TarPackage'
 import Fetcher from '../Fetcher'
-import PackageSigner from '../PackageSigner'
+import * as PackageSigner from '../PackageSigner'
 import { StateListener } from '../IStateListener'
 import { IRelease, FetchOptions, IRepository } from '../Repositories/IRepository'
 import { FetchPackageOptions, instanceofFetchPackageOptions } from '../Fetcher/Fetcher'
@@ -133,7 +133,7 @@ export default class PackageManager {
   /**
    * Signs a package or directory
    */
-  signPackage = async (pkgSrc: string | Buffer | IPackage, privateKey: Buffer | IExternalSigner, pkgPathOut? : string) : Promise<IPackage | undefined> => {
+  signPackage = async (pkgSrc: string | Buffer | IPackage, privateKey: Buffer /*| IExternalSigner*/, pkgPathOut? : string) : Promise<IPackage | undefined> => {
     return PackageSigner.sign(pkgSrc, privateKey, pkgPathOut)
   }
 

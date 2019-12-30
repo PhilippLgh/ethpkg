@@ -1,2 +1,1 @@
-import PackageSigner from './PackageSigner'
-export default PackageSigner
+export * from './PackageSigner'

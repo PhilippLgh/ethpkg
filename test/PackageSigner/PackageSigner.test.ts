@@ -1,10 +1,11 @@
 import fs from 'fs'
 import path from 'path'
 import { assert } from 'chai'
-import PackageSigner from '../../src/PackageSigner'
+import * as PackageSigner from '../../src/PackageSigner'
 import { IPackage } from '../../src'
 import { containsSignature } from '../../src/PackageSigner/SignerUtils'
 import TarPackage from '../../src/PackageManager/TarPackage'
+import { getPackage } from '../../src/PackageManager/PackageService'
 
 const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', "hex")
 const ETH_ADDRESS_1 = '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7'
@@ -16,6 +17,12 @@ const WRONG_ETH_ADDRESS = '0xF863aC227B0a0BCA88Cb2Ff45d91632626000000'
 
 const UNSIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo.tar.gz')
 const SIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_signed.tar.gz')
+
+const printEntries = async (pkgSrc: IPackage | string | Buffer) => {
+  const pkg = await getPackage(pkgSrc)
+  const entries = await pkg.getEntries()
+  console.log('entries', entries.map(e => e.relativePath))
+} 
 
 describe("PackageSigner", function() {
 
@@ -82,7 +89,8 @@ describe("PackageSigner", function() {
       const verificationInfoBefore = await PackageSigner.verify(buf)
       // assert that package is only signed by ETH_ADDRESS_1
       assert.equal(verificationInfoBefore.signers.length, 1)
-      assert.isTrue(containsSignature(verificationInfoBefore, ETH_ADDRESS_1), 'package should already be signed by key1')
+      await printEntries(buf)
+      assert.isTrue(containsSignature(verificationInfoBefore, ETH_ADDRESS_1), `package should already be signed by ${ETH_ADDRESS_1}`)
       // sign package with different key
       const pkgSigned = await PackageSigner.sign(buf, Buffer.from(PRIVATE_KEY_2))
       assert.isDefined(pkgSigned)
@@ -110,8 +118,6 @@ describe("PackageSigner", function() {
   describe(`async verify(pkgSrc: string | Buffer | IPackage, addressOrEnsNameOrCert : string) : Promise<IVerificationResult>`, function() {
     it('verifies a package against an ethereum address', async () => {
       const pkg = await new TarPackage().loadBuffer(fs.readFileSync(SIGNED_FOO_TAR))
-      const entries = await pkg.getEntries()
-      console.log('entries', entries.map(e => e.relativePath))
       const verificationResult = await PackageSigner.verify(SIGNED_FOO_TAR, ETH_ADDRESS_1)
       assert.isTrue(verificationResult.isValid, 'the package should be valid')
       assert.isDefined(verificationResult.signers.find(info => info.address.toLowerCase() === ETH_ADDRESS_1.toLowerCase()), 'the ethereum address should be present in list of signers')
