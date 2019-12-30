@@ -26,7 +26,7 @@ const safeStringify = (payload: any) => {
   return JSON.stringify(ordered)
 }
 
-export const ecRecover = async (rpcSig: string, msg: string) => {
+export const ecRecover = async (rpcSig: string, msg: string) : Promise<string> => {
   const msgHash = ethUtil.keccak256(msg)
   // fromRpcSig expects a 0x prefixed hex string
   rpcSig = ethUtil.addHexPrefix(rpcSig)

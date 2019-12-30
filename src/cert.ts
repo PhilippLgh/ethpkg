@@ -1,10 +1,10 @@
 import crypto from 'crypto'
 import fs from 'fs'
 import { ICertificatePayload, CERT_TYPE, ISubjectInfo, IDENTITY_TYPE, IEthKeyShort, ICsrOptions } from "./ICertificate";
-import jwt from './jwt'
+import * as jwt from './jwt'
 import _jwt from 'jsonwebtoken'
-import { IFlattenedJwsSerialization } from './IJWS';
-import ethUtil from 'ethereumjs-util'
+import * as ethUtil from 'ethereumjs-util'
+import { IFlattenedJwsSerialization } from './jws';
 
 const uuid = () => crypto.randomBytes(16).toString('hex')
 
@@ -46,7 +46,7 @@ const flattenKeyInfo = (SubjectPublicKeyInfo : IEthKeyShort) => {
 const signAlt = (payload:object) => {
   return _jwt.sign(payload, '1234')
 }
-
+/*
 export default class cert {
 
   static async csr(SubjectIdentityInfo: ISubjectInfo, privateKey: Buffer, options : ICsrOptions): Promise<IFlattenedJwsSerialization | string | object | null> {
@@ -104,3 +104,4 @@ export default class cert {
     return await jwt.sign(payload, privateKey)
   }
 }
+*/

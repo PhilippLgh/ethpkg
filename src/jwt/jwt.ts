@@ -1,5 +1,5 @@
-import JWS from "../jws"
-import { IFlattenedJwsSerialization } from "../IJWS";
+import * as JWS from "../jws"
+import { IFlattenedJwsSerialization } from "../jws"
 
 interface SignOptions {
   algorithm?: string;
@@ -15,13 +15,24 @@ interface VerifyOptions {
   subject?: string;
 }
 
-const sign = async (payload : string | Buffer | object, secretOrPrivateKey: Buffer/*Secret*/, options?: SignOptions) => {
+export const sign = async (payload : string | Buffer | object, secretOrPrivateKey: Buffer/*Secret*/, options?: SignOptions) => {
   const header = {} // construct from options
   return JWS.sign(payload, secretOrPrivateKey, header)
 }
 
-const verify = async (
-  token: string | IFlattenedJwsSerialization,
+export type Secret =
+    | string
+    | Buffer
+    | { key: string | Buffer; passphrase: string };
+/**
+ * Asynchronously verify given token using a secret or a public key to get a decoded token
+ * token - JWT string to verify
+ * secretOrPublicKey - Either the secret for HMAC algorithms, or the PEM encoded public key for RSA and ECDSA.
+ * [options] - Options for the verification
+ * returns - The decoded token.
+ */
+export const verify = async (
+  token: string, // | IFlattenedJwsSerialization,
   secretOrPublicKey: string | Buffer,
   options?: VerifyOptions,
 ): Promise<object | string> => {
@@ -32,8 +43,7 @@ const verify = async (
   return ''
 }
 
-const decode = (token : IFlattenedJwsSerialization) => {
+export const decode = (token : IFlattenedJwsSerialization) => {
   return token.payload
 }
 
-export default { sign, verify, decode }

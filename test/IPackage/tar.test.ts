@@ -4,7 +4,7 @@ import TarPackage from '../../src/PackageManager/TarPackage'
 import { assert } from "chai"
 import { localFileToIFile } from '../../src/util'
 
-describe.only("TarPackage (IPackage)", () => {
+describe("TarPackage (IPackage)", () => {
 
   const FOO_PACKAGE_COMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar.gz')
   const FOO_PACKAGE_UNCOMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar')

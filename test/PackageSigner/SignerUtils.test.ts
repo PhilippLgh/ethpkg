@@ -8,7 +8,7 @@ import { getPackage } from '../../src/PackageManager/PackageService'
 const UNSIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo.tar.gz')
 const SIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_signed.tar.gz')
 
-describe.only("SignerUtils", function() {
+describe("SignerUtils", function() {
 
   describe('calculateDigests = async (pkg: IPackage, alg = "sha512") : Promise<Digests>', function() {
     it('calculates the sha5125 checksums / digests of all files within a package', async () => {
@@ -135,17 +135,27 @@ describe.only("SignerUtils", function() {
 
   })
 
-  describe('getSignaturesFromPackage = async (pkg : IPackage, address? : string) : Promise<Array<IPackageEntry>>', function() {
+  describe('getSignatureEntriesFromPackage = async (pkg : IPackage, address? : string) : Promise<Array<IPackageEntry>>', function() {
     it('returns all signatures from a signed package', async () => {
       const pkg = await getPackage(SIGNED_FOO_TAR)
-      const signatures = await SignerUtils.getSignaturesFromPackage(pkg)
+      const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg)
       assert.equal(signatures.length, 1)
     })
     it('returns an empty array from an unsigned package', async () => {
       const pkg = await getPackage(UNSIGNED_FOO_TAR)
-      const signatures = await SignerUtils.getSignaturesFromPackage(pkg)
+      const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg)
       assert.equal(signatures.length, 0)
     })
   })
+
+  describe('verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any) : Promise<IVerificationResult>', function() {
+    it('returns an empty array from an unsigned package', async () => {
+      const pkg = await getPackage(SIGNED_FOO_TAR)
+      const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg)
+      const signature = await (signatures[0]).file.readContent()
+      console.log('signature', JSON.parse(signature.toString()))
+    })
+  })
+
 
 })
