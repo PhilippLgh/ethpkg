@@ -1,6 +1,10 @@
 import ISigner from "../PackageSigner/ISigner"
 import { request, downloadStreamToBuffer } from "../Downloader"
 
+/**
+ * WARNING: Use of the Geth signer to sign packages is discouraged!
+ * This is mainly used for testing & to be able to compare the results of different client implementations
+ */
 export default class GethSigner implements ISigner {
   name: string = 'Geth'
   type: string = 'signer'
@@ -14,6 +18,7 @@ export default class GethSigner implements ISigner {
     // Note the address to sign with must be unlocked.
     this.address = address
     this.rpcApi = rpc
+    console.log('WARNING: Use of the Geth signer is discouraged -> it should only be used for testing')
   }
 
   async ecSign(msg: Buffer) : Promise<Buffer> {
