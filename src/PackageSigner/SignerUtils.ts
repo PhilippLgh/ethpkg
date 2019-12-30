@@ -1,9 +1,8 @@
 import crypto from 'crypto'
-import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import { IPackage, IPackageEntry, IFile } from '../PackageManager/IPackage'
-import ethUtil from 'ethereumjs-util'
+import * as ethUtil from 'ethereumjs-util'
 import base64url from 'base64url'
 import { IVerificationResult } from '../IVerificationResult'
 
@@ -112,27 +111,8 @@ export const signaturePath = async (address : string, pkg : IPackage) => {
   return `${prefixNpm + META_DIR}/_sig_${address}.json`
 }
 
-export const recoverAddress = async (signatureObj : any) => {
-  const { signature } = signatureObj
 
-  const encodedProtectedHeader = signatureObj.protected
-  const encodedPayload = JSON.stringify(signatureObj.payload) // NOTE: not encoded due to b64:false flag
-
-  const signingInput = Buffer.from(`${encodedProtectedHeader}.${encodedPayload}`)
-  const signingInputHashed = ethUtil.keccak256(signingInput)
-
-  const decodedSignature = base64url.toBuffer(signature)
-
-  const r = decodedSignature.slice(0, 32)
-  const s = decodedSignature.slice(32, 64)
-  const v = 27
-  const pub = ethUtil.ecrecover(signingInputHashed, v, r, s)
-  const address = formatAddressHex(ethUtil.pubToAddress(pub).toString('hex'))
-  // console.log('recovered: ', address)
-  return address
-}
-
-export const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any) => {
+export const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any) : Promise<IVerificationResult> => {
 
   const signatureBuffer = await signatureEntry.file.readContent('nodebuffer')
   const signatureObj = JSON.parse(signatureBuffer.toString())
@@ -151,7 +131,7 @@ export const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg
   // recover address / public key
   let recoveredAddress = 'invalid address'
   try {
-    recoveredAddress = await recoverAddress(signatureObj)
+    // recoveredAddress = await recoverAddress(signatureObj)
   } catch (error) {
     console.log('error during signature check', error)
   }
@@ -160,7 +140,6 @@ export const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg
   let { payload } = signatureObj
   let { version } = payload
   // console.log('recovered payload', payload)
-
 
   // TODO check signature date
   // TODO check signature certs
@@ -173,13 +152,15 @@ export const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg
     isValid: (isValid === true), // passes integrity check: files were not changed
     certificates: [
 
-    ]
+    ],
+    signers: [],
+    isTrusted: false // FIXME 
   }
 
   return verificationResult
 }
 
-export const getSignaturesFromPackage = async (pkg : IPackage, address? : string) : Promise<Array<IPackageEntry>> => {
+export const getSignatureEntriesFromPackage = async (pkg : IPackage, address? : string) : Promise<Array<IPackageEntry>> => {
   if (address) {
     const _signaturePath = await signaturePath(address, pkg)
     const sig = await pkg.getEntry(_signaturePath)
@@ -205,6 +186,8 @@ export const toIFile = (relPath: string, content: string | Buffer) : IFile => {
 
 export const containsSignature = (verificationResult: IVerificationResult, addressOrEnsNameOrCert: string) : boolean => {
   const { signers } = verificationResult
-  return signers.find(info => info.address.toLowerCase() === addressOrEnsNameOrCert.toLowerCase()) !== undefined
+  const result = signers.find(info => info.address.toLowerCase() === addressOrEnsNameOrCert.toLowerCase())
+  console.log('signers', signers, result, addressOrEnsNameOrCert)
+  return result !== undefined
 }
 

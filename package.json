@@ -66,7 +66,7 @@
     "cli-table": "^0.3.1",
     "clime": "^0.5.10",
     "enquirer": "^2.3.0",
-    "ethereumjs-util": "6.0.0",
+    "ethereumjs-util": "^6.2.0",
     "ethereumjs-wallet": "^0.6.3",
     "file-type": "^10.9.0",
     "form-data": "^3.0.0",
