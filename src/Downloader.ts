@@ -55,7 +55,14 @@ export function request(method : string, _url : string, opts : any = {}) : Promi
       headers: form.getHeaders()
     }
     stream = form
+  } else if(opts.headers && opts.headers['Content-Type'] && opts.headers['Content-Type'] === 'application/json') {
+    if (typeof opts.Body !== 'string') {
+      opts.Body = JSON.stringify(opts.Body)
+    }
   }
+
+  const { Body } = opts
+  delete opts.Body
 
   const options = {
     method,
@@ -64,13 +71,16 @@ export function request(method : string, _url : string, opts : any = {}) : Promi
     port, 
     path,
     ...opts
-  };
+  }
 
   return new Promise((resolve, reject) => {
     let req = protocolHandler.request(options, res => {
       resolve(res);
     });
-    if (stream) {
+    if (Body) {
+      req.write(Body)
+    }
+    else if (stream) {
       stream.pipe(req)
     }
     req.on("error", e => {
