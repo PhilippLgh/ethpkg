@@ -10,7 +10,7 @@ import { IRelease, FetchOptions, IRepository } from '../Repositories/IRepository
 import { FetchPackageOptions, instanceofFetchPackageOptions } from '../Fetcher/Fetcher'
 import getRepository from '../Repositories'
 import { IVerificationResult } from '../IVerificationResult'
-import IExternalSigner from '../PackageSigner/IExternalSigner'
+import ISigner from '../PackageSigner/ISigner'
 import { readFileToBuffer } from '../utils/BrowserUtils'
 import { hasPackageExtension } from '../utils/FilenameUtils'
 import { getPackageFromBuffer, getPackageFromFile, getPackage } from './PackageService'
@@ -133,7 +133,7 @@ export default class PackageManager {
   /**
    * Signs a package or directory
    */
-  signPackage = async (pkgSrc: string | Buffer | IPackage, privateKey: Buffer /*| IExternalSigner*/, pkgPathOut? : string) : Promise<IPackage | undefined> => {
+  signPackage = async (pkgSrc: string | Buffer | IPackage, privateKey: Buffer /*| ISigner*/, pkgPathOut? : string) : Promise<IPackage | undefined> => {
     return PackageSigner.sign(pkgSrc, privateKey, pkgPathOut)
   }
 

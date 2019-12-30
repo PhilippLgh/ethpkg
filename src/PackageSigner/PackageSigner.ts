@@ -1,9 +1,7 @@
-import fs from 'fs'
 import { IPackage, IPackageEntry } from '../PackageManager/IPackage'
-
-import ethUtil from 'ethereumjs-util'
+import * as ethUtil from 'ethereumjs-util'
 import * as jws from '../jws'
-import IExternalSigner from './IExternalSigner'
+import ISigner from './ISigner'
 import { IVerificationResult } from '../IVerificationResult'
 import * as SignerUtils from './SignerUtils'
 import { isKeyfile, getPrivateKey } from './KeyStoreUtils'
@@ -65,7 +63,7 @@ const isTrusted = async (pkg: IPackage | Buffer, ensOrCert: string) : Promise<bo
 
 export const sign = async (
   pkgSrc: string | Buffer | IPackage, 
-  privateKey : string | Buffer /*TODO | IExternalSigner*/,
+  privateKey : string | Buffer /*TODO | ISigner*/,
   pkgPathOut? : string
 ) : Promise<IPackage | undefined> => {
   
