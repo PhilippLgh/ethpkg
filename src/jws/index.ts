@@ -1,2 +1,1 @@
-import sign from './sign'
-export default { sign }
+export * from './jws'
