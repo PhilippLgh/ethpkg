@@ -1,7 +1,7 @@
 import * as ethUtil from 'ethereumjs-util'
 import base64url from 'base64url'
 import ISigner from '../PackageSigner/ISigner'
-import PrivateKeySigner from '../Signers/PrivateKeySigner';
+import PrivateKeySigner from '../Signers/PrivateKeySigner'
 
 export interface IFlattenedJwsSerialization {
   header?: any,
@@ -18,6 +18,7 @@ interface VerifyOptions {
 
 // we sort the payload fields to achieve determinism FIX#1
 // https://stackoverflow.com/questions/5467129/sort-javascript-object-by-key/31102605#31102605
+// https://github.com/brianloveswords/node-jws/pull/83
 const safeStringify = (payload: any) => {
   const ordered : any = {};
   Object.keys(payload).sort().forEach(function(key) {
@@ -26,11 +27,15 @@ const safeStringify = (payload: any) => {
   return JSON.stringify(ordered)
 }
 
-export const ecRecover = async (rpcSig: string, msg: string) : Promise<string> => {
-  const msgHash = ethUtil.keccak256(msg)
+export const ecRecover = async (signatureHexStr: string, msg: string, scheme: string = ALGORITHMS.EC_SIGN) : Promise<string> => {
+  // if compact [r,s] form detected 
+  if (signatureHexStr.length === (64 * 2)) {
+    signatureHexStr += '1B' // append v=27
+  }
+  const msgHash = scheme === ALGORITHMS.EC_SIGN ? ethUtil.keccak256(msg) : ethUtil.hashPersonalMessage(Buffer.from(msg))
   // fromRpcSig expects a 0x prefixed hex string
-  rpcSig = ethUtil.addHexPrefix(rpcSig)
-  const sigParams = ethUtil.fromRpcSig(rpcSig)
+  signatureHexStr = ethUtil.addHexPrefix(signatureHexStr)
+  const sigParams = ethUtil.fromRpcSig(signatureHexStr)
   const recoveredPublic = ethUtil.ecrecover(msgHash, sigParams.v, sigParams.r, sigParams.s)
   const recovered = ethUtil.pubToAddress(recoveredPublic)
   const address = `0x${recovered.toString('hex')}`
@@ -39,7 +44,7 @@ export const ecRecover = async (rpcSig: string, msg: string) : Promise<string> =
 
 export type Secret = string | Buffer | { key: string; passphrase: string }
 
-export const SUPPORTED_ALGORITHMS = {
+export const ALGORITHMS = {
   'EC_SIGN': 'ES256K',
   'ETH_SIGN': 'ETH',
 }
@@ -48,8 +53,8 @@ export const SUPPORTED_ALGORITHMS = {
  * Create the JSON object(s) containing the desired set of Header Parameters, 
  * which together comprise the JOSE Header (the JWS Protected Header and/or the JWS Unprotected Header).
  */
-export const createHeader = (options: any = { algorithm: SUPPORTED_ALGORITHMS.EC_SIGN }) => {
-  if (!Object.values(SUPPORTED_ALGORITHMS).includes(options.algorithm)) {
+export const createHeader = (options: any = { algorithm: ALGORITHMS.EC_SIGN }) => {
+  if (!Object.values(ALGORITHMS).includes(options.algorithm)) {
     throw new Error('Unsupported signing algorithm: '+options.algorithm)
   }
   const header = {
@@ -104,13 +109,13 @@ export const sign = async (payload: any, signerOrPrivateKey: Buffer | ISigner, h
     Concatenate the two byte arrays in the order R and then S.
     Base64url encode the resulting 64 byte array.
   */
-  if (header.alg === SUPPORTED_ALGORITHMS.EC_SIGN) {
+  if (header.alg === ALGORITHMS.EC_SIGN) {
     if (!signer.ecSign) {
       throw new Error(`Signer "${signer.name}" does not implement EC signing`)
     }
     signature = await signer.ecSign(signingInput)
   } 
-  else if(header.alg === SUPPORTED_ALGORITHMS.ETH_SIGN) {
+  else if(header.alg === ALGORITHMS.ETH_SIGN) {
     if (!signer.ethSign) {
       throw new Error(`Signer "${signer.name}" does not implement personal message signing`)
     }
@@ -148,18 +153,42 @@ export const sign = async (payload: any, signerOrPrivateKey: Buffer | ISigner, h
   return flattenedJwsSerialization
 }
 
+export const decode = async (token: IFlattenedJwsSerialization) => {
+  const { protected: encodedProtectedHeader, payload, signature } = token
+  const decodedHeader = base64url.toBuffer(encodedProtectedHeader || '').toString('hex')
+  const decodedSignature = base64url.toBuffer(signature).toString('hex')
+  return {
+    protected: decodedHeader,
+    payload, // NOTE: not encoded due to b64:false flag
+    signature: decodedSignature
+  }
+}
+
+export const recoverAddress = async (encodedToken: IFlattenedJwsSerialization) : Promise<string> => {
+  const { protected: encodedProtectedHeader } = encodedToken
+  const decoded = await decode(encodedToken)
+  const { /*protected,*/ payload, signature } = decoded
+  // TODO consider moving to helper
+  const encodedPayload = safeStringify(payload) // NOTE: not encoded due to b64:false flag
+  const signingInput = `${encodedProtectedHeader}.${encodedPayload}`
+  // TODO handle eth and ec
+  const address = await ecRecover(signature, signingInput)
+  return address
+}
+
 export const verify = async (
   token: /*string |*/ IFlattenedJwsSerialization,
   secretOrPublicKey: string | Buffer,
-  options?: VerifyOptions,
-): Promise<object | string> => {
-  const { protected: encodedProtectedHeader, payload, signature } = token
-  const encodedPayload = JSON.stringify(payload) // NOTE: not encoded due to b64:false flag
-  const signingInput = `${encodedProtectedHeader}.${encodedPayload}`
-  const decodedSignature = base64url.toBuffer(signature).toString('hex')
-  console.log('decoded signature', decodedSignature.length)
-  console.log('decoded signature', decodedSignature)
-  const address = ecRecover(decodedSignature, signingInput)
-  // console.log('recovered: ', address)
-  return address
+  options?: VerifyOptions
+): Promise<Object | undefined> => {
+  const decoded = await decode(token)
+  const address = await recoverAddress(token)
+  if (Buffer.isBuffer(secretOrPublicKey)) {
+    secretOrPublicKey = secretOrPublicKey.toString()
+  }
+  if (address.toLowerCase() === secretOrPublicKey.toLowerCase()) {
+    return decoded
+  }
+  // TODO consider throwing an error here
+  return undefined
 }
