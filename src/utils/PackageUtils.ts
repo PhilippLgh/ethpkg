@@ -62,4 +62,18 @@ export const datestring = (d : Date | number) : string => {
     .replace(/\..+/, '')     // delete the dot and everything after
 }
 
+/**
+ * there ar emultiple ways how files are addressed inside packages
+ * some tools and modules create absolute paths, some prefix with ./ or omit
+ * therefore we need to compare all possible options to test for "equality"
+ */
+export const relativePathEquals = (path1: string, path2: string) => {
+  return ['', '/', './'].some(prefix => `${prefix}${path1.replace(/^\.\/+/g, '')}` === path2)
+}
 
+export const normalizeRelativePath = (s: string) : string => {
+  if (!s.startsWith('./')) {
+    return `./${s}`
+  }
+  return s
+}
