@@ -47,7 +47,7 @@ describe("TarPackage (IPackage)", () => {
   })
 
   describe("addEntry(relativePath: string, file: IFile) : Promise<string>", async () => {
-    it('adds a file to an existing <uncompressed> tar package', async () => {
+    it('adds a file to an existing <decompressed> tar package', async () => {
       const pkg = new TarPackage(FOO_PACKAGE_UNCOMPRESSED)
       const entry = await pkg.getEntry('baz.txt')
       assert.isUndefined(entry)
@@ -91,6 +91,12 @@ describe("TarPackage (IPackage)", () => {
       assert.equal(content.toString(), 'foo')
     })
     it.skip('create a tar archive from a directory with nested subdirectories', async () => {
+      // TODO needs implementation
+    })
+  })
+
+  describe('async writePackage(outPath: string): Promise<string>', () => {
+    it.skip('compresses the contents if the outPath contains gzip extension', async () => {
       // TODO needs implementation
     })
   })

@@ -5,6 +5,7 @@ import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
 import tarStream from 'tar-stream'
 import { streamToBuffer, bufferToStream, streamPromise, isDirSync } from '../util'
 import { getExtension } from '../utils/FilenameUtils'
+import { relativePathEquals } from '../utils/PackageUtils'
 
 export default class TarPackage implements IPackage {
 
@@ -123,9 +124,9 @@ export default class TarPackage implements IPackage {
   }
   async getEntry(relativePath: string): Promise<IPackageEntry | undefined> {
     try {
-      let entries = await this.getEntries()
+      const entries = await this.getEntries()
       // remove leading ./ from relative path and try different prefixes
-      let entry = entries.find((entry : IPackageEntry) => ['', '/', './'].some(prefix => `${prefix}${entry.relativePath.replace(/^\.\/+/g, '')}` === relativePath ))
+      const entry = entries.find((entry : IPackageEntry) =>  relativePathEquals(entry.relativePath, relativePath))
       return entry
     } catch (error) {
       return undefined
@@ -159,7 +160,7 @@ export default class TarPackage implements IPackage {
       // apparently a tar can contain multiple
       // files with the same name / relative path
       // in order to avoid duplicates we must overwrite existing entries
-      if(['', '/', './'].some(prefix => `${prefix}${entryRelativePath.replace(/^\.\/+/g, '')}` === relativePath)) {
+      if(relativePathEquals(entryRelativePath, relativePath)) {
         // overwrite entry in pack stream
         await writeEntryToPackStream(pack, entryRelativePath)
         wasOverwritten = true
@@ -184,6 +185,9 @@ export default class TarPackage implements IPackage {
     return Promise.resolve(this.tarbuf)
   }
   async writePackage(outPath: string): Promise<string> {
+    if (this.isGzipped && (!(outPath.endsWith('.tgz') || outPath.endsWith('.tar.gz')))){
+      throw new Error('Attempt to write compressed into a decompressed file: consider using ".tar.gz" or ".tgz" or explicitly decompress')
+    }
     const s = this.getReadStream().pipe(fs.createWriteStream(outPath))
     await streamPromise(s)
     return outPath
