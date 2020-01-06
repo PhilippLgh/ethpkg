@@ -21,6 +21,10 @@ export default class GethSigner implements ISigner {
     console.log('WARNING: Use of the Geth signer is discouraged -> it should only be used for testing')
   }
 
+  async getAddress() : Promise<string> {
+    return this.address
+  }
+
   async ecSign(msg: Buffer) : Promise<Buffer> {
     throw new Error('Unsupported Operation')
   }

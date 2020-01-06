@@ -11,6 +11,10 @@ export default class PrivateKeySigner implements ISigner {
     this._privateKey = privateKey
   }
 
+  async getAddress() : Promise<string> {
+    return ethUtil.privateToAddress(this._privateKey).toString('hex')
+  }
+
   // NOTE: this signing scheme is quite dangerous as users can be tricked into signing transactions
   // however hardware modules that implement secp256k1 are unlikely to implement ethereum personal message signing
   // the rpc format is the "serialized" form of r,s,v that geth and other clients are using
