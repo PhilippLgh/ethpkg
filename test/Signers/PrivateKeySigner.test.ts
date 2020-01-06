@@ -16,7 +16,7 @@ const TEST_CASE_1 = {
   address: '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7',
   // eth signatures: //TODO automate generation of these values
   gethSignature: '0xfb65b3368de3abea4fbd79858f345ad80e1a2263f38a02aa6f02afbb8521074513e7d8018a99b1059de542c9225b1af37f436b9f67f7a54e959ee3c408b589751b',
-  metamaskSignature: 'TODO'
+  metamaskSignature: '0xfb65b3368de3abea4fbd79858f345ad80e1a2263f38a02aa6f02afbb8521074513e7d8018a99b1059de542c9225b1af37f436b9f67f7a54e959ee3c408b589751b'
 }
 
 const TEST_CASE_2 = {
