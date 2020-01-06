@@ -3,8 +3,8 @@ import { ICertificatePayload } from "./ICertificate";
 export interface ISignerInfo {
   address: string,
   certificates: ICertificatePayload[],
-  // FIXME date of signature
-  coverage: number
+  exp?: string, // expiration date from jws
+  // coverage: number
 }
 
 export interface IVerificationError {
@@ -14,7 +14,7 @@ export interface IVerificationError {
 
 export interface IVerificationResult {
 
-  signers: ISignerInfo[]
+  signers: Array<ISignerInfo>
 
   // 
   isValid: boolean
