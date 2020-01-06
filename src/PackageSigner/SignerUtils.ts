@@ -2,9 +2,12 @@ import crypto from 'crypto'
 import path from 'path'
 import os from 'os'
 import { IPackage, IPackageEntry, IFile } from '../PackageManager/IPackage'
-import * as ethUtil from 'ethereumjs-util'
-import base64url from 'base64url'
-import { IVerificationResult } from '../IVerificationResult'
+import { IVerificationResult, ISignerInfo } from '../IVerificationResult'
+import * as jws from '../jws'
+import { normalizeRelativePath } from '../utils/PackageUtils'
+import { PublicKeyInfo, getSigner } from './KeyService'
+import { resolveName } from '../ENS/ens'
+import { IFlattenedJwsSerialization } from '../jws'
 
 const META_DIR = '_META_'
 const SIGNATURE_PREFIX = `${META_DIR}/_sig`
@@ -36,14 +39,25 @@ export const calculateDigests = async (pkg: IPackage, alg = 'sha512') : Promise<
     if(relativePath.includes(META_DIR)){continue}
     const decompressedData = await file.readContent('nodebuffer')
     const checksum = shasum(decompressedData, alg)
-    digests[alg][relativePath] = checksum
+    digests[alg][normalizeRelativePath(relativePath)] = checksum
   }
   return digests
 }
 
+const normalizePaths = (checksums: any) => {
+  let normalized : Digests = {}
+  for (const filePath in checksums) {
+    normalized[normalizeRelativePath(filePath)] = checksums[filePath]
+  }
+  return normalized
+}
+
 export const compareDigests = (digestsFile: Digests, calculatedDigests: Digests) : boolean => {
-  let checksumsFile = digestsFile['sha512']
-  let checksumsCalc = calculatedDigests['sha512']
+
+  // calculate digests should already produce normalized paths 
+  // but we should still sanitize input for compat reasons as this input might not be guaranteed
+  let checksumsFile = normalizePaths(digestsFile['sha512'])
+  let checksumsCalc = normalizePaths(calculatedDigests['sha512'])
 
   let filesCalc = Object.keys(checksumsCalc)
   let filesCheck =  Object.keys(checksumsFile)
@@ -54,41 +68,29 @@ export const compareDigests = (digestsFile: Digests, calculatedDigests: Digests)
                  .concat(filesCheck.filter(x => !filesCalc.includes(x)))
     throw new Error(`package contains more files than checksums: \n${difference.join('\n')} \n\n`)
   }
-  for (const prop in checksumsCalc) {
-    if(checksumsFile[prop] !== checksumsCalc[prop]){
-      throw new Error('integrity violation at file: ' + prop)
+  for (const filePath of filesCalc) {
+    if(checksumsFile[filePath] !== checksumsCalc[filePath]){
+      throw new Error('integrity violation at file: ' + filePath)
     }
   }
   return true
 }
+const DAYS_180 = (180 * 24 * 60 * 60)
 
-export const createPayload = async (pkg : IPackage) => {
+// TODO move to jwt
+export const createPayload = async (pkg : IPackage, options : { expiresIn?: number } = {
+  expiresIn: DAYS_180
+}) => {
   const digests = await calculateDigests(pkg)
 
-  // TODO make sure JSON.stringify(digests) is deterministic: see
-  // https://github.com/brianloveswords/node-jws/pull/83
   const payload = {
     "version": 1,
     "iss": "self",
-    "exp": Date.now() + (24 * 60 * 60),
+    "exp": Date.now() + (options.expiresIn || DAYS_180),
     "data": digests
   }
 
   return payload
-}
-
-export const verifyIntegrity = async (payloadPkg : any, signatureObj : any) : Promise<boolean> => {
-  const { payload } = signatureObj
-  const { data } = payload
-  let digestsMatch = false
-  try {
-    // note we can only compare the digests but not "issue date" etc fields here
-    digestsMatch = compareDigests(data, payloadPkg.data)
-  } catch (error) {
-    console.log('error: ', error)
-    return false
-  }
-  return digestsMatch === true
 }
 
 export const formatAddressHex = (address : string) => {
@@ -111,58 +113,72 @@ export const signaturePath = async (address : string, pkg : IPackage) => {
   return `${prefixNpm + META_DIR}/_sig_${address}.json`
 }
 
-
-export const verifySignature = async (signatureEntry : IPackageEntry, payloadPkg : any) : Promise<IVerificationResult> => {
-
+export const getJwsFromSignatureEntry = async (signatureEntry: IPackageEntry, decodeToken = false) : Promise<IFlattenedJwsSerialization> => {
   const signatureBuffer = await signatureEntry.file.readContent('nodebuffer')
   const signatureObj = JSON.parse(signatureBuffer.toString())
+  if (decodeToken) {
+    return jws.decode(signatureObj)
+  }
+  return signatureObj
+}
 
-  // check if files were changed after signing
+export const verifySignature = async (signatureEntry : IPackageEntry, digests : Digests) : Promise<IVerificationResult> => {
+
+  const encodedToken = await getJwsFromSignatureEntry(signatureEntry)
+  const decodedToken = await jws.decode(encodedToken)
+
+  // verify integrity: check if files covered by signature were changed after signing
+  // by comparing digests in signature payload with newly computed digests
+  // the signature is valid if the signed hashes match the actual computed file hashes
   let isValid = false
   try {
-    isValid = await verifyIntegrity(payloadPkg, signatureObj)
-    if(!isValid){
-      console.log('integrity error: mismatch between package contents and signed checksums')
-    }
+    const { payload } = decodedToken
+    // note we can only compare the digests but not "issue date" etc fields here
+    isValid = compareDigests(payload.data, digests)
   } catch (error) {
-    console.log('error during integrity check', error)
+    // TODO log if verbosity level applies
+    // console.log('error: ', error)
   }
 
   // recover address / public key
-  let recoveredAddress = 'invalid address'
+  let recoveredAddress
   try {
-    // recoveredAddress = await recoverAddress(signatureObj)
+    recoveredAddress = await jws.recoverAddress(encodedToken)
   } catch (error) {
     console.log('error during signature check', error)
   }
+  isValid = isValid && !!recoveredAddress
 
-  // let header = JSON.parse(base64url.decode(signatureObj.protected))
-  let { payload } = signatureObj
-  let { version } = payload
+  let { payload } = decodedToken
+  let { version, iss, exp } = payload
   // console.log('recovered payload', payload)
 
   // TODO check signature date
   // TODO check signature certs
   // TODO check filename matches scheme with contained address
-
   // TODO check that recovered address matches header address
 
-  const verificationResult = {
-    signerAddress: recoveredAddress,
-    isValid: (isValid === true), // passes integrity check: files were not changed
-    certificates: [
+  const signers : Array<ISignerInfo> = [ ]
+  if (recoveredAddress) {
+    signers.push({
+      address: recoveredAddress,
+      exp,
+      certificates: []
+    })
+  }
 
-    ],
-    signers: [],
-    isTrusted: false // FIXME 
+  const verificationResult = {
+    isValid, // passes integrity check: files were not changed
+    isTrusted: false, // FIXME 
+    signers
   }
 
   return verificationResult
 }
 
-export const getSignatureEntriesFromPackage = async (pkg : IPackage, address? : string) : Promise<Array<IPackageEntry>> => {
-  if (address) {
-    const _signaturePath = await signaturePath(address, pkg)
+export const getSignatureEntriesFromPackage = async (pkg : IPackage, publicKeyInfo?: PublicKeyInfo) : Promise<Array<IPackageEntry>> => {
+  if (publicKeyInfo) {
+    const _signaturePath = await signaturePath(publicKeyInfo, pkg)
     const sig = await pkg.getEntry(_signaturePath)
     if(!sig){
       return []
@@ -171,6 +187,15 @@ export const getSignatureEntriesFromPackage = async (pkg : IPackage, address? : 
   }
   const signatures = (await pkg.getEntries()).filter((pkgEntry : IPackageEntry) => pkgEntry.relativePath.includes(SIGNATURE_PREFIX))
   return signatures
+}
+
+export const getSignature = async (pkg: IPackage, publicKeyInfo: PublicKeyInfo) : Promise<IFlattenedJwsSerialization | undefined> => {
+  const signatureEntries = await getSignatureEntriesFromPackage(pkg, publicKeyInfo)
+  if (signatureEntries.length !== 1) {
+    return undefined
+  }
+  const jws = await getJwsFromSignatureEntry(signatureEntries[0])
+  return jws
 }
 
 export const toIFile = (relPath: string, content: string | Buffer) : IFile => {
@@ -184,10 +209,22 @@ export const toIFile = (relPath: string, content: string | Buffer) : IFile => {
   }
 }
 
-export const containsSignature = (verificationResult: IVerificationResult, addressOrEnsNameOrCert: string) : boolean => {
-  const { signers } = verificationResult
-  const result = signers.find(info => info.address.toLowerCase() === addressOrEnsNameOrCert.toLowerCase())
-  console.log('signers', signers, result, addressOrEnsNameOrCert)
+// TODO consider moving to package utils
+export const writeEntry = async (pkg: IPackage, relPath: string, content: string) => {
+  const entry = toIFile(relPath, content)
+  await pkg.addEntry(relPath, entry)
+}
+
+export const containsSignature = async (signers: Array<ISignerInfo>, publicKeyInfo: PublicKeyInfo) : Promise<boolean> => {
+  if (typeof publicKeyInfo === 'string' && publicKeyInfo.endsWith('.ens')) {
+    const publicKeyResolved = await resolveName(publicKeyInfo)
+    if (publicKeyResolved === undefined) {
+      // TODO log ens error
+      return false
+    }
+    publicKeyInfo = publicKeyResolved
+  }
+  const result = signers.find(info => info.address.toLowerCase() === publicKeyInfo.toLowerCase())
   return result !== undefined
 }
 
