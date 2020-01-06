@@ -3,7 +3,7 @@ import path from 'path'
 import { assert } from 'chai'
 import * as PackageSigner from '../../src/PackageSigner'
 import { IPackage } from '../../src'
-import { containsSignature } from '../../src/PackageSigner/SignerUtils'
+import * as SignerUtils from '../../src/PackageSigner/SignerUtils'
 import TarPackage from '../../src/PackageManager/TarPackage'
 import { getPackage } from '../../src/PackageManager/PackageService'
 
@@ -15,18 +15,55 @@ const ETH_ADDRESS_2 = '0x5C69De5c5bf9D54d7dDCA8Ffbba0d3E013f7E90A'
 
 const WRONG_ETH_ADDRESS = '0xF863aC227B0a0BCA88Cb2Ff45d91632626000000'
 
+const FOO_DIR = path.join(__dirname, '..', 'fixtures', 'foo')
 const UNSIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo.tar.gz')
 const SIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_signed.tar.gz')
+const EXPIRED_SIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_signed_expired.tar')
+const MULTISIGNED_INVALID_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_multisigned_invalid.tar')
+const MULTISIGNED_CORRUPTED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_multisigned_corrupt.tar')
+const MULTISIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_multisigned.tar')
 
-const printEntries = async (pkgSrc: IPackage | string | Buffer) => {
-  const pkg = await getPackage(pkgSrc)
-  const entries = await pkg.getEntries()
-  console.log('entries', entries.map(e => e.relativePath))
-} 
+const TEST_ENS = 'foo.test.ens'
 
-describe("PackageSigner", function() {
+describe.only("PackageSigner", function() {
 
-  describe('async isSigned(pkg : IPackage) : Promise<boolean>', function() {
+  describe('fixture creation:', () => {
+    it.skip('creates a package with an expired signature', async () => {
+      let pkg : IPackage | undefined = await TarPackage.create(FOO_DIR)
+      pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_1, {
+        expiresIn: 0
+      })
+      await pkg.writePackage(EXPIRED_SIGNED_FOO_TAR)
+    })
+    it.skip('creates a package with one valid and one invalid signature', async () => {
+      let pkg : IPackage | undefined = await TarPackage.create(FOO_DIR)
+      pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_1)
+      const newEntry = await SignerUtils.toIFile('./baz.txt', 'baz')
+      await pkg.addEntry('./baz.txt', newEntry)
+      pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_2)
+      await pkg.writePackage(MULTISIGNED_INVALID_FOO_TAR)
+    })
+    it.skip('creates a package with one valid and one malformed signature', async () => {
+      let pkg : IPackage | undefined = await TarPackage.create(FOO_DIR)
+      pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_1)
+      pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_2)
+      const sig = await pkg.getContent('_META_/_sig_0x5c69de5c5bf9d54d7ddca8ffbba0d3e013f7e90a.json')
+      const sigObj = JSON.parse(sig.toString())
+      // modify / corrupt signature
+      sigObj.signature = 'BAD' + sigObj.signature.slice(3)
+      await SignerUtils.writeEntry(pkg, '_META_/_sig_0x5c69de5c5bf9d54d7ddca8ffbba0d3e013f7e90a.json', JSON.stringify(sigObj))
+      await pkg.writePackage(MULTISIGNED_CORRUPTED_FOO_TAR)
+    })
+    it.skip('creates a package with two signatures', async () => {
+      let pkg : IPackage | undefined = await TarPackage.create(FOO_DIR)
+      pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_1)
+      pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_2)
+      await pkg.writePackage(MULTISIGNED_FOO_TAR)
+    })
+    
+  })
+
+  describe('isSigned = async (pkgSpec: PackageSpecifier) : Promise<boolean>', function() {
     it('returns true if the package contains ANY (valid/invalid) signatures', async () => {
       const buf = fs.readFileSync(SIGNED_FOO_TAR)
       const isSigned = await PackageSigner.isSigned(buf)
@@ -44,19 +81,51 @@ describe("PackageSigner", function() {
     })
   })
 
-  describe('async isValid(pkg: IPackage | Buffer) : Promise<boolean>', function() {
-    it.skip('verifies a package against a list of public keys / addresses', async () => {
+  describe('isValid = async (pkgSpec: PackageSpecifier) : Promise<boolean>', function() {
+    it('returns true if the package is signed AND ALL signatures are <valid>: the signed digests match and cover the actual digests/current state of the package', async () => {
+      const pkg = await getPackage(MULTISIGNED_FOO_TAR)
+      const result = await PackageSigner.isValid(pkg)
+      assert.isTrue(result)
+    })
+    it('returns false if the package is unsigned', async () => {
+      const pkg = await getPackage(UNSIGNED_FOO_TAR)
+      const result = await PackageSigner.isValid(pkg)
+      assert.isFalse(result)
+    })
+    it('returns false if the package contains ANY invalid/malformed signature', async () => {
+      const pkg = await getPackage(MULTISIGNED_CORRUPTED_FOO_TAR)
+      const result = await PackageSigner.isValid(pkg)
+      assert.isFalse(result)
+    })
+    // package modification invalidates the signature
+    it.skip('returns false if the package contents to do not match the signature (the package was modified)', async () => {
+
+    })
+    it('returns false if the package contents are not covered 100% by all signatures', async () => {
+      const pkg = await getPackage(MULTISIGNED_INVALID_FOO_TAR)
+      const result = await PackageSigner.isValid(pkg)
+      assert.isFalse(result)
+    })
+    it('returns false if the package contains ANY expired signature', async () => {
+      const pkg = await getPackage(EXPIRED_SIGNED_FOO_TAR)
+      const result = await PackageSigner.isValid(pkg)
+      assert.isFalse(result)
+    })
+  })
+
+  describe('isTrusted = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInfo) : Promise<boolean>', function() {
+    it.skip('returns true if isValid returns true AND the signers public keys have valid certificates', async () => {
+
+    })
+    it.skip('returns true if isValid returns true AND publicKeyInfo is a valid ENS name and in the list of signers', async () => {
+
+    })
+    it.skip('returns true if isValid returns true AND publicKeyInfo is an explicitly trusted Ethereum address and in the list of signers', async () => {
 
     })
   })
 
-  describe('async isTrusted(pkg: IPackage | Buffer, ensOrCert: string) : Promise<boolean>', function() {
-    it.skip('verifies a package against a list of public keys / addresses', async () => {
-
-    })
-  })
-
-  describe(`async sign(pkgSrc: string | Buffer, privateKey : Buffer | IExternalSigner, pkgPathOut? : string) : Promise<IPackage | undefined>`, function() {
+  describe(`sign = async (pkgSpec: PackageSpecifier, privateKey : string | Buffer | ISigner, pkgPathOut? : string) : Promise<IPackage>`, function() {
     it('signs an unsigned tar package when passed a package buffer + private key', async () => {
       const buf = fs.readFileSync(UNSIGNED_FOO_TAR)
       let isSigned = await PackageSigner.isSigned(buf)
@@ -66,16 +135,16 @@ describe("PackageSigner", function() {
       isSigned = await PackageSigner.isSigned(<IPackage>pkgSigned)
       assert.isTrue(isSigned)
     })
-    it.skip('signs a package when passed a private key certificate', async () => {
+    it.skip('signs a package using a private key certificate', async () => {
 
     })
-    it.skip('signs a package when passed a private key alias', async () => {
+    it.skip('signs a package using a private key alias from the keystore', async () => {
 
     })
-    it.skip('signs a package when passed a private key file path', async () => {
+    it.skip('signs a package using a private key file path', async () => {
 
     })
-    it.skip('signs a package using an IExternalSigner service', async () => {
+    it.skip('signs a package using an ISigner service', async () => {
 
     })
     it.skip('signs a package and writes it to disk if passed a destination path', async () => {
@@ -89,49 +158,69 @@ describe("PackageSigner", function() {
       const verificationInfoBefore = await PackageSigner.verify(buf)
       // assert that package is only signed by ETH_ADDRESS_1
       assert.equal(verificationInfoBefore.signers.length, 1)
-      await printEntries(buf)
-      assert.isTrue(containsSignature(verificationInfoBefore, ETH_ADDRESS_1), `package should already be signed by ${ETH_ADDRESS_1}`)
+      assert.isTrue(await SignerUtils.containsSignature(verificationInfoBefore.signers, ETH_ADDRESS_1), `package should be signed by ${ETH_ADDRESS_1}`)
       // sign package with different key
       const pkgSigned = await PackageSigner.sign(buf, Buffer.from(PRIVATE_KEY_2))
       assert.isDefined(pkgSigned)
       // assert that a new signature by ETH_ADDRESS_2 was added:
       const verificationInfoAfter = await PackageSigner.verify(<IPackage>pkgSigned)
       assert.equal(verificationInfoAfter.signers.length, 2)
-      assert.isTrue(containsSignature(verificationInfoBefore, ETH_ADDRESS_1), "after signing it with key2 it should contain key1's signatures")
-      assert.isTrue(containsSignature(verificationInfoAfter, ETH_ADDRESS_2), "after signing it with key2 it should contain key2's signatures")
+      assert.isTrue(await SignerUtils.containsSignature(verificationInfoBefore.signers, ETH_ADDRESS_1), "after signing it with key2 it should contain key1's signatures")
+      assert.isTrue(await SignerUtils.containsSignature(verificationInfoAfter.signers, ETH_ADDRESS_2), "after signing it with key2 it should contain key2's signatures")
     })
-    it.skip('overrides the signature of a signed package when same key is used', async () => {
-      /*
+    it('overrides the signature of a signed package when same key is used and extends expiration field', async () => {
       const buf = fs.readFileSync(SIGNED_FOO_TAR)
-      const verificationInfoBefore = await PackageSigner.verify(buf)
-      assert.equal(verificationInfoBefore.signers.length, 1)
+      const pkg = await getPackage(buf)
+      const jws = await SignerUtils.getSignature(pkg, ETH_ADDRESS_1)
+      if (!jws) {
+        return assert.fail('Package should already be signed by: '+ETH_ADDRESS_1)
+      }
+      const { exp: exp1 } = jws.payload
+      // re-sign
       const pkgSigned = await PackageSigner.sign(buf, Buffer.from(PRIVATE_KEY_1))
       assert.isDefined(pkgSigned)
       const verificationInfo = await PackageSigner.verify(<IPackage>pkgSigned)
-      assert.isTrue(isSigned)
-      */
+      const { signers } = verificationInfo
+      assert.equal(signers.length, 1, 'after re-signing package should still only contain 1 signature')
+      const signer = signers[0]
+      assert.isDefined(signer.exp, 'new signature should have valid expiration date')
+      assert.notEqual(exp1, signer.exp, 'the new expiration date should not be the old one (extended expiration)')
     })
-    // package modification invalidates the signature
-
   })
 
-  describe(`async verify(pkgSrc: string | Buffer | IPackage, addressOrEnsNameOrCert : string) : Promise<IVerificationResult>`, function() {
-    it('verifies a package against an ethereum address', async () => {
+  describe(`verify = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInfo) : Promise<IVerificationResult>`, function() {
+    it('verifies a local package against an ethereum address', async () => {
       const pkg = await new TarPackage().loadBuffer(fs.readFileSync(SIGNED_FOO_TAR))
-      const verificationResult = await PackageSigner.verify(SIGNED_FOO_TAR, ETH_ADDRESS_1)
+      const verificationResult = await PackageSigner.verify(pkg, ETH_ADDRESS_1)
       assert.isTrue(verificationResult.isValid, 'the package should be valid')
       assert.isDefined(verificationResult.signers.find(info => info.address.toLowerCase() === ETH_ADDRESS_1.toLowerCase()), 'the ethereum address should be present in list of signers')
       assert.isFalse(verificationResult.isTrusted, 'without identity info / cert packages cannot be trusted')
     })
-    it.skip('verifies externally hosted packages when passed a valid specifier', async () => {
+    it.skip('verifies a local package against an ethereum ENS name', async () => {
+      // TODO needs implementation
+    })
+    it.skip('verifies externally hosted packages when passed a valid PackageQuery', async () => {
       // npm example
     })
-    it('returns isValid = true even if the provided key info is not matching', async () => {
+    it.skip('for meaning and tests of isValid and isTrusted see above tests', () => {})
+    /*
+    it.skip('returns isValid=false if the package has a valid signature but the provided key info is not matching the signature', async () => {
       const verificationResult = await PackageSigner.verify(SIGNED_FOO_TAR, WRONG_ETH_ADDRESS)
       console.log('verification res', verificationResult)
       assert.isTrue(verificationResult.isValid, 'the package should be valid')
       assert.isFalse(verificationResult.isTrusted, 'without identity info / cert packages cannot be trusted')
     })
+    it.skip('returns isValid=false if the package has an invalid signature', async () => {
+      const verificationResult = await PackageSigner.verify(SIGNED_FOO_TAR, WRONG_ETH_ADDRESS)
+      console.log('verification res', verificationResult)
+      assert.isTrue(verificationResult.isValid, 'the package should be valid')
+      assert.isFalse(verificationResult.isTrusted, 'without identity info / cert packages cannot be trusted')
+    })
+    */
+    it.skip("returns isTrusted=true ONLY if the package is signed, the signature matches the arhcive's checksums, is not expired and the public key is bound to a trusted identity via certificate, ENS or similar means or explicitly trusted", async () => {
+
+    })
+
   })
 
 })

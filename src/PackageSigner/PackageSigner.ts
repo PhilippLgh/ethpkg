@@ -2,11 +2,12 @@ import { IPackage, IPackageEntry } from '../PackageManager/IPackage'
 import * as ethUtil from 'ethereumjs-util'
 import * as jws from '../jws'
 import ISigner from './ISigner'
-import { IVerificationResult } from '../IVerificationResult'
+import { IVerificationResult, ISignerInfo } from '../IVerificationResult'
 import * as SignerUtils from './SignerUtils'
 import { isKeyfile, getPrivateKey } from './KeyStoreUtils'
-import { getPackage } from '../PackageManager/PackageService'
-import { createHeader, SUPPORTED_ALGORITHMS, IFlattenedJwsSerialization } from '../jws'
+import { getPackage, PackageSpecifier } from '../PackageManager/PackageService'
+import { createHeader, ALGORITHMS, IFlattenedJwsSerialization } from '../jws'
+import { getSigner, PrivateKeyInfo, PublicKeyInfo } from './KeyService'
 
 const VERIFICATION_ERRORS : any = {
   UNSIGNED: 0,
@@ -20,7 +21,6 @@ VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.UNSIGNED] = `package is unsigned
 VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.UNSIGNED_BY] = `package does not contain a signature for `
 VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.BAD_PACKAGE] = `could not find or load package`
 VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.PACKAGE_DOWNLOAD] = `could not download package`
-
 
 const verificationError = (errorCode : number, val = '') : IVerificationResult => {
   return {
@@ -47,112 +47,115 @@ const writeSignatureEntry = async (pkg: IPackage, jws: IFlattenedJwsSerializatio
   await pkg.addEntry(signaturePath, flattenedJsonSerializationFile)
 }
 
-export const isSigned = async (pkg: IPackage | Buffer) : Promise<boolean> => {
-  pkg = await getPackage(pkg)
+export const isSigned = async (pkgSpec: PackageSpecifier) : Promise<boolean> => {
+  const pkg = await getPackage(pkgSpec)
   const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg)
   return signatures.length > 0
 }
 
-const isValid = async (pkg: IPackage | Buffer) : Promise<boolean> => {
-  return false
+export const isValid = async (pkgSpec: PackageSpecifier) : Promise<boolean> => {
+  try {
+    const verificationResult = await verify(pkgSpec)
+    return verificationResult.isValid
+  } catch (error) {
+    // TODO log with loglevel
+    return false
+  }
 }
 
-const isTrusted = async (pkg: IPackage | Buffer, ensOrCert: string) : Promise<boolean> => {
-  return false
+const isTrusted = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInfo) : Promise<boolean> => {
+  try {
+    const verificationResult = await verify(pkgSpec)
+    return verificationResult.isTrusted
+  } catch (error) {
+    // TODO log with loglevel
+    return false
+  }
 }
 
-export const sign = async (
-  pkgSrc: string | Buffer | IPackage, 
-  privateKey : string | Buffer /*TODO | ISigner*/,
-  pkgPathOut? : string
-) : Promise<IPackage | undefined> => {
+export const sign = async (pkgSpec: PackageSpecifier, privateKey: PrivateKeyInfo, options: any = {}) : Promise<IPackage> => {
   
   let pkg 
   try {
-    pkg = await getPackage(pkgSrc)
+    pkg = await getPackage(pkgSpec)
   } catch (error) {
     throw new Error(VERIFICATION_ERRORS.BAD_PACKAGE)
   }
 
-  if (typeof privateKey === 'string') {
-    // TODO private key can be path to pem or keystore file
-    if (await isKeyfile(privateKey)) {
-      const privateKeyPath = privateKey
-      const password = '' // FIXME
-      privateKey = await getPrivateKey(privateKeyPath, password)
-    }
-    else {
-      privateKey = Buffer.from(privateKey, 'hex')
-    }
-  }
-  if(!privateKey || (Buffer.isBuffer(privateKey) && !ethUtil.isValidPrivate(privateKey))) {
+  const signer = await getSigner(privateKey)
+  if(!signer) {
     // TODO support external signers
-    throw new Error('private key not provided or malformed')
+    throw new Error('private key / ISigner not provided or malformed')
   }
 
   // create the content to be used as the JWS Payload.
-  const payload = await SignerUtils.createPayload(pkg)
+  const payload = await SignerUtils.createPayload(pkg, {
+    expiresIn: options.expiresIn
+  })
   const header = createHeader({
-    algorithm: SUPPORTED_ALGORITHMS.EC_SIGN // TODO use when node, use eth_sign when browser (metamask)
+    algorithm: ALGORITHMS.EC_SIGN // TODO use when node, use eth_sign when browser (metamask)
   })
   // sign payload according to RFC7515 Section 5.1
-  const flattenedJwsSerialization =  await jws.sign(payload, privateKey, header)
+  const flattenedJwsSerialization =  await jws.sign(payload, signer, header)
   if (!flattenedJwsSerialization) {
-    console.log('jws signing failed')
-    return
+    throw new Error('jws signing failed')
   }
 
   // add entries
   await writeChecksumsJson(pkg, payload)
 
-  const address = ethUtil.privateToAddress(privateKey).toString('hex')
+  const address = await signer.getAddress()
   await writeSignatureEntry(pkg, flattenedJwsSerialization, address)
-
-  if (pkgPathOut) {
-    await pkg.writePackage(pkgPathOut)
-  }
 
   return pkg
 }
 
 /**
  * 
- * @param pkgSrc 
- * @param addressOrEnsNameOrCert 
+ * @param pkgSpec 
+ * @param publicKeyInfo 
  */
-export const verify = async (pkgSrc: string | Buffer | IPackage, addressOrEnsNameOrCert?: string) : Promise<IVerificationResult> => {
+export const verify = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInfo) : Promise<IVerificationResult> => {
     
   let pkg 
   try {
-    pkg = await getPackage(pkgSrc)
-    if (!pkg) throw new Error('Package could not be fetched for specifier: '+pkgSrc)
+    pkg = await getPackage(pkgSpec)
+    if (!pkg) throw new Error('Package could not be fetched for specifier: '+pkgSpec)
   } catch (error) {
     return verificationError(VERIFICATION_ERRORS.BAD_PACKAGE)
   }
 
-  const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg, addressOrEnsNameOrCert)
+  const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg, publicKeyInfo)
   if (signatures.length === 0) {
     return verificationError(VERIFICATION_ERRORS.UNSIGNED)
   }
 
-  // TODO if addressOrEnsNameOrCert is cert
-  // TODO if addressOrEnsNameOrCert is ens
+  // TODO handle publicKeyInfo is cert
+  // TODO handle publicKeyInfo is ens
 
-  const payloadPkg = await SignerUtils.createPayload(pkg)
-  const promises = signatures.map(sig => SignerUtils.verifySignature(sig, payloadPkg))
-  const signatureInfos = await Promise.all(promises)
+  const digests = await SignerUtils.calculateDigests(pkg)
 
-  /* FIXME
-  if (addressOrEnsNameOrCert && signatureInfos.find(info => info.signerAddress.toLowerCase() === addressOrEnsNameOrCert.toLowerCase())) {  // signature not found
-    return verificationError(VERIFICATION_ERRORS.UNSIGNED_BY, addressOrEnsNameOrCert) 
+  const promises = signatures.map(sig => SignerUtils.verifySignature(sig, digests))
+  const verificationResults = await Promise.all(promises)
+
+  if(publicKeyInfo) {
+    let signatureFound = false
+    for (const verificationResult of verificationResults) {
+      const { signers } = verificationResult
+      if(await SignerUtils.containsSignature(signers, publicKeyInfo)) {
+        signatureFound = true
+      }
+    }
+    if (!signatureFound) {
+      return verificationError(VERIFICATION_ERRORS.UNSIGNED_BY, publicKeyInfo) 
+    }
   }
-  */
 
   /*
   in order for a package to be verified, it
   - MUST have at least one signature
-  - the signature MUST match the computed package payload
-  - the payload MUST NOT be empty
+  - the signature MUST match the computed package digests
+  - the digests MUST NOT be empty
   - all (valid) signatures MUST cover combined 100% of the package's contents TODO partial signatures currently not supported
 
   in order for a package to be trusted it
@@ -160,19 +163,20 @@ export const verify = async (pkgSrc: string | Buffer | IPackage, addressOrEnsNam
   - with a proof of identity or signed by a trusted CA
   - 100% of the package contents must be signed by at least one valid certificate
   */
-  let isValid = true
-  signatureInfos.forEach(s => {
-    isValid = isValid && s.isValid
-  })
+  let isValid = verificationResults.length > 0
+  for (const verificationResult of verificationResults) {
+    isValid = isValid && verificationResult.isValid
+  }
+
+  const signers = verificationResults.map(v => <ISignerInfo>v.signers.pop())
+
+  const isTrusted = false
+  // TODO implement logic
 
   const verificationResult = {
-    signers: signatureInfos.map(s => ({
-      address: '', //FIXME s.signerAddress,
-      certificates: [],
-      coverage: 100
-    })),
+    signers,
     isValid,
-    isTrusted: false,
+    isTrusted,
   }
 
   return verificationResult
