@@ -15,6 +15,8 @@ const isFile = async (pkgPath: string) => {
   }
 }
 
+export type PackageSpecifier = IPackage | Buffer | string
+
 export const getPackageFromBuffer = async (pkgBuf: Buffer, pkgFileName?: string): Promise<IPackage> => {
   const bufferType = fileType(pkgBuf)
   if (!bufferType) {
@@ -40,7 +42,7 @@ export const getPackageFromFile = async (pkgSrc: string): Promise<IPackage> => {
     throw new Error('package not found')
   }
 
-  if (pkgSrc.endsWith('.tgz') || pkgSrc.endsWith('.tar.gz')) {
+  if (pkgSrc.endsWith('.tar') || pkgSrc.endsWith('.tgz') || pkgSrc.endsWith('.tar.gz')) {
     const tar = new TarPackage(pkgSrc)
     return tar
   }
@@ -56,7 +58,7 @@ export const getPackageFromFile = async (pkgSrc: string): Promise<IPackage> => {
   }
 }
 
-export const getPackage = async (pkgSpec : IPackage | Buffer | string) => {
+export const getPackage = async (pkgSpec : PackageSpecifier) => {
   // TODO need implementation
   if (instanceofIPackage(pkgSpec)){
     return pkgSpec
@@ -69,9 +71,12 @@ export const getPackage = async (pkgSpec : IPackage | Buffer | string) => {
     return pkg
   } 
   else if(typeof pkgSpec === 'string') {
+    if (!fs.existsSync(pkgSpec)) {
+      throw new Error('Package not found: '+pkgSpec)
+    }
     if (await isFile(pkgSpec)) {
       return getPackageFromFile(pkgSpec)
     }
   } 
-  throw new Error('Package could not be loaded')
+  throw new Error('Package could not be loaded:'+JSON.stringify(pkgSpec))
 }
