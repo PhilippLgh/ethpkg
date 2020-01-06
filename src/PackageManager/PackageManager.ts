@@ -13,7 +13,7 @@ import { IVerificationResult } from '../IVerificationResult'
 import ISigner from '../PackageSigner/ISigner'
 import { readFileToBuffer } from '../utils/BrowserUtils'
 import { hasPackageExtension } from '../utils/FilenameUtils'
-import { getPackageFromBuffer, getPackageFromFile, getPackage } from './PackageService'
+import { getPackageFromBuffer, getPackageFromFile, getPackage, PackageSpecifier } from './PackageService'
 
 // browser / webpack support
 if (!fs.existsSync) {
@@ -23,8 +23,8 @@ if (!fs.existsSync) {
 // @ts-ignore
 const excludedFiles = e => !/\.zip$/.test(e)
 
-// see https://github.com/npm/npm-package-arg
-type PackageSpecifier = string
+type PackageQuery = string
+const isPackageQuery = async (str : string) => str.includes(':') && !fs.existsSync(str)
 
 const isFile = async (pkgPath: string) => {
   try {
@@ -34,34 +34,33 @@ const isFile = async (pkgPath: string) => {
   }
 }
 
-// FIXME
-const isSpec = async (str : string) => str.includes(':') && !fs.existsSync(str)
-
 const noop : StateListener = (state, args) => {}
 
 export default class PackageManager {
 
-  public addRepository(repo: IRepository) {}
+  addRepository(repo: IRepository) {
+    // TODO needs implementation
+  }
 
-  createPackage = async (contentDirPath : string, pkgOutPath? : string) => {
-    if(!lstatSync(contentDirPath).isDirectory()) {
+  createPackage = async (srcDirPath : string, pkgOutPath? : string) => {
+    if(!lstatSync(srcDirPath).isDirectory()) {
       throw new Error('package source is not a directory')
     }
     // FIXME determine the package type e.g zip / tar based on out path
-    const pkg = await TarPackage.create(contentDirPath)
+    const pkg = await TarPackage.create(srcDirPath)
     if(pkgOutPath) {
       pkg.writePackage(pkgOutPath)
     }
     return pkg
   }
 
-  findPackage = async (spec : PackageSpecifier, options? : FetchPackageOptions) : Promise<IRelease | undefined> => {
+  findPackage = async (spec: PackageQuery, options? : FetchPackageOptions) : Promise<IRelease | undefined> => {
     const fetcher = new Fetcher()
     const release = await fetcher.getRelease(spec, options)
     return release
   }
 
-  listPackages = async (spec : PackageSpecifier, options?: FetchOptions) : Promise<Array<IRelease>> => {
+  listPackages = async (spec: PackageQuery, options?: FetchOptions) : Promise<Array<IRelease>> => {
     const fetcher = new Fetcher()
     const releases = await fetcher.listReleases(spec, options)
     return releases
@@ -74,7 +73,7 @@ export default class PackageManager {
   /**
    * Creates and returns an IPackage based on a filepath, url, or package specifier
    */
-  getPackage = async (pkgSpec : IPackage | PackageSpecifier | Buffer | File | FetchPackageOptions) : Promise<IPackage | undefined> => {
+  getPackage = async (pkgSpec: IPackage | PackageSpecifier | Buffer | File | FetchPackageOptions) : Promise<IPackage | undefined> => {
     
     if (instanceofIPackage(pkgSpec)){
       return pkgSpec
@@ -91,7 +90,7 @@ export default class PackageManager {
     }
 
     if(typeof pkgSpec === 'string'){
-      if (await isSpec(pkgSpec)) {
+      if (await isPackageQuery(pkgSpec)) {
         const release = await this.findPackage(pkgSpec, options)
         if (!release) {
           return undefined
@@ -130,11 +129,15 @@ export default class PackageManager {
     }
   }
 
+  addSigner(signer: ISigner) {
+    // TODO needs implementation
+  }
+
   /**
    * Signs a package or directory
    */
-  signPackage = async (pkgSrc: string | Buffer | IPackage, privateKey: Buffer /*| ISigner*/, pkgPathOut? : string) : Promise<IPackage | undefined> => {
-    return PackageSigner.sign(pkgSrc, privateKey, pkgPathOut)
+  signPackage = async (pkgSpc: PackageSpecifier, privateKey: Buffer /*| ISigner*/, pkgPathOut? : string) : Promise<IPackage | undefined> => {
+    return PackageSigner.sign(pkgSpc, privateKey, pkgPathOut)
   }
 
   verifyPackage = async (pkg : IPackage, addressOrEnsName? : string) : Promise<IVerificationResult> => {
@@ -144,7 +147,7 @@ export default class PackageManager {
   /**
    * Downloads a package to disk
    */
-  downloadPackage = async (spec : PackageSpecifier, dest : string = '.') => {
+  downloadPackage = async (spec: PackageSpecifier, dest : string = '.') => {
     dest = path.resolve(dest)
     const pkg = await this.getPackage(spec)
     if (!pkg) {
@@ -168,7 +171,7 @@ export default class PackageManager {
   /**
    * 
    */
-  publishPackage = async (pkgSpec: string | IPackage, repoSpecifier: string = 'ipfs') => {
+  publishPackage = async (pkgSpec: PackageSpecifier, repoSpecifier: string = 'ipfs') => {
     const pkg = typeof pkgSpec === 'string' ? await this.getPackage(pkgSpec) : pkgSpec
     const repo = await getRepository(repoSpecifier, {})
     if (!repo) {
