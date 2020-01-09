@@ -17,8 +17,8 @@ const ETH_ADDRESS_1 = '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7'
 // foo_signed.tar.gz contains two file and these are their digests
 const SIGNED_FOO_DIGESTS =  {
   sha512: {
-    './foo/foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
-    './foo/bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
+    './foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
+    './bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
   }
 }
 
@@ -36,7 +36,7 @@ const SIGNED_FOO_DIGESTS =  {
 }
     */
 
-describe.only("SignerUtils", function() {
+describe("SignerUtils", function() {
 
   describe('calculateDigests = async (pkg: IPackage, alg = "sha512") : Promise<Digests>', function() {
     it('calculates the sha5125 checksums / digests of all files within a compressed .tar.gz package', async () => {
@@ -96,12 +96,12 @@ describe.only("SignerUtils", function() {
     it('is robust against different relative path formats', async () => {
       const d1 = {
         sha512: {
-          './foo/bar.txt': "d82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181"
+          './bar.txt': "d82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181"
         }
       }
       const d2 = {
         sha512: {
-          "foo/bar.txt": "d82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181"
+          "bar.txt": "d82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181"
         }
       }
       const result = await SignerUtils.compareDigests(d1, d2)
@@ -110,14 +110,14 @@ describe.only("SignerUtils", function() {
     it("throws an IntegrityViolationError if the files/keys don't match", async () => {
       const digests1 = {
         sha512: {
-          './foo/foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
-          './foo/bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
+          './foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
+          './bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
         }
       }
       const digests2 = {
         sha512: {
-          './foo/foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
-          './foo/baz.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
+          './foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
+          './baz.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
         }
       }
       assert.throws(() => {
@@ -127,14 +127,14 @@ describe.only("SignerUtils", function() {
     it("throws an IntegrityViolationError if the checksums/values don't match", async () => {
       const digests1 = {
         sha512: {
-          './foo/foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
-          './foo/bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
+          './foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
+          './bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
         }
       }
       const digests2 = {
         sha512: {
-          './foo/foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
-          './foo/bar.txt': 'a82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
+          './foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
+          './bar.txt': 'a82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
         }
       }
       assert.throws(() => {
@@ -145,18 +145,18 @@ describe.only("SignerUtils", function() {
       const digests1 = {
         sha512: {}, // mismatch
         sha256: {
-          './foo/foo.txt': '2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae',
-          './foo/bar.txt': 'fcde2b2edba56bf408601fb721fe9b5c338d10ee429ea04fae5511b68fbf8fb9'
+          './foo.txt': '2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae',
+          './bar.txt': 'fcde2b2edba56bf408601fb721fe9b5c338d10ee429ea04fae5511b68fbf8fb9'
         }
       }
       const digests2 = {
         sha512: {
-          './foo/foo.txt': 'aaaaaa', // can contain invalid values
-          './foo/baz.txt': 'a82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
+          './foo.txt': 'aaaaaa', // can contain invalid values
+          './baz.txt': 'a82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
         },
         sha256: {
-          './foo/foo.txt': '2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae',
-          './foo/bar.txt': 'fcde2b2edba56bf408601fb721fe9b5c338d10ee429ea04fae5511b68fbf8fb9'
+          './foo.txt': '2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae',
+          './bar.txt': 'fcde2b2edba56bf408601fb721fe9b5c338d10ee429ea04fae5511b68fbf8fb9'
         }
       }
       try {
@@ -218,8 +218,8 @@ describe.only("SignerUtils", function() {
         // passing in different checksums should result in invalid signature
         const SIGNED_FOO_DIGESTS_UPDATED =  {
           sha512: {
-            './foo/foo.txt': 'bbbbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
-            './foo/bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
+            './foo.txt': 'bbbbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
+            './bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
           }
         }
         const result = await SignerUtils.verifySignature(<IPackageEntry>signatureEntry, SIGNED_FOO_DIGESTS_UPDATED)
@@ -230,8 +230,8 @@ describe.only("SignerUtils", function() {
         const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
         const SIGNED_FOO_DIGESTS_UPDATED =  {
           sha512: {
-            './foo/foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
-            './foo/bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181',
+            './foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
+            './bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181',
             './imaginary/new/file.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
           }
         }
@@ -252,11 +252,11 @@ describe.only("SignerUtils", function() {
         const pkg = await getPackage(SIGNED_FOO_TAR)
         const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
         // package modification: overwriting files invalidates included signature
-        let c = await pkg.getContent('./foo/foo.txt')
+        let c = await pkg.getContent('./foo.txt')
         assert.equal(c.toString(), 'foo')
-        const newEntry = await SignerUtils.toIFile('./foo/foo.txt', 'hello world')
-        await pkg.addEntry('./foo/foo.txt', newEntry)
-        c = await pkg.getContent('./foo/foo.txt')
+        const newEntry = await SignerUtils.toIFile('./foo.txt', 'hello world')
+        await pkg.addEntry('./foo.txt', newEntry)
+        c = await pkg.getContent('./foo.txt')
         assert.equal(c.toString(), 'hello world')
         const digests = await SignerUtils.calculateDigests(pkg)
         const result = await SignerUtils.verifySignature(<IPackageEntry>signatureEntry, digests)
@@ -306,7 +306,9 @@ describe.only("SignerUtils", function() {
         assert.isTrue(FILEPATH.includes(signer.address))
       })
     })
+    it.skip("checks the exp field of the token's payload", () => {
 
+    })
   })
 
   describe('containsSignature = async (signers: Array<ISignerInfo>, publicKeyInfo: PublicKeyInfo) : Promise<boolean>', function () {

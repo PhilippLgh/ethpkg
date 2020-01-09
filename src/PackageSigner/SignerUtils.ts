@@ -75,18 +75,45 @@ export const compareDigests = (digestsFile: Digests, calculatedDigests: Digests)
   }
   return true
 }
-const DAYS_180 = (180 * 24 * 60 * 60)
+
+const daysToSeconds = (days: number) => {
+  return days * 24 * 60 * 60
+}
+
+/**
+ * According to JWT Spec: (equal to timestamp)
+ * A JSON numeric value representing the number of seconds from
+ * 1970-01-01T00:00:00Z UTC until the specified UTC date/time,
+ * ignoring leap seconds.  This is equivalent to the IEEE Std 1003.1,
+ * 2013 Edition [POSIX.1] definition "Seconds Since the Epoch", in
+ * which each day is accounted for by exactly 86400 seconds, other
+ * than that non-integer values can be represented.
+ */
+export const getNumericDate = () => {
+  return Math.round((new Date()).getTime() / 1000)
+}
+
+const DEFAULT_EXPIRATION_DAYS = 180
 
 // TODO move to jwt
 export const createPayload = async (pkg : IPackage, options : { expiresIn?: number } = {
-  expiresIn: DAYS_180
+  expiresIn: daysToSeconds(DEFAULT_EXPIRATION_DAYS)
 }) => {
   const digests = await calculateDigests(pkg)
 
   const payload = {
     "version": 1,
+    // Issuer
+    // The "iss" (issuer) claim identifies the principal that issued the JWT
     "iss": "self",
-    "exp": Date.now() + (options.expiresIn || DAYS_180),
+    // Issued At
+    // The "iat" (issued at) claim identifies the time at which the JWT was issued.
+    "iat": getNumericDate(),
+    // Expiration Time
+    // The "exp" (expiration time) claim identifies the expiration time on
+    // or after which the JWT MUST NOT be accepted for processing.
+    "exp": getNumericDate() + (options.expiresIn === undefined ? daysToSeconds(DEFAULT_EXPIRATION_DAYS) : options.expiresIn),
+    // "jti" : identifier that cna help prevent replay protection not used
     "data": digests
   }
 
@@ -117,7 +144,7 @@ export const getJwsFromSignatureEntry = async (signatureEntry: IPackageEntry, de
   const signatureBuffer = await signatureEntry.file.readContent('nodebuffer')
   const signatureObj = JSON.parse(signatureBuffer.toString())
   if (decodeToken) {
-    return jws.decode(signatureObj)
+    return jws.verify(signatureObj)
   }
   return signatureObj
 }
@@ -125,7 +152,25 @@ export const getJwsFromSignatureEntry = async (signatureEntry: IPackageEntry, de
 export const verifySignature = async (signatureEntry : IPackageEntry, digests : Digests) : Promise<IVerificationResult> => {
 
   const encodedToken = await getJwsFromSignatureEntry(signatureEntry)
-  const decodedToken = await jws.decode(encodedToken)
+
+  let decodedToken
+  try {
+    // try to "verify"/validate the jws:
+    // this will also verify the header's eth address against the signature's address
+    decodedToken = await jws.verify(encodedToken)
+  } catch (error) {
+    // TODO log with level
+    // jws verification failed
+    // console.log('verification error', error)
+  }
+  if(!decodedToken) {
+    return {
+      isValid: false,
+      isTrusted: false,
+      signers: []
+      // TODO error: provide error here
+    }
+  }
 
   // verify integrity: check if files covered by signature were changed after signing
   // by comparing digests in signature payload with newly computed digests
@@ -141,6 +186,7 @@ export const verifySignature = async (signatureEntry : IPackageEntry, digests : 
   }
 
   // recover address / public key
+  // TODO after jws verify we can actually use the eth address from the jws header - it is already checked against the recovered one
   let recoveredAddress
   try {
     recoveredAddress = await jws.recoverAddress(encodedToken)
@@ -153,10 +199,17 @@ export const verifySignature = async (signatureEntry : IPackageEntry, digests : 
   let { version, iss, exp } = payload
   // console.log('recovered payload', payload)
 
-  // TODO check signature date
+  // check if token is expired
+  exp = exp || 0
+  // TODO use util to get the now timestamp
+  const now = Math.floor(Date.now() / 1000)
+  if (exp <= now) {
+    // token is expired
+    isValid = false
+  }
+  // TODO provide reason why invalid
   // TODO check signature certs
   // TODO check filename matches scheme with contained address
-  // TODO check that recovered address matches header address
 
   const signers : Array<ISignerInfo> = [ ]
   if (recoveredAddress) {
