@@ -21,7 +21,7 @@ describe("GethSigner", () => {
    * >> {"jsonrpc":"2.0","id":1,"result":"0xc8733d961e2ff4fc0bc11b9d383a945fb21a8e41a182f6f2b2b24a31de972ef84e75d93a46c998b05c296ffc22b63177fae68eca2fa37dfb7ebd82aefe6bb2db1b"}
    */
 
-  describe('async ethSign(msg: Buffer) : Promise<Buffer>', function() {
+  describe.skip('async ethSign(msg: Buffer) : Promise<Buffer>', function() {
 
     it("signs a payload using the geth client's RPC API", async () => {
       const signer = new GethSigner(ETH_ADDRESS_1)
