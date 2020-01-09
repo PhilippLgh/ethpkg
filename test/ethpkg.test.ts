@@ -7,7 +7,7 @@ const FOO_DIR = path.join(__dirname, 'fixtures', 'foo')
 
 const packageSpec = 'github:ethereum/grid-ui'
 
-describe('ethpkg', () => {
+describe.skip('ethpkg', () => {
 
   describe('createPackage (contentDirPath : string, pkgOutPath? : string)', () => {
     it ('creates a package from dir', async () => {
@@ -73,25 +73,25 @@ describe('ethpkg', () => {
     })
   })
 
-  describe('signPackage(pkgSrc: string | Buffer, privateKey? : Buffer | IExternalSigner, pkgPathOut? : string) : Promise<IPackage | undefined>', () => {
-    it ('verifies a package signature', async () => {
+  describe.skip('signPackage(pkgSrc: string | Buffer, privateKey? : Buffer | ISigner, pkgPathOut? : string) : Promise<IPackage | undefined>', () => {
+    it ('signs an unsigned package', async () => {
 
     })
   })
 
-  describe('verifyPackage (pkg : IPackage, addressOrEnsName? : string) : Promise<IVerificationResult>', () => {
+  describe.skip('verifyPackage (pkg : IPackage, addressOrEnsName? : string) : Promise<IVerificationResult>', () => {
     it ('verifies a package signature', async () => {
 
     })
   })
   
-  describe('downloadPackage (spec : PackageSpecifier, dest : string = ".")', () => {
+  describe.skip('downloadPackage (spec : PackageSpecifier, dest : string = ".")', () => {
     it ('does something', async () => {
 
     })
   })
    
-  describe('publishPackage (pkgSpec: string | IPackage, repoSpecifier: string = "ipfs")', () => {
+  describe.skip('publishPackage (pkgSpec: string | IPackage, repoSpecifier: string = "ipfs")', () => {
     it ('does something', async () => {
 
     })
