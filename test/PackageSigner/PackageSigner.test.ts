@@ -25,9 +25,15 @@ const MULTISIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_multisig
 
 const TEST_ENS = 'foo.test.ens'
 
-describe.only("PackageSigner", function() {
+describe("PackageSigner", function() {
 
   describe('fixture creation:', () => {
+    // please note that some tests might fail after 180 days after creation
+    it.skip('creates a valid signed .tar.gz package', async () => {
+      let pkg : IPackage | undefined = await TarPackage.create(FOO_DIR)
+      pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_1)
+      await pkg.writePackage(SIGNED_FOO_TAR)
+    })
     it.skip('creates a package with an expired signature', async () => {
       let pkg : IPackage | undefined = await TarPackage.create(FOO_DIR)
       pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_1, {
@@ -189,15 +195,26 @@ describe.only("PackageSigner", function() {
   })
 
   describe(`verify = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInfo) : Promise<IVerificationResult>`, function() {
+    it('verifies a local package without an ethereum address', async () => {
+      const pkg = await TarPackage.from(SIGNED_FOO_TAR)
+      const verificationResult = await PackageSigner.verify(pkg)
+      assert.isTrue(verificationResult.isValid, 'the package should be valid')
+      assert.isDefined(verificationResult.signers.find(info => info.address.toLowerCase() === ETH_ADDRESS_1.toLowerCase()), 'the ethereum address should be present in list of signers')
+      assert.isFalse(verificationResult.isTrusted, 'without identity info about the signer the package cannot be trusted')
+    })
     it('verifies a local package against an ethereum address', async () => {
-      const pkg = await new TarPackage().loadBuffer(fs.readFileSync(SIGNED_FOO_TAR))
+      const pkg = await TarPackage.from(SIGNED_FOO_TAR)
       const verificationResult = await PackageSigner.verify(pkg, ETH_ADDRESS_1)
       assert.isTrue(verificationResult.isValid, 'the package should be valid')
       assert.isDefined(verificationResult.signers.find(info => info.address.toLowerCase() === ETH_ADDRESS_1.toLowerCase()), 'the ethereum address should be present in list of signers')
-      assert.isFalse(verificationResult.isTrusted, 'without identity info / cert packages cannot be trusted')
+      assert.isTrue(verificationResult.isTrusted, 'when provided a trusted address that matches a signer isTrusted should be true')
     })
-    it.skip('verifies a local package against an ethereum ENS name', async () => {
-      // TODO needs implementation
+    it('verifies a local package against an ethereum ENS name', async () => {
+      const pkg = await TarPackage.from(SIGNED_FOO_TAR)
+      const verificationResult = await PackageSigner.verify(pkg, TEST_ENS)
+      assert.isTrue(verificationResult.isValid, 'the package should be valid')
+      assert.isDefined(verificationResult.signers.find(info => info.address.toLowerCase() === ETH_ADDRESS_1.toLowerCase()), 'the ethereum address should be present in list of signers')
+      assert.isTrue(verificationResult.isTrusted, 'with ENS as identity info the package becomes trusted')
     })
     it.skip('verifies externally hosted packages when passed a valid PackageQuery', async () => {
       // npm example
@@ -217,7 +234,7 @@ describe.only("PackageSigner", function() {
       assert.isFalse(verificationResult.isTrusted, 'without identity info / cert packages cannot be trusted')
     })
     */
-    it.skip("returns isTrusted=true ONLY if the package is signed, the signature matches the arhcive's checksums, is not expired and the public key is bound to a trusted identity via certificate, ENS or similar means or explicitly trusted", async () => {
+    it.skip("returns isTrusted=true ONLY if the package is signed, the signature matches the archive's checksums, is not expired and the public key is explicitly trusted or bound to a trusted identity via certificate, ENS or similar means", async () => {
 
     })
 

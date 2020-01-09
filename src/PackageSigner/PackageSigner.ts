@@ -88,12 +88,15 @@ export const sign = async (pkgSpec: PackageSpecifier, privateKey: PrivateKeyInfo
     throw new Error('private key / ISigner not provided or malformed')
   }
 
+  const address = await signer.getAddress()
+
   // create the content to be used as the JWS Payload.
   const payload = await SignerUtils.createPayload(pkg, {
     expiresIn: options.expiresIn
   })
   const header = createHeader({
-    algorithm: ALGORITHMS.EC_SIGN // TODO use when node, use eth_sign when browser (metamask)
+    algorithm: ALGORITHMS.EC_SIGN, // TODO use when node, use eth_sign when browser (metamask)
+    address
   })
   // sign payload according to RFC7515 Section 5.1
   const flattenedJwsSerialization =  await jws.sign(payload, signer, header)
@@ -104,7 +107,6 @@ export const sign = async (pkgSpec: PackageSpecifier, privateKey: PrivateKeyInfo
   // add entries
   await writeChecksumsJson(pkg, payload)
 
-  const address = await signer.getAddress()
   await writeSignatureEntry(pkg, flattenedJwsSerialization, address)
 
   return pkg
@@ -116,7 +118,7 @@ export const sign = async (pkgSpec: PackageSpecifier, privateKey: PrivateKeyInfo
  * @param publicKeyInfo 
  */
 export const verify = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInfo) : Promise<IVerificationResult> => {
-    
+  
   let pkg 
   try {
     pkg = await getPackage(pkgSpec)
@@ -125,7 +127,8 @@ export const verify = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKe
     return verificationError(VERIFICATION_ERRORS.BAD_PACKAGE)
   }
 
-  const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg, publicKeyInfo)
+  const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg /*TODO? needs support for ens etc, publicKeyInfo*/)
+  // TODO the error that the package is unsigned if publicKey not found is misleading
   if (signatures.length === 0) {
     return verificationError(VERIFICATION_ERRORS.UNSIGNED)
   }
@@ -138,8 +141,8 @@ export const verify = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKe
   const promises = signatures.map(sig => SignerUtils.verifySignature(sig, digests))
   const verificationResults = await Promise.all(promises)
 
+  let signatureFound = false
   if(publicKeyInfo) {
-    let signatureFound = false
     for (const verificationResult of verificationResults) {
       const { signers } = verificationResult
       if(await SignerUtils.containsSignature(signers, publicKeyInfo)) {
@@ -163,15 +166,14 @@ export const verify = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKe
   - with a proof of identity or signed by a trusted CA
   - 100% of the package contents must be signed by at least one valid certificate
   */
+  const signers = verificationResults.map(v => <ISignerInfo>v.signers.pop())
+
   let isValid = verificationResults.length > 0
   for (const verificationResult of verificationResults) {
     isValid = isValid && verificationResult.isValid
   }
 
-  const signers = verificationResults.map(v => <ISignerInfo>v.signers.pop())
-
-  const isTrusted = false
-  // TODO implement logic
+  const isTrusted = isValid && signatureFound // TODO implement cert logic
 
   const verificationResult = {
     signers,
