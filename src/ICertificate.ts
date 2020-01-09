@@ -1,3 +1,5 @@
+import { IEthJWK } from "./jwk"
+
 export const REGISTERED_SERVICES = {
   'GITHUB': 'github'
 }
@@ -36,36 +38,6 @@ export interface IIdentityInfo {
   "username": string
 }
 
-export interface IEthJwk {
-  "kty": "EC",
-  "key_ops": [
-    "sign",
-    "verify"
-  ],
-
-  // EC "extensions"
-  "crv": "P-256K", // non-standard curve
-  "x": string,
-  "y": string,
-
-  /* non-standard values begin here: */
-
-  // restrictions to key_ops e.g. transactions, messages, packages
-  "key_scopes": {},
-
-  // together with kid form a lookup address
-  "host": "", // e.g. 'keybase.io'
-  "endpoint": "",
-
-  // user-assigned alias
-  "alias": "",
-
-  // blockchain specific
-  "eth": {
-    address: string // hex-prefixed string
-  }
-}
-
 // can be used to verify client-side
 export interface ICertProof { 
 
@@ -96,7 +68,7 @@ export interface ICertificatePayload {
   service?: IIdentityInfo,
 
   // key block
-  key: IEthJwk | IEthKeyShort
+  key: IEthJWK | IEthKeyShort
 
   // 
   proof? : ICertProof
