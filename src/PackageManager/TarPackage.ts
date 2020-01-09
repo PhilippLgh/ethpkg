@@ -188,7 +188,12 @@ export default class TarPackage implements IPackage {
     if (this.isGzipped && (!(outPath.endsWith('.tgz') || outPath.endsWith('.tar.gz')))){
       throw new Error('Attempt to write compressed into a decompressed file: consider using ".tar.gz" or ".tgz" or explicitly decompress')
     }
-    const s = this.getReadStream().pipe(fs.createWriteStream(outPath))
+    let s
+    if (!this.isGzipped && ((outPath.endsWith('.tgz') || outPath.endsWith('.tar.gz')))) {
+      s = this.getReadStream().pipe(zlib.createGzip()).pipe(fs.createWriteStream(outPath))
+    } else {
+      s = this.getReadStream().pipe(fs.createWriteStream(outPath))
+    }
     await streamPromise(s)
     return outPath
   }
@@ -231,5 +236,9 @@ export default class TarPackage implements IPackage {
    const t = new TarPackage(undefined, false)
    await t.loadBuffer(packageBuffer)
    return t
+  }
+  static async from(packagePath: string) : Promise<IPackage> {
+    const buf = fs.readFileSync(packagePath)
+    return new TarPackage().loadBuffer(buf)
   }
 }

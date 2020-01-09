@@ -7,7 +7,8 @@ import { localFileToIFile } from '../../src/util'
 describe("TarPackage (IPackage)", () => {
 
   const FOO_PACKAGE_COMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar.gz')
-  const FOO_PACKAGE_UNCOMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar')
+  const FOO_PACKAGE_DECOMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar')
+  const FOO_PACKAGE_WRITE_COMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo_write_test.tar.gz')
   const FOO_DIR= path.join(__dirname, '..', 'fixtures', 'foo')
   const BAZ_TXT = path.join(__dirname, '..', 'fixtures', 'baz.txt')
 
@@ -48,7 +49,7 @@ describe("TarPackage (IPackage)", () => {
 
   describe("addEntry(relativePath: string, file: IFile) : Promise<string>", async () => {
     it('adds a file to an existing <decompressed> tar package', async () => {
-      const pkg = new TarPackage(FOO_PACKAGE_UNCOMPRESSED)
+      const pkg = new TarPackage(FOO_PACKAGE_DECOMPRESSED)
       const entry = await pkg.getEntry('baz.txt')
       assert.isUndefined(entry)
       // prepare file
@@ -96,9 +97,17 @@ describe("TarPackage (IPackage)", () => {
   })
 
   describe('async writePackage(outPath: string): Promise<string>', () => {
-    it.skip('compresses the contents if the outPath contains gzip extension', async () => {
-      // TODO needs implementation
+    it('compresses the contents if the outPath contains gzip extension', async () => {
+      let pkg = await TarPackage.create(FOO_DIR)
+      await pkg.writePackage(FOO_PACKAGE_WRITE_COMPRESSED)
+      const pkg2 = await TarPackage.from(FOO_PACKAGE_WRITE_COMPRESSED)
+      assert.isTrue((<TarPackage>pkg2).isGzipped)
+      let content = await pkg2.getContent('./bar.txt')
+      assert.equal(content.toString(), 'bar')
     })
   })
+
+  describe.skip('static async from(packagePath : string) : Promise<IPackage>', () => {})
+
 
 })
