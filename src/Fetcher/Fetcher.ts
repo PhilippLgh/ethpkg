@@ -203,6 +203,12 @@ export default class Fetcher {
     // notify client about process end
     listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { release: latest, platform, version })
 
+    // if package not from cache / fs repo it is always remote
+    // this info is quite critical as it is used e.g. by updaters to determine
+    // if the latest version was fetched from remote or was available locally
+    // TODO implement cache
+    latest.remote = true
+
     return latest
   }
 
@@ -215,17 +221,17 @@ export default class Fetcher {
       if (progressNew > progress) {
         progress = progressNew;
          // console.log(`downloading update..  ${pn}%`)
-        listener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress })
+        listener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress, release: locator })
       }
     }
 
     // download release data / asset
     const { location } = locator as IRelease // FIXME
     if (!location) throw new Error('package location not found')
-    listener(PROCESS_STATES.DOWNLOAD_STARTED, { location })
+    listener(PROCESS_STATES.DOWNLOAD_STARTED, { location, release: locator })
 
     const packageData = await download(location, _onProgress)
-    listener(PROCESS_STATES.DOWNLOAD_FINISHED, { location, size: packageData.length })
+    listener(PROCESS_STATES.DOWNLOAD_FINISHED, { location, size: packageData.length, release: locator })
 
     return packageData
   }

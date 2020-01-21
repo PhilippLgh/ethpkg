@@ -19,6 +19,8 @@ export interface IRelease {
   updated_ts?: number; // timestamp: last date of modification / (re-) publishing
   updated_at?: string; // display date version
 
+  size?: number; // size of the asset / package
+
   original?: any; // the original response object before it was parsed
   error?: string; // error message
 

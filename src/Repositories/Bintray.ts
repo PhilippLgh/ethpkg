@@ -48,6 +48,7 @@ export default class BintrayRepository  implements IRepository {
       fileName,
       updated_ts,
       updated_at: datestring(updated_ts),
+      size,
       location,
       error: undefined,
       original: pkgInfo,

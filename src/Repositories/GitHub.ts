@@ -85,11 +85,12 @@ export default class GitHubRepository implements IRepository {
       const updated_ts = Date.parse(updated_at) // return timestamp
 
       return {
-        name: releaseName,
+        name: releaseName || `${this.owner}_${this.repo}`,
         version,
         displayVersion,
         channel,
         fileName: assetName,
+        size,
         updated_ts,
         updated_at: datestring(updated_ts),
         location: browser_download_url,
