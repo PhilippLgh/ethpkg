@@ -1,8 +1,9 @@
-import { IRelease } from "../Repositories/IRepository";
+import { IRelease } from '../Repositories/IRepository'
+import { ISerializable } from './ISerializable'
 
 export type ProgressListener = (progress: number, filePath: string) => void
 
-export interface IPackage {
+export interface IPackage extends ISerializable {
   fileName: string;
   metadata?: IRelease;
   loadBuffer(buf : Buffer) : Promise<IPackage>;

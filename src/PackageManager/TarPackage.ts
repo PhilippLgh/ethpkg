@@ -6,11 +6,12 @@ import tarStream from 'tar-stream'
 import { streamToBuffer, bufferToStream, streamPromise, isDirSync } from '../util'
 import { getExtension } from '../utils/FilenameUtils'
 import { relativePathEquals } from '../utils/PackageUtils'
+import { IRelease } from '../Repositories/IRepository'
 
 export default class TarPackage implements IPackage {
 
   fileName: string = '<unknown>';  
-  metadata?: import("../Repositories/IRepository").IRelease | undefined;
+  metadata?: IRelease | undefined;
   packagePath: string;
   isGzipped: boolean;
   tarbuf?: Buffer;
@@ -184,6 +185,10 @@ export default class TarPackage implements IPackage {
     }
     return Promise.resolve(this.tarbuf)
   }
+  // from ISerializable
+  async getObjectData(): Promise<any> {
+    return this.toBuffer()
+  }
   async writePackage(outPath: string): Promise<string> {
     if (this.isGzipped && (!(outPath.endsWith('.tgz') || outPath.endsWith('.tar.gz')))){
       throw new Error('Attempt to write compressed into a decompressed file: consider using ".tar.gz" or ".tgz" or explicitly decompress')
@@ -198,7 +203,7 @@ export default class TarPackage implements IPackage {
     return outPath
   }
   async extract(destPath: string, onProgress?: ProgressListener | undefined): Promise<string> {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
   async printEntries() {
     const entries = await this.getEntries()

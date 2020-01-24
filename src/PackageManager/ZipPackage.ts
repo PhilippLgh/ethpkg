@@ -7,6 +7,7 @@ import { IRelease } from '../Repositories/IRepository'
 
 export default class ZipPackage implements IPackage {
 
+  public type: string = 'zip'
   private zip : JSZip | undefined
   fileName = '<unknown>'
   metadata?: IRelease
@@ -81,7 +82,6 @@ export default class ZipPackage implements IPackage {
     if (entry.file.isDir) throw new Error('entry is not a file')
     return entry.file.readContent()
   }
-
   async addEntry(relativePath : string, file: IFile) {
     await this.tryLoad()
     if(!this.zip) {
@@ -91,26 +91,27 @@ export default class ZipPackage implements IPackage {
     this.zip.file(relativePath, content);
     return relativePath
   }
-
   async toBuffer() {
     await this.tryLoad()
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
-    let buf = await this.zip.generateAsync({type: "nodebuffer", compression: "DEFLATE"})
+    let buf = await this.zip.generateAsync({type: 'nodebuffer', compression: 'DEFLATE'})
     return buf
   }
-
+  // from ISerializable
+  async getObjectData(): Promise<any> {
+    return this.toBuffer()
+  }
   async extract(destPath: string, onProgress: ProgressListener = (p, f) => {}) : Promise<string> {
     return extractPackage(this, destPath, onProgress)
   }
-
   async writePackage(filePath : string, useCompression = true) {
     await this.tryLoad()
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
-    let options : any = {type: "nodebuffer", compression: "DEFLATE"}
+    let options : any = {type: 'nodebuffer', compression: 'DEFLATE'}
     if(!useCompression){
       delete options.compression
     }
@@ -118,9 +119,12 @@ export default class ZipPackage implements IPackage {
     fs.writeFileSync(filePath, content)
     return filePath
   }
-
   static async create(dirPath : string) : Promise<ZipPackage> {
+    // FIXME zip create not working
     return new ZipPackage()
   }
-
+  static async from(packagePath: string) : Promise<IPackage> {
+    const buf = fs.readFileSync(packagePath)
+    return new ZipPackage().loadBuffer(buf)
+  }
 }
