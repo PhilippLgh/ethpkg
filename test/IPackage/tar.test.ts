@@ -1,10 +1,10 @@
 import fs from 'fs'
 import path from 'path'
 import TarPackage from '../../src/PackageManager/TarPackage'
-import { assert } from "chai"
+import { assert } from 'chai'
 import { localFileToIFile } from '../../src/util'
 
-describe("TarPackage (IPackage)", () => {
+describe('TarPackage (IPackage)', () => {
 
   const FOO_PACKAGE_COMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar.gz')
   const FOO_PACKAGE_DECOMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar')
@@ -12,7 +12,7 @@ describe("TarPackage (IPackage)", () => {
   const FOO_DIR= path.join(__dirname, '..', 'fixtures', 'foo')
   const BAZ_TXT = path.join(__dirname, '..', 'fixtures', 'baz.txt')
 
-  describe("loadBuffer(buf: Buffer): Promise<void> ", async () => {
+  describe('loadBuffer(buf: Buffer): Promise<void> ', async () => {
     it('create an IPackage from tar buffer', async () => {
       const buf = fs.readFileSync(FOO_PACKAGE_COMPRESSED)
       const pkg = new TarPackage()
@@ -22,7 +22,7 @@ describe("TarPackage (IPackage)", () => {
     })
   })
 
-  describe("async getEntries(): Promise<IPackageEntry[]>", () => {
+  describe('async getEntries(): Promise<IPackageEntry[]>', () => {
     it('returns all entries (files and dirs) from tar package', async () => {
       const pkg = new TarPackage(FOO_PACKAGE_COMPRESSED)
       const entries = await pkg.getEntries()
@@ -31,7 +31,7 @@ describe("TarPackage (IPackage)", () => {
     })
   })
 
-  describe("async getEntry(relativePath: string): Promise<IPackageEntry | undefined>", async () => {
+  describe('async getEntry(relativePath: string): Promise<IPackageEntry | undefined>', async () => {
     it('finds an entry by its relative path', async () => {
       const pkg = new TarPackage(FOO_PACKAGE_COMPRESSED)
       const entry = await pkg.getEntry('/foo/bar.txt')
@@ -39,7 +39,7 @@ describe("TarPackage (IPackage)", () => {
     })
   })
 
-  describe("async getContent(relativePath: string): Promise<Buffer>", async () => {
+  describe('async getContent(relativePath: string): Promise<Buffer>', async () => {
     it(`finds an entry by its relative path and returns the file's content`, async () => {
       const pkg = new TarPackage(FOO_PACKAGE_COMPRESSED)
       const content = await pkg.getContent('foo/bar.txt')
@@ -47,7 +47,7 @@ describe("TarPackage (IPackage)", () => {
     })
   })
 
-  describe("addEntry(relativePath: string, file: IFile) : Promise<string>", async () => {
+  describe('addEntry(relativePath: string, file: IFile) : Promise<string>', async () => {
     it('adds a file to an existing <decompressed> tar package', async () => {
       const pkg = new TarPackage(FOO_PACKAGE_DECOMPRESSED)
       const entry = await pkg.getEntry('baz.txt')
@@ -85,7 +85,7 @@ describe("TarPackage (IPackage)", () => {
     })
   })
 
-  describe("static async create(dirPath : string) : Promise<TarPackage>", async () => {
+  describe('static async create(dirPath : string) : Promise<TarPackage>', async () => {
     it('create a tar archive from a directory', async () => {
       const pkg = await TarPackage.create(FOO_DIR)
       const content = await pkg.getContent('foo.txt')

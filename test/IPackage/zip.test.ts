@@ -1,18 +1,18 @@
 import fs from 'fs'
 import path from 'path'
 import ZipPackage from '../../src/PackageManager/ZipPackage'
-import { assert } from "chai"
+import { assert } from 'chai'
 import { IPackage } from '../../src'
 import { IFile } from '../../src/PackageManager/IPackage'
 import { localFileToIFile } from '../../src/util'
 
-describe("ZipPackage (IPackage)", () => {
+describe('ZipPackage (IPackage)', () => {
 
   const FOO_PACKAGE = path.join(__dirname, '..', 'fixtures', 'foo.zip')
   const FOO_DIR= path.join(__dirname, '..', 'fixtures', 'foo')
   const BAZ_TXT = path.join(__dirname, '..', 'fixtures', 'baz.txt')
 
-  describe("loadBuffer(buf: Buffer): Promise<void> ", async () => {
+  describe('loadBuffer(buf: Buffer): Promise<void> ', async () => {
     it('create an IPackage from tar buffer', async () => {
       const buf = fs.readFileSync(FOO_PACKAGE)
       const pkg = new ZipPackage()
@@ -22,7 +22,7 @@ describe("ZipPackage (IPackage)", () => {
     })
   })
 
-  describe("async getEntries(): Promise<IPackageEntry[]>", () => {
+  describe('async getEntries(): Promise<IPackageEntry[]>', () => {
     it('returns all entries (files and dirs) from tar package', async () => {
       const pkg = new ZipPackage(FOO_PACKAGE)
       const entries = await pkg.getEntries()
@@ -31,7 +31,7 @@ describe("ZipPackage (IPackage)", () => {
     })
   })
 
-  describe("async getEntry(relativePath: string): Promise<IPackageEntry | undefined>", async () => {
+  describe('async getEntry(relativePath: string): Promise<IPackageEntry | undefined>', async () => {
     it('finds an entry by its relative path', async () => {
       const pkg = new ZipPackage(FOO_PACKAGE)
       const entry = await pkg.getEntry('/foo/bar.txt')
@@ -39,7 +39,7 @@ describe("ZipPackage (IPackage)", () => {
     })
   })
 
-  describe("async getContent(relativePath: string): Promise<Buffer>", async () => {
+  describe('async getContent(relativePath: string): Promise<Buffer>', async () => {
     it('finds an entry by its relative path', async () => {
       const pkg = new ZipPackage(FOO_PACKAGE)
       const content = await pkg.getContent('foo/bar.txt')
@@ -47,7 +47,7 @@ describe("ZipPackage (IPackage)", () => {
     })
   })
 
-  describe("addEntry(relativePath: string, file: IFile) : Promise<string>", async () => {
+  describe('addEntry(relativePath: string, file: IFile) : Promise<string>', async () => {
     it.skip('adds a file to an existing <uncompressed> zip package', async () => {
       // needs fixture data
     })
@@ -60,7 +60,7 @@ describe("ZipPackage (IPackage)", () => {
     })
   })
 
-  describe("static async create(dirPath : string) : Promise<ZipPackage>", async () => {
+  describe('static async create(dirPath : string) : Promise<ZipPackage>', async () => {
     it.skip('create a zip archive from a directory', async () => {
       /*
       const pkg = await ZipPackage.create(FOO_DIR)
