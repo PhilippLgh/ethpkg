@@ -24,7 +24,7 @@ class Dummy implements ISerializable {
 
 const CACHE_PATH = path.join(__dirname, 'fixtures', 'TestCache')
 
-describe.only('Cache', () => {
+describe('Cache', () => {
 
   describe('withCache', () => {
     /**
@@ -32,7 +32,7 @@ describe.only('Cache', () => {
      * or if the state changes in the meantime and we have different expectations
      * => use caching wisely
      */
-    it.only('takes a function that returns something serializable (implements ISerializable) and a cache to memoize or persist the responses', async () => {
+    it('takes a function that returns something serializable (implements ISerializable) and a cache to memoize or persist the responses', async () => {
       let i = 0
       const cacheableFn = async (arg: string) => new Dummy(arg+(++i))
       const cache = new MemCache() // effectively creates memoization and does not need a factory function because objects are never serialized
