@@ -25,7 +25,8 @@ export const getPackageFromBuffer = async (pkgBuf: Buffer, pkgFileName?: string)
   }
   if (bufferType.mime === 'application/gzip') {
     // FIXME throw if pkgFileName is not provided
-    const tar = new TarPackage(pkgFileName || 'package-from-buffer.tar')
+    // FIXME tar packes need a more robust way to determine if gzipped. to use names is especially bad because of cases like this
+    const tar = new TarPackage(pkgFileName || 'package-from-buffer.tar.gz')
     await tar.loadBuffer(pkgBuf)
     return tar
   }
