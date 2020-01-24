@@ -7,6 +7,7 @@ import { deleteFolderRecursive } from './TestUtils'
 import TarPackage from '../src/PackageManager/TarPackage'
 import { IPackage } from '../src'
 import { toIFile } from '../src/PackageSigner/SignerUtils'
+import ZipPackage from '../src/PackageManager/ZipPackage'
 
 class Dummy implements ISerializable {
   public data: string;
@@ -98,9 +99,10 @@ describe('Cache', () => {
       const obj : Dummy = await cache.get(KEY)
       assert.equal(obj.data, DATA)
     })
-    it('persists and restores IPackage objects', async () => {
+    it('persists and restores tar/IPackage objects', async () => {
       const pkg: IPackage = await TarPackage.create('NewPackage.tar')
       const relPath = './hello.txt'
+      const KEY = 'pkg'
       await pkg.addEntry(relPath, toIFile(relPath, 'world'))
       const ctor = (info: SerializationInfo) => {
         const { ctor, data } = info
@@ -108,10 +110,26 @@ describe('Cache', () => {
         return new TarPackage(filePath).loadBuffer(buffer)
       }
       const cache = new PersistentJsonCache<IPackage>(CACHE_PATH, ctor)
-      await cache.put('pkg', pkg)
-      const restored = await cache.get('pkg') as IPackage
+      await cache.put(KEY, pkg)
+      const restored = await cache.get(KEY) as IPackage
       const entry = await restored.getContent(relPath)
       assert.equal(entry.toString(), 'world')
+    })
+    it('persists and restores zip/IPackage objects', async () => {
+      const pkg: IPackage = await ZipPackage.create('NewPackage.zip')
+      const relPath = './hello.txt'
+      const KEY = 'pkg' // note: this will overwrite the tar from previous test
+      await pkg.addEntry(relPath, toIFile(relPath, 'world2'))
+      const ctor = (info: SerializationInfo) => {
+        const { ctor, data } = info
+        const { filePath, buffer } = data
+        return new ZipPackage(filePath).loadBuffer(buffer)
+      }
+      const cache = new PersistentJsonCache<IPackage>(CACHE_PATH, ctor)
+      await cache.put(KEY, pkg)
+      const restored = await cache.get(KEY) as IPackage
+      const entry = await restored.getContent(relPath)
+      assert.equal(entry.toString(), 'world2')
     })
     after('remove temp cache dirs', () => {
       // node 12: fs.rmdir(CACHE_PATH, { recursive: true });

@@ -5,6 +5,7 @@ import { assert } from 'chai'
 import { IPackage } from '../../src'
 import { IFile } from '../../src/PackageManager/IPackage'
 import { localFileToIFile } from '../../src/util'
+import { toIFile } from '../../src/PackageSigner/SignerUtils'
 
 describe('ZipPackage (IPackage)', () => {
 
@@ -15,7 +16,7 @@ describe('ZipPackage (IPackage)', () => {
   describe('loadBuffer(buf: Buffer): Promise<void> ', async () => {
     it('create an IPackage from tar buffer', async () => {
       const buf = fs.readFileSync(FOO_PACKAGE)
-      const pkg = new ZipPackage()
+      const pkg = new ZipPackage(FOO_PACKAGE)
       await pkg.loadBuffer(buf)
       const entries = await pkg.getEntries()
       assert.equal(entries.length, 3)
@@ -48,6 +49,14 @@ describe('ZipPackage (IPackage)', () => {
   })
 
   describe('addEntry(relativePath: string, file: IFile) : Promise<string>', async () => {
+    it('adds a file to a newly created zip package', async () => {
+      // NOTE: this will NOT work:
+      // const pkg = await new TarPackage().loadBuffer(Buffer.from(''))
+      const pkg = await ZipPackage.create('my-package.zip')
+      await pkg.addEntry('baz.txt', toIFile('baz.txt', 'baz'))
+      const content = await pkg.getContent('baz.txt')
+      assert.equal(content.toString(), 'baz')
+    })
     it.skip('adds a file to an existing <uncompressed> zip package', async () => {
       // needs fixture data
     })
@@ -61,6 +70,11 @@ describe('ZipPackage (IPackage)', () => {
   })
 
   describe('static async create(dirPath : string) : Promise<ZipPackage>', async () => {
+    it('creates an empty tar if dirPathOrName argument is not a path', async () => {
+      const pkg = await ZipPackage.create('my-package.zip')
+      const entries = await pkg.getEntries()
+      assert.equal(entries.length, 0)
+    })
     it.skip('create a zip archive from a directory', async () => {
       /*
       const pkg = await ZipPackage.create(FOO_DIR)

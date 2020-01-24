@@ -1,6 +1,6 @@
 import fs, { lstatSync } from 'fs'
 import path from 'path'
-import { IPackage } from ".."
+import { IPackage } from '..'
 import ZipPackage from './ZipPackage'
 import TarPackage from './TarPackage'
 import fileType from 'file-type'
@@ -24,12 +24,13 @@ export const getPackageFromBuffer = async (pkgBuf: Buffer, pkgFileName?: string)
     throw new Error('bad input buffer')
   }
   if (bufferType.mime === 'application/gzip') {
+    // FIXME throw if pkgFileName is not provided
     const tar = new TarPackage(pkgFileName || 'package-from-buffer.tar')
     await tar.loadBuffer(pkgBuf)
     return tar
   }
   else if (bufferType.mime === 'application/zip') {
-    const zip = new ZipPackage(pkgFileName)
+    const zip = new ZipPackage(pkgFileName || 'package-from-buffer.zip')
     await zip.loadBuffer(pkgBuf)
     return zip
   } else {
@@ -47,7 +48,7 @@ export const getPackageFromFile = async (pkgSrc: string): Promise<IPackage> => {
     return tar
   }
   else if (pkgSrc.endsWith('.zip')) {
-    const zip = new ZipPackage()
+    const zip = new ZipPackage(pkgSrc)
     const pgkContent = fs.readFileSync(pkgSrc)
     await zip.loadBuffer(pgkContent)
     return zip

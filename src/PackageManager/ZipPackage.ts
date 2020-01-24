@@ -11,19 +11,23 @@ export default class ZipPackage implements IPackage {
   private zip : JSZip | undefined
   fileName = '<unknown>'
   metadata?: IRelease
-  private packagePath: string | undefined
+  private filePath: string | undefined
 
-  constructor(packagePath? : string) {
-    this.packagePath = packagePath
+  constructor(packagePathOrName: string) {
+    this.filePath = packagePathOrName || ''
+    if (this.filePath) {
+      this.fileName = path.basename(this.filePath)
+    }
   }
 
   init(){
     this.zip = new JSZip()
+    return this
   }
 
   private async tryLoad() {
-    if(!this.zip && this.packagePath) {
-      const buf = fs.readFileSync(this.packagePath)
+    if(!this.zip && this.filePath) {
+      const buf = fs.readFileSync(this.filePath)
       await this.loadBuffer(buf)
     }
   }
@@ -101,7 +105,10 @@ export default class ZipPackage implements IPackage {
   }
   // from ISerializable
   async getObjectData(): Promise<any> {
-    return this.toBuffer()
+    return {
+      buffer: await this.toBuffer(),
+      filePath: this.filePath
+    }
   }
   async extract(destPath: string, onProgress: ProgressListener = (p, f) => {}) : Promise<string> {
     return extractPackage(this, destPath, onProgress)
@@ -119,12 +126,17 @@ export default class ZipPackage implements IPackage {
     fs.writeFileSync(filePath, content)
     return filePath
   }
-  static async create(dirPath : string) : Promise<ZipPackage> {
-    // FIXME zip create not working
-    return new ZipPackage()
+  static async create(dirPathOrName : string) : Promise<ZipPackage> {
+    // FIXME zip create not working for directories
+    const dirPath = path.basename(dirPathOrName) === dirPathOrName ? undefined : dirPathOrName
+    const packageName = dirPath ? path.basename(dirPathOrName) : dirPathOrName
+    if (dirPath) {
+      throw new Error('creating zip from directories is not implemented')
+    }
+    return new ZipPackage(packageName).init()
   }
   static async from(packagePath: string) : Promise<IPackage> {
     const buf = fs.readFileSync(packagePath)
-    return new ZipPackage().loadBuffer(buf)
+    return new ZipPackage(packagePath).loadBuffer(buf)
   }
 }

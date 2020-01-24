@@ -247,6 +247,6 @@ export default class TarPackage implements IPackage {
   }
   static async from(packagePath: string) : Promise<IPackage> {
     const buf = fs.readFileSync(packagePath)
-    return new TarPackage(path.basename(packagePath)).loadBuffer(buf)
+    return new TarPackage(packagePath).loadBuffer(buf)
   }
 }

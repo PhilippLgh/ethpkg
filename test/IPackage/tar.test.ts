@@ -3,6 +3,7 @@ import path from 'path'
 import TarPackage from '../../src/PackageManager/TarPackage'
 import { assert } from 'chai'
 import { localFileToIFile } from '../../src/util'
+import { toIFile } from '../../src/PackageSigner/SignerUtils'
 
 describe('TarPackage (IPackage)', () => {
 
@@ -15,7 +16,7 @@ describe('TarPackage (IPackage)', () => {
   describe('loadBuffer(buf: Buffer): Promise<void> ', async () => {
     it('create an IPackage from tar buffer', async () => {
       const buf = fs.readFileSync(FOO_PACKAGE_COMPRESSED)
-      const pkg = new TarPackage()
+      const pkg = new TarPackage('my-package.tar.gz')
       await pkg.loadBuffer(buf)
       const entries = await pkg.getEntries()
       assert.equal(entries.length, 3)
@@ -48,6 +49,14 @@ describe('TarPackage (IPackage)', () => {
   })
 
   describe('addEntry(relativePath: string, file: IFile) : Promise<string>', async () => {
+    it('adds a file to a newly created package', async () => {
+      // NOTE: this will NOT work:
+      // const pkg = await new TarPackage().loadBuffer(Buffer.from(''))
+      const pkg = await TarPackage.create('my-package.tar')
+      await pkg.addEntry('baz.txt', toIFile('baz.txt', 'baz'))
+      const content = await pkg.getContent('baz.txt')
+      assert.equal(content.toString(), 'baz')
+    })
     it('adds a file to an existing <decompressed> tar package', async () => {
       const pkg = new TarPackage(FOO_PACKAGE_DECOMPRESSED)
       const entry = await pkg.getEntry('baz.txt')
@@ -85,13 +94,18 @@ describe('TarPackage (IPackage)', () => {
     })
   })
 
-  describe('static async create(dirPath : string) : Promise<TarPackage>', async () => {
-    it('create a tar archive from a directory', async () => {
+  describe('static async create(dirPathOrName : string) : Promise<TarPackage>', async () => {
+    it('creates an empty tar if dirPathOrName argument is not a path', async () => {
+      const pkg = await TarPackage.create('my-package.tar')
+      const entries = await pkg.getEntries()
+      assert.equal(entries.length, 0)
+    })
+    it('creates a tar archive from a directory', async () => {
       const pkg = await TarPackage.create(FOO_DIR)
       const content = await pkg.getContent('foo.txt')
       assert.equal(content.toString(), 'foo')
     })
-    it.skip('create a tar archive from a directory with nested subdirectories', async () => {
+    it.skip('creates a tar archive from a directory with nested subdirectories', async () => {
       // TODO needs implementation
     })
   })
