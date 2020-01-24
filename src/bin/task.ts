@@ -3,11 +3,11 @@ import ora from 'ora'
 
 const spinner = ora({
   spinner: {
-    "interval": 100,
-    "frames": [
-      "▓",
-      "▒",
-      "░"
+    'interval': 100,
+    'frames': [
+      '▓',
+      '▒',
+      '░'
     ]
   }
 })
@@ -33,11 +33,11 @@ export type FormatCallback = (info : FormatOptions) => string
 export const startNewTask = (name: string) => {
   let _spinner = ora({
     spinner: {
-      "interval": 100,
-      "frames": [
-        "▓",
-        "▒",
-        "░"
+      'interval': 100,
+      'frames': [
+        '▓',
+        '▒',
+        '░'
       ]
     }
   })

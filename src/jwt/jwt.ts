@@ -1,5 +1,5 @@
-import * as JWS from "../jws"
-import { IFlattenedJwsSerialization } from "../jws"
+import * as JWS from '../jws'
+import { IFlattenedJwsSerialization } from '../jws'
 
 interface SignOptions {
   algorithm?: string;

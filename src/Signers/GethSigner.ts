@@ -32,10 +32,10 @@ export default class GethSigner implements ISigner {
   async ethSign(msg: Buffer) : Promise<Buffer> {
     // https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_sign
     const rpcData = {
-      "jsonrpc": "2.0",
-      "method": "eth_sign",
-      "params":[this.address, ('0x'+msg.toString('hex'))],
-      "id": ++this.id
+      'jsonrpc': '2.0',
+      'method': 'eth_sign',
+      'params':[this.address, ('0x'+msg.toString('hex'))],
+      'id': ++this.id
     }
     const response = await request('POST', this.rpcApi, {
       headers: {

@@ -1,7 +1,7 @@
 import http from 'http'
 import https from 'https'
-import url from "url"
-import zlib from "zlib"
+import url from 'url'
+import zlib from 'zlib'
 import stream from 'stream'
 import FormData from 'form-data'
 
@@ -43,7 +43,7 @@ export function request(method : string, _url : string, opts : any = {}) : Promi
   const parsedURL = url.parse(_url);
   const {protocol, hostname, port, path} = parsedURL
 
-  let protocolHandler = protocol === "https:" ? https : http;
+  let protocolHandler = protocol === 'https:' ? https : http;
 
   let stream : any = undefined
   if (opts['Content-Type'] && opts['Content-Type'] === 'multipart/form-data') {
@@ -83,7 +83,7 @@ export function request(method : string, _url : string, opts : any = {}) : Promi
     else if (stream) {
       stream.pipe(req)
     }
-    req.on("error", e => {
+    req.on('error', e => {
       reject(e);
     });
     req.end();
@@ -103,17 +103,17 @@ export async function fetch(method : string, _url : string, opts : any = {}) : P
 export async function downloadStreamToBuffer(response : http.IncomingMessage, progress = (p : number) => {}) : Promise<Buffer>{
   return new Promise((resolve, reject) => {
     let headers = response.headers;
-    const total = parseInt(headers["content-length"] || '0', 0);
+    const total = parseInt(headers['content-length'] || '0', 0);
     let completed = 0;
     let writable = new WritableMemoryStream()
     response.pipe(writable)
-    response.on("data", (data : any) => {
+    response.on('data', (data : any) => {
       completed += data.length;
       progress(completed / total);
     });
-    //response.on("progress", progress);
-    response.on("error", reject);
-    // race-condition: response.on("end", () => resolve(writable.buffer))
+    //response.on('progress', progress);
+    response.on('error', reject);
+    // race-condition: response.on('end', () => resolve(writable.buffer))
     writable.on('finish', () => resolve(writable.buffer))
   });
 }
@@ -133,7 +133,7 @@ export async function download(_url : string, onProgress = (progress : number) =
     throw new Error('too many redirects: ' + redirectCount)
   }
   // test for and follow redirect (GitHub)
-  const result = await request("HEAD", _url);
+  const result = await request('HEAD', _url);
   let headers = result.headers;
   // console.log('headers of HEAD', _url, result.statusCode, headers)
   /**
@@ -184,7 +184,7 @@ export async function download(_url : string, onProgress = (progress : number) =
     return download(_url, onProgress, redirectCount++, options)
   }
   if (response.statusCode !== 200) {
-    throw new Error("Http(s) error: response returned status code "+response.statusCode)
+    throw new Error('Http(s) error: response returned status code '+response.statusCode)
   }
   // console.log('download', _url, redirectCount)
   const buf = await downloadStreamToBuffer(response, onProgress)

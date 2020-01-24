@@ -1,5 +1,5 @@
-import { isUrl } from "./util"
-import url from "url"
+import { isUrl } from './util'
+import url from 'url'
 
 export interface ParsedSpec {
   repo: string;

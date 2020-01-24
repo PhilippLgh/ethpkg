@@ -166,7 +166,7 @@ export const streamToBuffer = async (stream : Readable, size? : number) : Promis
       completed += data.length;
       // console.log('data ', completed, '/', size)
     })
-    stream.on("error", (error : any) => {
+    stream.on('error', (error : any) => {
       reject(error)
     });
     mStream.once('finish', () => {

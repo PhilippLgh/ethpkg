@@ -1,29 +1,29 @@
 export interface IEthJWK {
-  "kty": "EC",
-  "key_ops": [
-    "sign",
-    "verify"
+  'kty': 'EC',
+  'key_ops': [
+    'sign',
+    'verify'
   ],
-  // EC "extensions"
-  "crv": "P-256K", // non-standard curve
-  "x"?: string,
-  "y"?: string,
-  "d"?: string, // WARNING: PRIVATE KEY
+  // EC 'extensions'
+  'crv': 'P-256K', // non-standard curve
+  'x'?: string,
+  'y'?: string,
+  'd'?: string, // WARNING: PRIVATE KEY
   
   /* non-standard values begin here: */
 
   // restrictions to key_ops e.g. transactions, messages, packages
-  "key_scopes"?: {},
+  'key_scopes'?: {},
 
   // together with kid form a lookup address
-  "host"?: "", // e.g. 'keybase.io'
-  "endpoint"?: "",
+  'host'?: '', // e.g. 'keybase.io'
+  'endpoint'?: '',
 
   // user-assigned alias
-  "alias"?: "",
+  'alias'?: '',
 
   // ethereum blockchain specific
-  "eth": {
+  'eth': {
     address: string // hex-prefixed string
   }
 }

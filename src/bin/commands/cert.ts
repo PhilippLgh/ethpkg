@@ -51,8 +51,8 @@ export default class extends Command {
   ) {
 
     const cert_type = await getCertType()
-    name = await getInput('name', "What is the cert holder's name or username?")
-    const email = await getInput('email', "What is the cert holder's email?")
+    name = await getInput('name', 'What is the cert holder\'s name or username?')
+    const email = await getInput('email', 'What is the cert holder\'s email?')
     
     const subjectInfo = {
       name,
@@ -61,7 +61,7 @@ export default class extends Command {
     const options = {
       csrType: 2 // email
     }
-    
+    /*
     const { privateKey } = await getPrivateKey()
     const csr = await cert.csr(subjectInfo, privateKey, options)
     
@@ -69,5 +69,6 @@ export default class extends Command {
     const certData = JSON.stringify(csr, null, 2)
     fs.writeFileSync(outPath, certData)
     progress(`Certificate: \n\n${JSON.stringify(csr, null, 2)}\nwritten to ${outPath}`)
+    */
   }
 }
