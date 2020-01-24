@@ -54,7 +54,7 @@ export class MemCache<T extends ISerializable> extends ICache<T> {
 export class PersistentJsonCache<T extends ISerializable> extends ICache<T> {
   private dirPath: string
   ctor: Function
-  constructor(dirPath: string, ctor: (info: SerializationInfo) => Promise<T>) {
+  constructor(dirPath: string, ctor: (info: SerializationInfo) => Promise<T | undefined>) {
     super()
     this.dirPath = dirPath
     this.ctor = ctor
@@ -66,7 +66,6 @@ export class PersistentJsonCache<T extends ISerializable> extends ICache<T> {
   public async put(key: string, obj: T | undefined): Promise<string> {
     const name = this.keyToFileName(key)
     const fullPath = path.join(this.dirPath, name)
-  
     const data = obj === undefined ?  undefined : (await obj.getObjectData())
     const serializationInfo = {
       data,
@@ -82,7 +81,13 @@ export class PersistentJsonCache<T extends ISerializable> extends ICache<T> {
     const fullPath = path.join(this.dirPath, name)
     try {
       const result = await fs.readFile(fullPath)
-      const data = JSON.parse(result.toString())
+      // json.parse does not handle nested buffers: see Cache.test
+      const data = JSON.parse(result.toString(), (key, value) => {
+        if (value.type && value.type === 'Buffer') {
+          return Buffer.from(value.data)
+        }
+        return value
+      })
       return this.ctor(data)
     } catch (error) {
       throw new Error('de-serialization error')

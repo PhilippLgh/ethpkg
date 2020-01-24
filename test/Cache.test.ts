@@ -4,6 +4,9 @@ import { assert } from 'chai'
 import { PersistentJsonCache, withCache, MemCache } from '../src/PackageManager/Cache'
 import { ISerializable, SerializationInfo } from '../src/PackageManager/ISerializable'
 import { deleteFolderRecursive } from './TestUtils'
+import TarPackage from '../src/PackageManager/TarPackage'
+import { IPackage } from '../src'
+import { toIFile } from '../src/PackageSigner/SignerUtils'
 
 class Dummy implements ISerializable {
   public data: string;
@@ -50,7 +53,6 @@ describe('Cache', () => {
     })
   })
 
-
   describe('PersistentJsonCache', () => {
     before('setting up temp cache dirs', () => {
       if (!fs.existsSync(CACHE_PATH)) {
@@ -59,14 +61,57 @@ describe('Cache', () => {
       const files = fs.readdirSync(CACHE_PATH)
       assert.isEmpty(files, 'test cache should not contain any items')
     })
+    // preconditions
+    it.skip('WARNING: json.parse does NOT handle buffers', async () => {
+      const data = 'foo'
+      const buf = Buffer.from(data)
+      const serializeMe = {
+        buffer: buf,
+        name: 'bar'
+      }
+      const serialized = JSON.stringify(serializeMe)
+      const recoveredObj = JSON.parse(serialized)
+      assert.notEqual(serializeMe.buffer.toString(), recoveredObj.buffer.toString())
+    })
+    it.skip('json.parse accepts a reviver function to recover nested buffers', async () => {
+      const data = 'foo'
+      const buf = Buffer.from(data)
+      const serializeMe = {
+        buffer: buf,
+        name: 'bar'
+      }
+      const serialized = JSON.stringify(serializeMe)
+      const recoveredObj = JSON.parse(serialized, (key, value) => {
+        if (value.type && value.type === 'Buffer') {
+          return Buffer.from(value.data)
+        }
+        return value
+      })
+      assert.equal(serializeMe.buffer.toString(), recoveredObj.buffer.toString())
+    })
+    // tests:
     it('persists and restores objects that implement the ISerializable interface', async () => {
       const KEY = 'OBJ_KEY'
       const DATA = 'foo bar'
       const cache = new PersistentJsonCache<Dummy>(CACHE_PATH, Dummy.getConstructor())
-
       await cache.put(KEY, new Dummy(DATA))
       const obj : Dummy = await cache.get(KEY)
       assert.equal(obj.data, DATA)
+    })
+    it('persists and restores IPackage objects', async () => {
+      const pkg: IPackage = await TarPackage.create('NewPackage.tar')
+      const relPath = './hello.txt'
+      await pkg.addEntry(relPath, toIFile(relPath, 'world'))
+      const ctor = (info: SerializationInfo) => {
+        const { ctor, data } = info
+        const { filePath, buffer } = data
+        return new TarPackage(filePath).loadBuffer(buffer)
+      }
+      const cache = new PersistentJsonCache<IPackage>(CACHE_PATH, ctor)
+      await cache.put('pkg', pkg)
+      const restored = await cache.get('pkg') as IPackage
+      const entry = await restored.getContent(relPath)
+      assert.equal(entry.toString(), 'world')
     })
     after('remove temp cache dirs', () => {
       // node 12: fs.rmdir(CACHE_PATH, { recursive: true });

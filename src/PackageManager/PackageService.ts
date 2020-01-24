@@ -24,7 +24,7 @@ export const getPackageFromBuffer = async (pkgBuf: Buffer, pkgFileName?: string)
     throw new Error('bad input buffer')
   }
   if (bufferType.mime === 'application/gzip') {
-    const tar = new TarPackage()
+    const tar = new TarPackage(pkgFileName || 'package-from-buffer.tar')
     await tar.loadBuffer(pkgBuf)
     return tar
   }

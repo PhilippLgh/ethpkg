@@ -12,16 +12,16 @@ export default class TarPackage implements IPackage {
 
   fileName: string = '<unknown>';  
   metadata?: IRelease | undefined;
-  packagePath: string;
+  filePath: string;
   isGzipped: boolean;
   tarbuf?: Buffer;
 
-  constructor(packagePath? : string, compressed = true) {
-    this.packagePath = packagePath || ''
-    if (this.packagePath) {
-      this.fileName = path.basename(this.packagePath)
+  constructor(packagePathOrName: string, compressed = true) {
+    this.filePath = packagePathOrName || ''
+    if (this.filePath) {
+      this.fileName = path.basename(this.filePath)
     }
-    this.isGzipped = this.packagePath ? ['.tgz', '.tar.gz'].includes(getExtension(this.packagePath)) : compressed
+    this.isGzipped = this.filePath ? ['.tgz', '.tar.gz'].includes(getExtension(this.filePath)) : compressed
   }
 
   init() { /* no op */}
@@ -34,7 +34,7 @@ export default class TarPackage implements IPackage {
     if(this.tarbuf) {
       return bufferToStream(this.tarbuf)
     } else {
-      return fs.createReadStream(this.packagePath, {highWaterMark: Math.pow(2,16)})
+      return fs.createReadStream(this.filePath, {highWaterMark: Math.pow(2,16)})
     }
   }
 
@@ -177,8 +177,8 @@ export default class TarPackage implements IPackage {
   }
   async toBuffer(): Promise<Buffer> {
     if (!this.tarbuf) {
-      if (this.packagePath) {
-        this.tarbuf = fs.readFileSync(this.packagePath)
+      if (this.filePath) {
+        this.tarbuf = fs.readFileSync(this.filePath)
       } else {
         throw new Error('Could not create package buffer')
       }
@@ -187,7 +187,10 @@ export default class TarPackage implements IPackage {
   }
   // from ISerializable
   async getObjectData(): Promise<any> {
-    return this.toBuffer()
+    return {
+      buffer: await this.toBuffer(),
+      filePath: this.filePath
+    }
   }
   async writePackage(outPath: string): Promise<string> {
     if (this.isGzipped && (!(outPath.endsWith('.tgz') || outPath.endsWith('.tar.gz')))){
@@ -209,41 +212,41 @@ export default class TarPackage implements IPackage {
     const entries = await this.getEntries()
     console.log(entries.map(e => e.relativePath).join('\n'))
   }
-  static async create(dirPath : string) : Promise<TarPackage> {
-
-    const writeFileToPackStream = (filePath: string) => {
-      return new Promise(async (resolve, reject) => {
-        const content = fs.readFileSync(filePath)
-        const relativePath = path.relative(dirPath, filePath)
-        let entry = pack.entry({ name: relativePath }, content)
-        entry.on('finish', () => {
-          resolve()
+  static async create(dirPathOrName : string) : Promise<TarPackage> {
+    // pack is a streams2 stream
+    const pack = tarStream.pack()
+    const dirPath = path.basename(dirPathOrName) === dirPathOrName ? undefined : dirPathOrName
+    const packageName = dirPath ? path.basename(dirPathOrName) : dirPathOrName
+    if (dirPath) {
+      const writeFileToPackStream = (filePath: string) => {
+        return new Promise(async (resolve, reject) => {
+          const content = fs.readFileSync(filePath)
+          const relativePath = path.relative(dirPath, filePath)
+          let entry = pack.entry({ name: relativePath }, content)
+          entry.on('finish', () => {
+            resolve()
+          })
+          entry.end()
         })
-        entry.end()
-      })
+      }
+      const fileNames = fs.readdirSync(dirPath)
+      for (const fileName of fileNames) {
+         const fullPath = path.join(dirPath, fileName)
+         if (!isDirSync(fullPath)){
+           await writeFileToPackStream(fullPath)
+           } else {
+             // FIXME skip recursive call
+         }
+       }
     }
-   // pack is a streams2 stream
-   const pack = tarStream.pack()
-
-   const fileNames = fs.readdirSync(dirPath)
-   for (const fileName of fileNames) {
-     const fullPath = path.join(dirPath, fileName)
-     if (!isDirSync(fullPath)){
-       await writeFileToPackStream(fullPath)
-      } else {
-        // FIXME skip recursive call
-     }
-   }
-
-   pack.finalize()
-   const packageBuffer = await streamToBuffer(pack)
-
-   const t = new TarPackage(undefined, false)
-   await t.loadBuffer(packageBuffer)
-   return t
+    pack.finalize()
+    const packageBuffer = await streamToBuffer(pack)
+    const t = new TarPackage(packageName, false)
+    await t.loadBuffer(packageBuffer)
+    return t
   }
   static async from(packagePath: string) : Promise<IPackage> {
     const buf = fs.readFileSync(packagePath)
-    return new TarPackage().loadBuffer(buf)
+    return new TarPackage(path.basename(packagePath)).loadBuffer(buf)
   }
 }
