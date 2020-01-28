@@ -2,8 +2,9 @@ import path from 'path'
 import fs from 'fs'
 import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
 import JSZip from 'jszip'
-import { extractPackage } from '../util'
+import { extractPackage, isDirSync, localFileToIFile } from '../util'
 import { IRelease } from '../Repositories/IRepository'
+import { toIFile } from '../utils/PackageUtils'
 
 export default class ZipPackage implements IPackage {
 
@@ -127,13 +128,34 @@ export default class ZipPackage implements IPackage {
     return filePath
   }
   static async create(dirPathOrName : string) : Promise<ZipPackage> {
-    // FIXME zip create not working for directories
     const dirPath = path.basename(dirPathOrName) === dirPathOrName ? undefined : dirPathOrName
     const packageName = dirPath ? path.basename(dirPathOrName) : dirPathOrName
-    if (dirPath) {
-      throw new Error('creating zip from directories is not implemented')
+
+    const pkg = new ZipPackage(packageName).init()
+
+    const writeFileToPackage = async (fullPath: string) => {
+      const relPath = path.relative(<string>dirPath, fullPath)
+      await pkg.addEntry(relPath, localFileToIFile(fullPath))
     }
-    return new ZipPackage(packageName).init()
+
+    const writeDirToPackage = async (dirPath: string) => {
+      // console.log('write dir', dirPath)
+      const fileNames = fs.readdirSync(dirPath)
+      for (const fileName of fileNames) {
+        const fullPath = path.join(dirPath, fileName)
+        if (isDirSync(fullPath)){
+          await writeDirToPackage(fullPath)
+        } else {
+          await writeFileToPackage(fullPath)
+        }
+      }
+    }
+
+    if (dirPath) {
+      await writeDirToPackage(dirPath)
+    }
+
+    return pkg
   }
   static async from(packagePath: string) : Promise<IPackage> {
     const buf = fs.readFileSync(packagePath)

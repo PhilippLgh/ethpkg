@@ -5,12 +5,13 @@ import { assert } from 'chai'
 import { IPackage } from '../../src'
 import { IFile } from '../../src/PackageManager/IPackage'
 import { localFileToIFile } from '../../src/util'
-import { toIFile } from '../../src/PackageSigner/SignerUtils'
+import { toIFile } from '../../src/utils/PackageUtils'
 
 describe('ZipPackage (IPackage)', () => {
 
   const FOO_PACKAGE = path.join(__dirname, '..', 'fixtures', 'foo.zip')
   const FOO_DIR= path.join(__dirname, '..', 'fixtures', 'foo')
+  const FOO_NESTED_DIR= path.join(__dirname, '..', 'fixtures', 'foo_nested')
   const BAZ_TXT = path.join(__dirname, '..', 'fixtures', 'baz.txt')
 
   describe('loadBuffer(buf: Buffer): Promise<void> ', async () => {
@@ -75,12 +76,18 @@ describe('ZipPackage (IPackage)', () => {
       const entries = await pkg.getEntries()
       assert.equal(entries.length, 0)
     })
-    it.skip('create a zip archive from a directory', async () => {
-      /*
+    it('creates a zip archive from a directory', async () => {
       const pkg = await ZipPackage.create(FOO_DIR)
       const content = await pkg.getContent('foo.txt')
       assert.equal(content.toString(), 'foo')
-      */
+    })
+    it('creates a zip archive from a directory with nested subdirectories', async () => {
+      const pkg = await ZipPackage.create(FOO_NESTED_DIR)
+      assert.isDefined(pkg)
+      const entries = await pkg.getEntries()
+      assert.equal(entries.length, 4)
+      const baz = await pkg.getContent('baz/baz.txt')
+      assert.equal(baz.toString(), 'baz')
     })
   })
 

@@ -229,15 +229,20 @@ export default class TarPackage implements IPackage {
           entry.end()
         })
       }
-      const fileNames = fs.readdirSync(dirPath)
-      for (const fileName of fileNames) {
-         const fullPath = path.join(dirPath, fileName)
-         if (!isDirSync(fullPath)){
-           await writeFileToPackStream(fullPath)
-           } else {
-             // FIXME skip recursive call
-         }
-       }
+      // FIXME might exceed callstack - implement upper limits and remove recursion
+      const writeDirToPackStream = async (dirPath: string) => {
+        // console.log('write dir', dirPath)
+        const fileNames = fs.readdirSync(dirPath)
+        for (const fileName of fileNames) {
+          const fullPath = path.join(dirPath, fileName)
+          if (isDirSync(fullPath)){
+            await writeDirToPackStream(fullPath)
+          } else {
+            await writeFileToPackStream(fullPath)
+          }
+        }
+      }
+      await writeDirToPackStream(dirPath)
     }
     pack.finalize()
     const packageBuffer = await streamToBuffer(pack)

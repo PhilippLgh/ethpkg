@@ -3,7 +3,7 @@ import path from 'path'
 import TarPackage from '../../src/PackageManager/TarPackage'
 import { assert } from 'chai'
 import { localFileToIFile } from '../../src/util'
-import { toIFile } from '../../src/PackageSigner/SignerUtils'
+import { toIFile } from '../../src/utils/PackageUtils'
 
 describe('TarPackage (IPackage)', () => {
 
@@ -11,6 +11,7 @@ describe('TarPackage (IPackage)', () => {
   const FOO_PACKAGE_DECOMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar')
   const FOO_PACKAGE_WRITE_COMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo_write_test.tar.gz')
   const FOO_DIR= path.join(__dirname, '..', 'fixtures', 'foo')
+  const FOO_NESTED_DIR= path.join(__dirname, '..', 'fixtures', 'foo_nested')
   const BAZ_TXT = path.join(__dirname, '..', 'fixtures', 'baz.txt')
 
   describe('loadBuffer(buf: Buffer): Promise<void> ', async () => {
@@ -105,8 +106,14 @@ describe('TarPackage (IPackage)', () => {
       const content = await pkg.getContent('foo.txt')
       assert.equal(content.toString(), 'foo')
     })
-    it.skip('creates a tar archive from a directory with nested subdirectories', async () => {
-      // TODO needs implementation
+    it('creates a tar archive from a directory with nested subdirectories', async () => {
+      const pkg = await TarPackage.create(FOO_NESTED_DIR)
+      assert.isDefined(pkg)
+      const entries = await pkg.getEntries()
+      // FIXME inconsistency with zip: it should create a dir entry and have 4 entries
+      assert.equal(entries.length, 3)
+      const baz = await pkg.getContent('baz/baz.txt')
+      assert.equal(baz.toString(), 'baz')
     })
   })
 
