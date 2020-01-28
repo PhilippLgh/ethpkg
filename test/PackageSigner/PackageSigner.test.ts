@@ -6,11 +6,12 @@ import { IPackage } from '../../src'
 import * as SignerUtils from '../../src/PackageSigner/SignerUtils'
 import TarPackage from '../../src/PackageManager/TarPackage'
 import { getPackage } from '../../src/PackageManager/PackageService'
+import { writeEntry, toIFile } from '../../src/utils/PackageUtils'
 
-const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', "hex")
+const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', 'hex')
 const ETH_ADDRESS_1 = '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7'
 
-const PRIVATE_KEY_2 = Buffer.from('CCCFA716F4F3242A2D7917DA45B7C07EB306402F0DDAA176915A8475D45CF82A', "hex")
+const PRIVATE_KEY_2 = Buffer.from('CCCFA716F4F3242A2D7917DA45B7C07EB306402F0DDAA176915A8475D45CF82A', 'hex')
 const ETH_ADDRESS_2 = '0x5C69De5c5bf9D54d7dDCA8Ffbba0d3E013f7E90A'
 
 const WRONG_ETH_ADDRESS = '0xF863aC227B0a0BCA88Cb2Ff45d91632626000000'
@@ -25,7 +26,7 @@ const MULTISIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_multisig
 
 const TEST_ENS = 'foo.test.ens'
 
-describe("PackageSigner", function() {
+describe('PackageSigner', function() {
 
   describe('fixture creation:', () => {
     // please note that some tests might fail after 180 days after creation
@@ -44,7 +45,7 @@ describe("PackageSigner", function() {
     it.skip('creates a package with one valid and one invalid signature', async () => {
       let pkg : IPackage | undefined = await TarPackage.create(FOO_DIR)
       pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_1)
-      const newEntry = await SignerUtils.toIFile('./baz.txt', 'baz')
+      const newEntry = await toIFile('./baz.txt', 'baz')
       await pkg.addEntry('./baz.txt', newEntry)
       pkg = await PackageSigner.sign(pkg, PRIVATE_KEY_2)
       await pkg.writePackage(MULTISIGNED_INVALID_FOO_TAR)
@@ -57,7 +58,7 @@ describe("PackageSigner", function() {
       const sigObj = JSON.parse(sig.toString())
       // modify / corrupt signature
       sigObj.signature = 'BAD' + sigObj.signature.slice(3)
-      await SignerUtils.writeEntry(pkg, '_META_/_sig_0x5c69de5c5bf9d54d7ddca8ffbba0d3e013f7e90a.json', JSON.stringify(sigObj))
+      await writeEntry(pkg, '_META_/_sig_0x5c69de5c5bf9d54d7ddca8ffbba0d3e013f7e90a.json', JSON.stringify(sigObj))
       await pkg.writePackage(MULTISIGNED_CORRUPTED_FOO_TAR)
     })
     it.skip('creates a package with two signatures', async () => {
@@ -171,8 +172,8 @@ describe("PackageSigner", function() {
       // assert that a new signature by ETH_ADDRESS_2 was added:
       const verificationInfoAfter = await PackageSigner.verify(<IPackage>pkgSigned)
       assert.equal(verificationInfoAfter.signers.length, 2)
-      assert.isTrue(await SignerUtils.containsSignature(verificationInfoBefore.signers, ETH_ADDRESS_1), "after signing it with key2 it should contain key1's signatures")
-      assert.isTrue(await SignerUtils.containsSignature(verificationInfoAfter.signers, ETH_ADDRESS_2), "after signing it with key2 it should contain key2's signatures")
+      assert.isTrue(await SignerUtils.containsSignature(verificationInfoBefore.signers, ETH_ADDRESS_1), 'after signing it with key2 it should contain key1\'s signatures')
+      assert.isTrue(await SignerUtils.containsSignature(verificationInfoAfter.signers, ETH_ADDRESS_2), 'after signing it with key2 it should contain key2\'s signatures')
     })
     it('overrides the signature of a signed package when same key is used and extends expiration field', async () => {
       const buf = fs.readFileSync(SIGNED_FOO_TAR)
@@ -234,7 +235,7 @@ describe("PackageSigner", function() {
       assert.isFalse(verificationResult.isTrusted, 'without identity info / cert packages cannot be trusted')
     })
     */
-    it.skip("returns isTrusted=true ONLY if the package is signed, the signature matches the archive's checksums, is not expired and the public key is explicitly trusted or bound to a trusted identity via certificate, ENS or similar means", async () => {
+    it.skip('returns isTrusted=true ONLY if the package is signed, the signature matches the archive\'s checksums, is not expired and the public key is explicitly trusted or bound to a trusted identity via certificate, ENS or similar means', async () => {
 
     })
 

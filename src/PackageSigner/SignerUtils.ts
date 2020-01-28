@@ -251,23 +251,6 @@ export const getSignature = async (pkg: IPackage, publicKeyInfo: PublicKeyInfo) 
   return jws
 }
 
-export const toIFile = (relPath: string, content: string | Buffer) : IFile => {
-  const contentBuf = (typeof content === 'string') ? Buffer.from(content) : content
-  const name = path.basename(relPath)
-  return {
-    name,
-    isDir: false,
-    size: contentBuf.length,
-    readContent: () => Promise.resolve(contentBuf)
-  }
-}
-
-// TODO consider moving to package utils
-export const writeEntry = async (pkg: IPackage, relPath: string, content: string) => {
-  const entry = toIFile(relPath, content)
-  await pkg.addEntry(relPath, entry)
-}
-
 export const containsSignature = async (signers: Array<ISignerInfo>, publicKeyInfo: PublicKeyInfo) : Promise<boolean> => {
   if (typeof publicKeyInfo === 'string' && publicKeyInfo.endsWith('.ens')) {
     const publicKeyResolved = await resolveName(publicKeyInfo)

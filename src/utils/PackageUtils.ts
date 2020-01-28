@@ -1,6 +1,8 @@
 import path from 'path'
 import semver from 'semver'
 import { extractChannelFromVersionString } from './FilenameHeuristics'
+import { IPackage } from '..'
+import { IFile } from '../PackageManager/IPackage'
 
 const REALEASE_CHANNEL : {[index:string] : number} = {
   dev: -1,
@@ -76,4 +78,21 @@ export const normalizeRelativePath = (s: string) : string => {
     return `./${s}`
   }
   return s
+}
+
+export const toIFile = (relPath: string, content: string | Buffer) : IFile => {
+  const contentBuf = (typeof content === 'string') ? Buffer.from(content) : content
+  const name = path.basename(relPath)
+  return {
+    name,
+    isDir: false,
+    size: contentBuf.length,
+    readContent: () => Promise.resolve(contentBuf)
+  }
+}
+
+// TODO consider moving to package utils
+export const writeEntry = async (pkg: IPackage, relPath: string, content: string) => {
+  const entry = toIFile(relPath, content)
+  await pkg.addEntry(relPath, entry)
 }

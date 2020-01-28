@@ -6,12 +6,13 @@ import * as SignerUtils from '../../src/PackageSigner/SignerUtils'
 import { getPackage } from '../../src/PackageManager/PackageService'
 import { sign } from '../../src/PackageSigner'
 import { IVerificationResult, ISignerInfo } from '../../src/IVerificationResult'
+import { toIFile } from '../../src/utils/PackageUtils'
 
 const UNSIGNED_FOO_TAR_DECOMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar')
 const UNSIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo.tar.gz')
 const SIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_signed.tar.gz')
 
-const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', "hex")
+const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', 'hex')
 const ETH_ADDRESS_1 = '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7'
 
 // foo_signed.tar.gz contains two file and these are their digests
@@ -36,7 +37,7 @@ const SIGNED_FOO_DIGESTS =  {
 }
     */
 
-describe("SignerUtils", function() {
+describe('SignerUtils', function() {
 
   describe('calculateDigests = async (pkg: IPackage, alg = "sha512") : Promise<Digests>', function() {
     it('calculates the sha5125 checksums / digests of all files within a compressed .tar.gz package', async () => {
@@ -96,18 +97,18 @@ describe("SignerUtils", function() {
     it('is robust against different relative path formats', async () => {
       const d1 = {
         sha512: {
-          './bar.txt': "d82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181"
+          './bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
         }
       }
       const d2 = {
         sha512: {
-          "bar.txt": "d82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181"
+          'bar.txt': 'd82c4eb5261cb9c8aa9855edd67d1bd10482f41529858d925094d173fa662aa91ff39bc5b188615273484021dfb16fd8284cf684ccf0fc795be3aa2fc1e6c181'
         }
       }
       const result = await SignerUtils.compareDigests(d1, d2)
       assert.isTrue(result)
     })
-    it("throws an IntegrityViolationError if the files/keys don't match", async () => {
+    it('throws an IntegrityViolationError if the files/keys don\'t match', async () => {
       const digests1 = {
         sha512: {
           './foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
@@ -124,7 +125,7 @@ describe("SignerUtils", function() {
         SignerUtils.compareDigests(digests1, digests2)
       })
     })
-    it("throws an IntegrityViolationError if the checksums/values don't match", async () => {
+    it('throws an IntegrityViolationError if the checksums/values don\'t match', async () => {
       const digests1 = {
         sha512: {
           './foo.txt': 'f7fbba6e0636f890e56fbbf3283e524c6fa3204ae298382d624741d0dc6638326e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7',
@@ -242,7 +243,7 @@ describe("SignerUtils", function() {
         const pkg = await getPackage(SIGNED_FOO_TAR)
         const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
         // package modification: adding new files invalidates included signature
-        const newEntry = await SignerUtils.toIFile('new/entry.txt', 'hello world')
+        const newEntry = await toIFile('new/entry.txt', 'hello world')
         await pkg.addEntry('new/entry.txt', newEntry)
         const digests = await SignerUtils.calculateDigests(pkg)
         const result = await SignerUtils.verifySignature(<IPackageEntry>signatureEntry, digests)
@@ -254,7 +255,7 @@ describe("SignerUtils", function() {
         // package modification: overwriting files invalidates included signature
         let c = await pkg.getContent('./foo.txt')
         assert.equal(c.toString(), 'foo')
-        const newEntry = await SignerUtils.toIFile('./foo.txt', 'hello world')
+        const newEntry = await toIFile('./foo.txt', 'hello world')
         await pkg.addEntry('./foo.txt', newEntry)
         c = await pkg.getContent('./foo.txt')
         assert.equal(c.toString(), 'hello world')
@@ -269,7 +270,7 @@ describe("SignerUtils", function() {
         const pkg = await getPackage(SIGNED_FOO_TAR)
         const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
         // package modification: adding new files invalidates included signature
-        const newEntry = await SignerUtils.toIFile('new/entry.txt', 'hello world')
+        const newEntry = await toIFile('new/entry.txt', 'hello world')
         await pkg.addEntry('new/entry.txt', newEntry)
         const digests = await SignerUtils.calculateDigests(pkg)
         const result = await SignerUtils.verifySignature(<IPackageEntry>signatureEntry, digests)
@@ -306,7 +307,7 @@ describe("SignerUtils", function() {
         assert.isTrue(FILEPATH.includes(signer.address))
       })
     })
-    it.skip("checks the exp field of the token's payload", () => {
+    it.skip('checks the exp field of the token\'s payload', () => {
 
     })
   })

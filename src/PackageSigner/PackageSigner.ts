@@ -8,6 +8,7 @@ import { isKeyfile, getPrivateKey } from './KeyStoreUtils'
 import { getPackage, PackageSpecifier } from '../PackageManager/PackageService'
 import { createHeader, ALGORITHMS, IFlattenedJwsSerialization } from '../jws'
 import { getSigner, PrivateKeyInfo, PublicKeyInfo } from './KeyService'
+import { toIFile } from '../utils/PackageUtils'
 
 const VERIFICATION_ERRORS : any = {
   UNSIGNED: 0,
@@ -36,14 +37,14 @@ const verificationError = (errorCode : number, val = '') : IVerificationResult =
 
 const writeChecksumsJson = async (pkg: IPackage, payload: any) => {
   const checksumsPath = await SignerUtils.checksumsPath(pkg)
-  const checksumsFile = SignerUtils.toIFile(checksumsPath, JSON.stringify(payload.data, null, 2))
+  const checksumsFile = toIFile(checksumsPath, JSON.stringify(payload.data, null, 2))
   await pkg.addEntry(checksumsPath, checksumsFile);
 }
 
 const writeSignatureEntry = async (pkg: IPackage, jws: IFlattenedJwsSerialization, address: string) => {
   // the signature file name is '_sig' || eth-address(publicKey) 
   const signaturePath = await SignerUtils.signaturePath(address, pkg)
-  const flattenedJsonSerializationFile = SignerUtils.toIFile(signaturePath, JSON.stringify(jws, null, 2))
+  const flattenedJsonSerializationFile = toIFile(signaturePath, JSON.stringify(jws, null, 2))
   await pkg.addEntry(signaturePath, flattenedJsonSerializationFile)
 }
 

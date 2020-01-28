@@ -6,8 +6,8 @@ import { ISerializable, SerializationInfo } from '../src/PackageManager/ISeriali
 import { deleteFolderRecursive } from './TestUtils'
 import TarPackage from '../src/PackageManager/TarPackage'
 import { IPackage } from '../src'
-import { toIFile } from '../src/PackageSigner/SignerUtils'
 import ZipPackage from '../src/PackageManager/ZipPackage'
+import { toIFile } from '../src/utils/PackageUtils'
 
 class Dummy implements ISerializable {
   public data: string;
