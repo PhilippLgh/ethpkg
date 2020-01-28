@@ -1,12 +1,12 @@
-import { IRepository, IRelease, FetchOptions } from "../Repositories/IRepository"
-import getRepository from "../Repositories"
-import Mock from "../Repositories/test/Mock"
-import { compareVersions, multiSort, compareDate } from "../utils/PackageUtils"
-import { download } from "../Downloader"
-import { StateListener, PROCESS_STATES } from "../IStateListener"
+import { IRepository, IRelease, FetchOptions } from '../Repositories/IRepository'
+import Mock from '../Repositories/test/Mock'
+import { compareVersions, multiSort, compareDate } from '../utils/PackageUtils'
+import { download } from '../Downloader'
+import { StateListener, PROCESS_STATES } from '../IStateListener'
 import semver from 'semver'
-import { hasPackageExtension } from "../utils/FilenameUtils"
-import Parser from "../SpecParser"
+import { hasPackageExtension } from '../utils/FilenameUtils'
+import Parser from '../SpecParser'
+import RepositoryManager from '../Repositories/RepositoryManager'
 
 // see https://github.com/npm/npm-package-arg
 type PackageSpecifier = string
@@ -59,7 +59,13 @@ const log = createLogger(LOGLEVEL.NORMAL)
 
 export default class Fetcher {
 
-  name: string = "Fetcher"
+  name: string = 'Fetcher'
+
+  repoManager: RepositoryManager
+
+  constructor(repoManager?: RepositoryManager) {
+    this.repoManager = repoManager || new RepositoryManager()
+  }
 
   /**
    * 
@@ -89,7 +95,7 @@ export default class Fetcher {
   
       const { repo, version } = parsed
       versionSpecifier = version
-      repository = getRepository(repo, parsed)
+      repository = await this.repoManager.getRepository(repo, parsed)
   
     }
 

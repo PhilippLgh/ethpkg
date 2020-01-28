@@ -230,3 +230,4 @@ export const localFileToIFile = (filePath: string) : IFile => {
   return file
 }
 
+export type ConstructorOf<T> = new (...args:any[]) => T

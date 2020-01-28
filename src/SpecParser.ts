@@ -8,9 +8,6 @@ export interface ParsedSpec {
   version?: string
 }
 
-// FIXME receive from repositories/index
-const SUPPORTED_REPOS = ['azure', 'npm', 'bintray', 'ipfs', 'github']
-
 export default class Parser {
   /**
    * TODO add more unit testing for parser
@@ -41,8 +38,7 @@ export default class Parser {
       }
     }
     const parts = spec.split(':')
-    // TODO const repoNames = Object.keys(repos)
-    if (parts.length > 0 && SUPPORTED_REPOS.includes(parts[0])) {
+    if (parts.length > 0) {
       const repo = parts[0]
       const package_parts = parts[1].split('/')
       const owner = package_parts.length > 1 ? package_parts.shift() : undefined
