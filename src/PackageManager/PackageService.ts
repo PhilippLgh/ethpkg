@@ -1,13 +1,16 @@
 import fs, { lstatSync } from 'fs'
 import path from 'path'
-import { IPackage } from '..'
+import { IPackage } from '../PackageManager/IPackage'
 import ZipPackage from './ZipPackage'
 import TarPackage from './TarPackage'
 import fileType from 'file-type'
 import { instanceofIPackage } from './IPackage'
+import { IRelease } from '../Repositories/IRepository'
+import { hasPackageExtension } from '../utils/FilenameUtils'
+import { readFileToBuffer } from '../utils/BrowserUtils'
 
 // TODO redundant impl. move to utils
-const isFile = async (pkgPath: string) => {
+const isFilePath = (pkgPath: string) => {
   try {
     return lstatSync(pkgPath).isFile()
   } catch (error) {
@@ -15,12 +18,14 @@ const isFile = async (pkgPath: string) => {
   }
 }
 
-export type PackageSpecifier = IPackage | Buffer | string
+export type PackageData = IPackage | Buffer | File | string /* filename */
+export function instanceOfPackageData(obj: any): obj is PackageData {
+  return instanceofIPackage(obj) || Buffer.isBuffer(obj) || (typeof obj === 'string' && isFilePath(obj)) || (File && obj instanceof File)
+}
 
-export const getPackageFromBuffer = async (pkgBuf: Buffer, pkgFileName?: string): Promise<IPackage> => {
+const getPackageFromBuffer = async (pkgBuf: Buffer, pkgFileName?: string): Promise<IPackage> => {
   const bufferType = fileType(pkgBuf)
   if (!bufferType) {
-    console.log('bad buffer', pkgBuf)
     throw new Error('bad input buffer')
   }
   if (bufferType.mime === 'application/gzip') {
@@ -60,13 +65,13 @@ export const getPackageFromFile = async (pkgSrc: string): Promise<IPackage> => {
   }
 }
 
-export const getPackage = async (pkgSpec : PackageSpecifier) => {
-  // TODO need implementation
+export const getPackage = async (pkgSpec : PackageData, release?: IRelease) => {
   if (instanceofIPackage(pkgSpec)){
     return pkgSpec
   } 
   else if(Buffer.isBuffer(pkgSpec)) {
-    const pkg = await getPackageFromBuffer(pkgSpec)
+    const pkg = await getPackageFromBuffer(pkgSpec, release ? release.fileName : undefined)
+    pkg.metadata = release
     if (!pkg) {
       throw new Error('Package buffer could not be loaded')
     }
@@ -74,11 +79,16 @@ export const getPackage = async (pkgSpec : PackageSpecifier) => {
   } 
   else if(typeof pkgSpec === 'string') {
     if (!fs.existsSync(pkgSpec)) {
-      throw new Error('Package not found: '+pkgSpec)
+      throw new Error('Package file not found at path: '+pkgSpec)
     }
-    if (await isFile(pkgSpec)) {
+    if (await isFilePath(pkgSpec)) {
       return getPackageFromFile(pkgSpec)
     }
-  } 
+  }     
+  // browser support:
+  else if (pkgSpec instanceof File && hasPackageExtension(pkgSpec.name)) {
+    const fileBuffer = await readFileToBuffer(pkgSpec)
+    return getPackageFromBuffer(fileBuffer)
+  }
   throw new Error('Package could not be loaded:'+JSON.stringify(pkgSpec))
 }
