@@ -1,7 +1,7 @@
 import path from 'path'
 import semver from 'semver'
 import { extractChannelFromVersionString } from './FilenameHeuristics'
-import { IPackage } from '..'
+import { IPackage } from '../PackageManager/IPackage'
 import { IFile } from '../PackageManager/IPackage'
 
 const REALEASE_CHANNEL : {[index:string] : number} = {

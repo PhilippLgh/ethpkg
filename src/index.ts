@@ -1,18 +1,6 @@
-import fs from 'fs'
-import { IPackage, IPackageEntry } from './PackageManager/IPackage'
-
 import PackageManager from './PackageManager/PackageManager'
 export { PackageManager }
+
 export default new PackageManager()
 
-import * as util from './util'
-export {util}
-
-import { PROCESS_STATES } from './IStateListener'
-export { PROCESS_STATES }
-
-export {default as pkgsign} from './PackageSigner'
-export {default as cert} from './cert'
-
-
-export { IPackage as IPackage, IPackageEntry as IPackageEntry } from './PackageManager/IPackage'
+export * from './PackageManager/IPackage'

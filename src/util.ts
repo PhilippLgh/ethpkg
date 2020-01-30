@@ -1,12 +1,12 @@
 import fs, { WriteStream } from 'fs'
 import path from 'path'
 import stream, { Readable, Writable } from 'stream'
-import ZipPackage from './PackageManager/ZipPackage';
-import { IPackage } from '.';
+import ZipPackage from './PackageManager/ZipPackage'
+import { IPackage } from './PackageManager/IPackage'
 // @ts-ignore
 import { parseString } from 'xml2js'
-import { ProgressListener, IFile } from './PackageManager/IPackage';
-import { getPackage } from './PackageManager/PackageService';
+import { ProgressListener, IFile } from './PackageManager/IPackage'
+import { getPackage } from './PackageManager/PackageService'
 
 // const keythereum = require('keythereum')
 
@@ -231,3 +231,17 @@ export const localFileToIFile = (filePath: string) : IFile => {
 }
 
 export type ConstructorOf<T> = new (...args:any[]) => T
+
+export const deleteFolderRecursive = function(dirPath: string) {
+  if (fs.existsSync(dirPath)) {
+    fs.readdirSync(dirPath).forEach((file: string) => {
+      const curPath = path.join(dirPath, file);
+      if (fs.lstatSync(curPath).isDirectory()) { // recurse
+        deleteFolderRecursive(curPath);
+      } else { // delete file
+        fs.unlinkSync(curPath);
+      }
+    });
+    fs.rmdirSync(dirPath);
+  }
+}

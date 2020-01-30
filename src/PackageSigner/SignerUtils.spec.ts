@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { assert } from 'chai'
-import { IPackage, IPackageEntry } from '..'
+import { IPackage, IPackageEntry } from '../PackageManager/IPackage'
 import * as SignerUtils from './SignerUtils'
 import { getPackage } from '../PackageManager/PackageService'
 import { sign } from '.'
