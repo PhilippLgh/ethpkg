@@ -2,7 +2,7 @@ export interface FetchOptions {
   filter?: (release: IRelease) => boolean; // custom filter logic
   filterInvalid?: boolean // if corrupted or invalid releases should be removed from list
   sort? : boolean // if release list should be sorted. default: true - by version
-  semverFilter?: string // version or version range that should be returned
+  version?: string // version or version range that should be returned
   prefix? : string // server-side processed name- / path-filter. default: undefined
   timeout? : number // time in ms for request timeouts.
   skipCache? : boolean // if cached files should be ignored. default: false 
