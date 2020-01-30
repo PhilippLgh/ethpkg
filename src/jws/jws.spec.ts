@@ -1,10 +1,10 @@
 import { assert } from 'chai'
-import { ecRecover, verify, sign, decode, createHeader, ALGORITHMS, safeStringify } from '../../src/jws'
-import GethSigner from '../../src/Signers/GethSigner'
-import PrivateKeySigner from '../../src/Signers/PrivateKeySigner'
+import { ecRecover, verify, sign, decode, createHeader, ALGORITHMS, safeStringify } from './jws'
+import GethSigner from '../Signers/GethSigner'
+import PrivateKeySigner from '../Signers/PrivateKeySigner'
 import * as ethUtil from 'ethereumjs-util'
 
-const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', "hex")
+const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', 'hex')
 const ETH_ADDRESS_1 = '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7'
 
 const SIGNED_FOO_PAYLOAD_DATA = {
@@ -49,7 +49,7 @@ eyJhbGciOiJFUzI1NksiLCJiNjQiOmZhbHNlLCJjcml0IjpbImI2NCJdLCJqd2siOnsia3R5IjoiRUMi
 // difference between jws and jwt:
 // the payload of a jws can be anything
 // if the payload is a json object describing CLAIMS aka "Claims Set" we speak of a jwt 
-describe("JWS", () => {
+describe('JWS', () => {
 
   describe('fixture integrity', () => {
     it('makes sure that fixture data is correct', async () => {
@@ -68,7 +68,7 @@ describe("JWS", () => {
       const decoded = await verify(token)
       assert.equal(decoded.signature, SIGNED_FOO_SIGNATURE.toString('hex'))
     })
-    it("the protected JOSE header contains the signer's ethereum address in the jwk.eth.address field", async () => {
+    it('the protected JOSE header contains the signer\'s ethereum address in the jwk.eth.address field', async () => {
       const token = await sign(SIGNED_FOO_PAYLOAD, PRIVATE_KEY_1)
       assert.isDefined(token.signature)
       const decoded = await verify(token)
@@ -113,7 +113,7 @@ describe("JWS", () => {
         return sign(SIGNED_FOO_PAYLOAD, PRIVATE_KEY_1, header)
       })
     })
-    it("signs a payload using ethereum's personal message signing", async () => {
+    it('signs a payload using ethereum\'s personal message signing', async () => {
       const header = createHeader({
         algorithm: ALGORITHMS.ETH_SIGN,
         address: ETH_ADDRESS_1
@@ -123,7 +123,7 @@ describe("JWS", () => {
     })
     // TODO use grid-core http api to setup geth
     // ./geth --syncmode light --unlock 0xf863ac227b0a0bca88cb2ff45d91632626ce32e7 --password <(echo test) --rpc --rpccorsdomain=localhost --port 0 --allow-insecure-unlock
-    it.skip("signs a payload using geth as an external signer with personal message signing", async () => {
+    it.skip('signs a payload using geth as an external signer with personal message signing', async () => {
       const header = createHeader({
         algorithm: ALGORITHMS.ETH_SIGN,
         address: ETH_ADDRESS_1

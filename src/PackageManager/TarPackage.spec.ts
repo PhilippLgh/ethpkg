@@ -1,18 +1,19 @@
 import fs from 'fs'
 import path from 'path'
-import TarPackage from '../../src/PackageManager/TarPackage'
+import TarPackage from './TarPackage'
 import { assert } from 'chai'
-import { localFileToIFile } from '../../src/util'
-import { toIFile } from '../../src/utils/PackageUtils'
+import { localFileToIFile } from '../util'
+import { toIFile } from '../utils/PackageUtils'
 
 describe('TarPackage (IPackage)', () => {
 
-  const FOO_PACKAGE_COMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar.gz')
-  const FOO_PACKAGE_DECOMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar')
-  const FOO_PACKAGE_WRITE_COMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo_write_test.tar.gz')
-  const FOO_DIR= path.join(__dirname, '..', 'fixtures', 'foo')
-  const FOO_NESTED_DIR= path.join(__dirname, '..', 'fixtures', 'foo_nested')
-  const BAZ_TXT = path.join(__dirname, '..', 'fixtures', 'baz.txt')
+  const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
+  const FOO_PACKAGE_COMPRESSED = path.join(FIXTURES, 'foo.tar.gz')
+  const FOO_PACKAGE_DECOMPRESSED = path.join(FIXTURES, 'foo.tar')
+  const FOO_PACKAGE_WRITE_COMPRESSED = path.join(FIXTURES, 'foo_write_test.tar.gz')
+  const FOO_DIR= path.join(FIXTURES, 'foo')
+  const FOO_NESTED_DIR= path.join(FIXTURES, 'foo_nested')
+  const BAZ_TXT = path.join(FIXTURES, 'baz.txt')
 
   describe('loadBuffer(buf: Buffer): Promise<void> ', async () => {
     it('create an IPackage from tar buffer', async () => {

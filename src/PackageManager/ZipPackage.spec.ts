@@ -1,18 +1,19 @@
 import fs from 'fs'
 import path from 'path'
-import ZipPackage from '../../src/PackageManager/ZipPackage'
+import ZipPackage from './ZipPackage'
 import { assert } from 'chai'
-import { IPackage } from '../../src'
-import { IFile } from '../../src/PackageManager/IPackage'
-import { localFileToIFile } from '../../src/util'
-import { toIFile } from '../../src/utils/PackageUtils'
+import { IPackage } from '..'
+import { IFile } from './IPackage'
+import { localFileToIFile } from '../util'
+import { toIFile } from '../utils/PackageUtils'
 
 describe('ZipPackage (IPackage)', () => {
 
-  const FOO_PACKAGE = path.join(__dirname, '..', 'fixtures', 'foo.zip')
-  const FOO_DIR= path.join(__dirname, '..', 'fixtures', 'foo')
-  const FOO_NESTED_DIR= path.join(__dirname, '..', 'fixtures', 'foo_nested')
-  const BAZ_TXT = path.join(__dirname, '..', 'fixtures', 'baz.txt')
+  const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
+  const FOO_PACKAGE = path.join(FIXTURES, 'foo.zip')
+  const FOO_DIR= path.join(FIXTURES, 'foo')
+  const FOO_NESTED_DIR= path.join(FIXTURES, 'foo_nested')
+  const BAZ_TXT = path.join(FIXTURES, 'baz.txt')
 
   describe('loadBuffer(buf: Buffer): Promise<void> ', async () => {
     it('create an IPackage from tar buffer', async () => {
