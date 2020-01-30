@@ -82,6 +82,7 @@ typings/
 .dynamodb/
 
 dist/
+bundles/
 build/
 
 code-sign-key.json
