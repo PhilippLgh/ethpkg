@@ -14,6 +14,7 @@
     "static-files": "copyfiles src/signer/eth/metamask/public/index.html -u 1 dist/",
     "copy-build": "yarn static-files && tsc -p ./tsconfig.json",
     "build": "tsc -p ./tsconfig.json",
+    "build:web": "webpack --config webpack.config.js --display-error-details",
     "start": "node ./dist/index.js",
     "_publish": "npm pack && ethpkg sign --publish true"
   },
@@ -42,6 +43,7 @@
   },
   "homepage": "https://github.com/PhilippLgh/ethereum-signed-packages#readme",
   "devDependencies": {
+    "@babel/core": "^7.8.4",
     "@types/chai": "^4.1.7",
     "@types/cli-table": "^0.3.0",
     "@types/es6-promise": "^3.3.0",
@@ -53,6 +55,8 @@
     "@types/ora": "^3.0.0",
     "@types/semver": "^6.2.0",
     "@types/tar-stream": "^1.6.1",
+    "awesome-typescript-loader": "^5.2.1",
+    "babel-loader": "^8.0.6",
     "chai": "^4.2.0",
     "copyfiles": "^2.1.0",
     "jsdom": "^16.0.1",
@@ -60,10 +64,13 @@
     "mocha": "^7.0.1",
     "nock": "^11.7.0",
     "nyc": "^14.1.1",
+    "source-map-loader": "^0.2.4",
     "source-map-support": "^0.5.16",
     "ts-node": "^8.0.2",
     "tslint": "^5.20.1",
-    "typescript": "^3.3.3"
+    "typescript": "^3.3.3",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
   },
   "dependencies": {
     "@octokit/rest": "^16.35.0",
