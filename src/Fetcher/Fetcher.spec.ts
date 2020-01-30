@@ -1,11 +1,10 @@
 
 import { assert } from 'chai'
-import Fetcher from '../src/Fetcher'
+import Fetcher from '.'
 
-describe("Fetcher", () => {
-
+describe('Fetcher', () => {
   
-  describe('async listReleases(spec: PackageSpecifier, options: FetchOptions): Promise<IRelease[]>', function() {
+  describe('async listReleases(spec: PackageQuery, options: FetchOptions): Promise<IRelease[]>', function() {
 
     this.timeout(60 * 1000)
 
@@ -64,14 +63,14 @@ describe("Fetcher", () => {
 
   })
 
-  describe('async getRelease(spec: PackageSpecifier, options: FetchPackageOptions = {}) : Promise<IRelease | undefined>', () => {
-    it ('does something', async () => {
-
+  describe('async getRelease(spec: PackageQuery, options: FetchPackageOptions = {}) : Promise<IRelease | undefined>', () => {
+    it ('fetches the release info based on a query and additional filter options', async () => {
+      
     })
   })
   
   describe('async downloadPackage(locator : PackageLocator, listener : StateListener = () => {}) : Promise<Buffer>', () => {
-    it ('does something', async () => {
+    it ('download a package based on a url and provides progress updates', async () => {
 
     })
   })

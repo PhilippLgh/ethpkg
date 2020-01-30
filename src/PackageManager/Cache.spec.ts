@@ -1,13 +1,13 @@
 import fs from 'fs'
 import path from 'path'
 import { assert } from 'chai'
-import { PersistentJsonCache, withCache, MemCache } from '../src/PackageManager/Cache'
-import { ISerializable, SerializationInfo } from '../src/PackageManager/ISerializable'
-import { deleteFolderRecursive } from './TestUtils'
-import TarPackage from '../src/PackageManager/TarPackage'
-import { IPackage } from '../src'
-import ZipPackage from '../src/PackageManager/ZipPackage'
-import { toIFile } from '../src/utils/PackageUtils'
+import { PersistentJsonCache, withCache, MemCache } from './Cache'
+import { ISerializable, SerializationInfo } from './ISerializable'
+import { deleteFolderRecursive } from '../../test/TestUtils'
+import TarPackage from './TarPackage'
+import { IPackage } from '..'
+import ZipPackage from './ZipPackage'
+import { toIFile } from '../utils/PackageUtils'
 
 class Dummy implements ISerializable {
   public data: string;
@@ -26,7 +26,8 @@ class Dummy implements ISerializable {
   }  
 }
 
-const CACHE_PATH = path.join(__dirname, 'fixtures', 'TestCache')
+const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
+const CACHE_PATH = path.join(FIXTURES, 'TestCache')
 
 describe('Cache', () => {
 
