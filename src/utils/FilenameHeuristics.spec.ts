@@ -1,8 +1,8 @@
 
 import { assert } from 'chai'
-import * as FilenameHeuristics from '../../src/utils/FilenameHeuristics'
+import * as FilenameHeuristics from './FilenameHeuristics'
 
-describe("FilenameHeuristics", () => {
+describe('FilenameHeuristics', () => {
 
   describe('extractVersionFromString = (str : string | undefined) :string | undefined', () => {
     const testCases = [

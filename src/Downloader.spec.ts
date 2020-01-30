@@ -1,9 +1,9 @@
 
 import { assert } from 'chai'
-import * as Downloader from '../src/Downloader'
-import { fail } from 'assert';
+import * as Downloader from './Downloader'
+import { fail } from 'assert'
 
-describe.skip("Downloader", () => {
+describe('Downloader', () => {
 
   describe('async download(_url : string, onProgress = (progress : number) => {}, redirectCount = 0, options = { parallel: 0 }): Promise<Buffer>', function() {
 
@@ -13,9 +13,8 @@ describe.skip("Downloader", () => {
       try {
         await Downloader.download('https://httpstat.us/404')
       } catch (error) {
-        assert.isDefined(error)
+        return assert.isDefined(error)
         // error.should.have.value("message", "Contrived Error");
-        return
       }
       fail()
     });

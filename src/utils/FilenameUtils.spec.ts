@@ -1,8 +1,8 @@
 
 import { assert } from 'chai'
-import * as FilenameUtils from '../../src/utils/FilenameUtils'
+import * as FilenameUtils from './FilenameUtils'
 
-describe("FilenameUtils", () => {
+describe('FilenameUtils', () => {
 
   describe('getExtension = (fileName : string) : string ', () => {
     const testCases = [

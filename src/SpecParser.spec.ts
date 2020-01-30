@@ -1,7 +1,7 @@
-import SpecParser from '../src/SpecParser'
+import SpecParser from './SpecParser'
 import { assert } from 'chai'
 
-describe("SpecParser", () => {
+describe('SpecParser', () => {
 
   const specs = [
     'github:ethereum/remix-ide',

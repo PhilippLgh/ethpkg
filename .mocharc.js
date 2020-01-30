@@ -2,7 +2,7 @@ let pattern = '*'
 let dirPattern = '**'
 if (process.argv.length === 3) {
   const arg = process.argv.pop()
-  const DIRECTORIES = ['Repositories']
+  const DIRECTORIES = ['Repositories', 'utils']
   if(DIRECTORIES.includes(arg)) {
     dirPattern = arg
   } else {
