@@ -2,13 +2,14 @@
 import fs from 'fs'
 import path from 'path'
 import { assert } from 'chai'
-import Github from '../../src/Repositories/GitHub'
+import Github from './GitHub'
 import nock from 'nock'
-import { fetch } from '../../src/Downloader'
+import { fetch } from '../Downloader'
 
 import http from 'https'
 
-const releaseResponsePath = path.join(__dirname, '..', 'fixtures', 'ServerResponses', 'GitHub', 'githubReleases.json')
+const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
+const releaseResponsePath = path.join(FIXTURES, 'ServerResponses', 'GitHub', 'githubReleases.json')
 
 const prepareFixture = async () => {
   const data = await fetch('GET', 'https://api.github.com/repos/ethereum/grid-ui/releases', {
@@ -22,7 +23,7 @@ const prepareFixture = async () => {
   console.log('fixture data written')
 }
 
-describe("Github", function() {
+describe('Github', function() {
 
   this.timeout(120 * 1000)
 
@@ -32,12 +33,12 @@ describe("Github", function() {
 
   const mockResponse = fs.readFileSync(releaseResponsePath)
 
-  const scope = nock("https://api.github.com", {allowUnmocked: true})
+  const scope = nock('https://api.github.com', {allowUnmocked: true})
     .persist()
-    .head("/repos/ethereum/grid-ui/releases")
+    .head('/repos/ethereum/grid-ui/releases')
     .reply(200, 'ok')
     .persist() // don't remove interceptor after request -> always return mock obj
-    .get("/repos/ethereum/grid-ui/releases")
+    .get('/repos/ethereum/grid-ui/releases')
     .reply(200, JSON.parse(mockResponse.toString()))
 
   describe('async listReleases(options? : FetchOptions): Promise<IRelease[]> ', function() {

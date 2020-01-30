@@ -2,11 +2,12 @@
 import fs from 'fs'
 import path from 'path'
 import { assert } from 'chai'
-import Bintray from '../../src/Repositories/Bintray'
+import Bintray from './Bintray'
 import nock from 'nock'
-import { download } from '../../src/Downloader'
+import { download } from '../Downloader'
 
-const releaseResponsePath = path.join(__dirname, '..', 'fixtures', 'ServerResponses', 'Bintray', 'bintrayReleases.json')
+const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
+const releaseResponsePath = path.join(FIXTURES, 'ServerResponses', 'Bintray', 'bintrayReleases.json')
 
 const prepareFixture = async () => {
   const data = await download('https://api.bintray.com/packages/hyperledger-org/besu-repo/besu/files')
@@ -14,7 +15,7 @@ const prepareFixture = async () => {
   console.log('fixture data written')
 }
 
-describe("Bintray", function() {
+describe('Bintray', function() {
 
   this.timeout(120 * 1000)
 

@@ -2,11 +2,12 @@
 import fs from 'fs'
 import path from 'path'
 import { assert } from 'chai'
-import Azure from '../../src/Repositories/Azure'
+import Azure from './Azure'
 import nock from 'nock'
-import { download } from '../../src/Downloader'
+import { download } from '../Downloader'
 
-const releaseResponsePath = path.join(__dirname, '..', 'fixtures', 'ServerResponses', 'Azure', 'azureReleases.xml')
+const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
+const releaseResponsePath = path.join(FIXTURES, 'ServerResponses', 'Azure', 'azureReleases.xml')
 const mockResponse = fs.readFileSync(releaseResponsePath)
 
 const prepareFixture = async () => {
@@ -15,7 +16,7 @@ const prepareFixture = async () => {
   console.log('fixture data written')
 }
 
-describe("Azure", () => {
+describe('Azure', () => {
 
   // await prepareFixture().then => run tests
 
