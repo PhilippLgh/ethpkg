@@ -12,6 +12,6 @@ if (process.argv.length === 3) {
 module.exports = {
   "extension": ["ts"],
   "spec": `./src/${dirPattern}/${pattern}.spec.ts`,
-  "require": ["ts-node/register", "source-map-support/register"],
+  "require": ["ts-node/register", "source-map-support/register", "jsdom-global/register"],
   "full-trace": true
 }

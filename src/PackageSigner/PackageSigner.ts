@@ -5,7 +5,7 @@ import ISigner from './ISigner'
 import { IVerificationResult, ISignerInfo } from '../IVerificationResult'
 import * as SignerUtils from './SignerUtils'
 import { isKeyfile, getPrivateKey } from './KeyStoreUtils'
-import { getPackage, PackageSpecifier } from '../PackageManager/PackageService'
+import { getPackage, PackageData } from '../PackageManager/PackageService'
 import { createHeader, ALGORITHMS, IFlattenedJwsSerialization } from '../jws'
 import { getSigner, PrivateKeyInfo, PublicKeyInfo } from './KeyService'
 import { toIFile } from '../utils/PackageUtils'
@@ -48,13 +48,13 @@ const writeSignatureEntry = async (pkg: IPackage, jws: IFlattenedJwsSerializatio
   await pkg.addEntry(signaturePath, flattenedJsonSerializationFile)
 }
 
-export const isSigned = async (pkgSpec: PackageSpecifier) : Promise<boolean> => {
+export const isSigned = async (pkgSpec: PackageData) : Promise<boolean> => {
   const pkg = await getPackage(pkgSpec)
   const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg)
   return signatures.length > 0
 }
 
-export const isValid = async (pkgSpec: PackageSpecifier) : Promise<boolean> => {
+export const isValid = async (pkgSpec: PackageData) : Promise<boolean> => {
   try {
     const verificationResult = await verify(pkgSpec)
     return verificationResult.isValid
@@ -64,7 +64,7 @@ export const isValid = async (pkgSpec: PackageSpecifier) : Promise<boolean> => {
   }
 }
 
-const isTrusted = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInfo) : Promise<boolean> => {
+const isTrusted = async (pkgSpec: PackageData, publicKeyInfo?: PublicKeyInfo) : Promise<boolean> => {
   try {
     const verificationResult = await verify(pkgSpec)
     return verificationResult.isTrusted
@@ -74,7 +74,7 @@ const isTrusted = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInf
   }
 }
 
-export const sign = async (pkgSpec: PackageSpecifier, privateKey: PrivateKeyInfo, options: any = {}) : Promise<IPackage> => {
+export const sign = async (pkgSpec: PackageData, privateKey: PrivateKeyInfo, options: any = {}) : Promise<IPackage> => {
   
   let pkg 
   try {
@@ -118,7 +118,7 @@ export const sign = async (pkgSpec: PackageSpecifier, privateKey: PrivateKeyInfo
  * @param pkgSpec 
  * @param publicKeyInfo 
  */
-export const verify = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInfo) : Promise<IVerificationResult> => {
+export const verify = async (pkgSpec: PackageData, publicKeyInfo?: PublicKeyInfo) : Promise<IVerificationResult> => {
   
   let pkg 
   try {

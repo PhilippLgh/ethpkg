@@ -1,13 +1,15 @@
 {
   "name": "ethpkg",
   "version": "0.6.0",
-  "description": "Sign your packages using crypto currency keys",
+  "description": "Decentralized package management & package signing using crypto currency keys",
   "main": "./dist/index.js",
   "bin": {
     "ethpkg": "./dist/bin/ethpkg.js"
   },
   "scripts": {
     "test": "nyc mocha",
+    "test:lib": "nyc mocha PackageManager",
+    "test:dist": "nyc mocha PackageManager",
     "lint": "tslint --project .",
     "static-files": "copyfiles src/signer/eth/metamask/public/index.html -u 1 dist/",
     "copy-build": "yarn static-files && tsc -p ./tsconfig.json",
@@ -22,6 +24,7 @@
     ],
     "exclude": [
       "**/test/",
+      "**/*.spec.ts",
       "_test",
       "src/bin",
       "**/*.d.ts"
@@ -52,6 +55,8 @@
     "@types/tar-stream": "^1.6.1",
     "chai": "^4.2.0",
     "copyfiles": "^2.1.0",
+    "jsdom": "^16.0.1",
+    "jsdom-global": "^3.0.2",
     "mocha": "^7.0.1",
     "nock": "^11.7.0",
     "nyc": "^14.1.1",
