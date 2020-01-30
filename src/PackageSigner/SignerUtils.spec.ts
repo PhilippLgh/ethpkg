@@ -1,16 +1,17 @@
 import fs from 'fs'
 import path from 'path'
 import { assert } from 'chai'
-import { IPackage, IPackageEntry } from '../../src'
-import * as SignerUtils from '../../src/PackageSigner/SignerUtils'
-import { getPackage } from '../../src/PackageManager/PackageService'
-import { sign } from '../../src/PackageSigner'
-import { IVerificationResult, ISignerInfo } from '../../src/IVerificationResult'
-import { toIFile } from '../../src/utils/PackageUtils'
+import { IPackage, IPackageEntry } from '..'
+import * as SignerUtils from './SignerUtils'
+import { getPackage } from '../PackageManager/PackageService'
+import { sign } from '.'
+import { IVerificationResult, ISignerInfo } from '../IVerificationResult'
+import { toIFile } from '../utils/PackageUtils'
 
-const UNSIGNED_FOO_TAR_DECOMPRESSED = path.join(__dirname, '..', 'fixtures', 'foo.tar')
-const UNSIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo.tar.gz')
-const SIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_signed.tar.gz')
+const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
+const UNSIGNED_FOO_TAR_DECOMPRESSED = path.join(FIXTURES, 'foo.tar')
+const UNSIGNED_FOO_TAR = path.join(FIXTURES, 'foo.tar.gz')
+const SIGNED_FOO_TAR = path.join(FIXTURES, 'foo_signed.tar.gz')
 
 const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', 'hex')
 const ETH_ADDRESS_1 = '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7'

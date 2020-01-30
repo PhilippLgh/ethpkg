@@ -1,12 +1,12 @@
 import fs from 'fs'
 import path from 'path'
 import { assert } from 'chai'
-import * as PackageSigner from '../../src/PackageSigner'
-import { IPackage } from '../../src'
-import * as SignerUtils from '../../src/PackageSigner/SignerUtils'
-import TarPackage from '../../src/PackageManager/TarPackage'
-import { getPackage } from '../../src/PackageManager/PackageService'
-import { writeEntry, toIFile } from '../../src/utils/PackageUtils'
+import * as PackageSigner from '.'
+import { IPackage } from '..'
+import * as SignerUtils from './SignerUtils'
+import TarPackage from '../PackageManager/TarPackage'
+import { getPackage } from '../PackageManager/PackageService'
+import { writeEntry, toIFile } from '../utils/PackageUtils'
 
 const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', 'hex')
 const ETH_ADDRESS_1 = '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7'
@@ -16,13 +16,14 @@ const ETH_ADDRESS_2 = '0x5C69De5c5bf9D54d7dDCA8Ffbba0d3E013f7E90A'
 
 const WRONG_ETH_ADDRESS = '0xF863aC227B0a0BCA88Cb2Ff45d91632626000000'
 
-const FOO_DIR = path.join(__dirname, '..', 'fixtures', 'foo')
-const UNSIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo.tar.gz')
-const SIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_signed.tar.gz')
-const EXPIRED_SIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_signed_expired.tar')
-const MULTISIGNED_INVALID_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_multisigned_invalid.tar')
-const MULTISIGNED_CORRUPTED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_multisigned_corrupt.tar')
-const MULTISIGNED_FOO_TAR = path.join(__dirname, '..', 'fixtures', 'foo_multisigned.tar')
+const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
+const FOO_DIR = path.join(FIXTURES, 'foo')
+const UNSIGNED_FOO_TAR = path.join(FIXTURES, 'foo.tar.gz')
+const SIGNED_FOO_TAR = path.join(FIXTURES, 'foo_signed.tar.gz')
+const EXPIRED_SIGNED_FOO_TAR = path.join(FIXTURES, 'foo_signed_expired.tar')
+const MULTISIGNED_INVALID_FOO_TAR = path.join(FIXTURES, 'foo_multisigned_invalid.tar')
+const MULTISIGNED_CORRUPTED_FOO_TAR = path.join(FIXTURES, 'foo_multisigned_corrupt.tar')
+const MULTISIGNED_FOO_TAR = path.join(FIXTURES, 'foo_multisigned.tar')
 
 const TEST_ENS = 'foo.test.ens'
 
@@ -70,7 +71,7 @@ describe('PackageSigner', function() {
     
   })
 
-  describe('isSigned = async (pkgSpec: PackageSpecifier) : Promise<boolean>', function() {
+  describe('isSigned = async (pkgSpec: PackageData) : Promise<boolean>', function() {
     it('returns true if the package contains ANY (valid/invalid) signatures', async () => {
       const buf = fs.readFileSync(SIGNED_FOO_TAR)
       const isSigned = await PackageSigner.isSigned(buf)
@@ -88,7 +89,7 @@ describe('PackageSigner', function() {
     })
   })
 
-  describe('isValid = async (pkgSpec: PackageSpecifier) : Promise<boolean>', function() {
+  describe('isValid = async (pkgSpec: PackageData) : Promise<boolean>', function() {
     it('returns true if the package is signed AND ALL signatures are <valid>: the signed digests match and cover the actual digests/current state of the package', async () => {
       const pkg = await getPackage(MULTISIGNED_FOO_TAR)
       const result = await PackageSigner.isValid(pkg)
@@ -120,7 +121,7 @@ describe('PackageSigner', function() {
     })
   })
 
-  describe('isTrusted = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInfo) : Promise<boolean>', function() {
+  describe('isTrusted = async (pkgSpec: PackageData, publicKeyInfo?: PublicKeyInfo) : Promise<boolean>', function() {
     it.skip('returns true if isValid returns true AND the signers public keys have valid certificates', async () => {
 
     })
@@ -132,7 +133,7 @@ describe('PackageSigner', function() {
     })
   })
 
-  describe(`sign = async (pkgSpec: PackageSpecifier, privateKey : string | Buffer | ISigner, pkgPathOut? : string) : Promise<IPackage>`, function() {
+  describe(`sign = async (pkgSpec: PackageData, privateKey : string | Buffer | ISigner, pkgPathOut? : string) : Promise<IPackage>`, function() {
     it('signs an unsigned tar package when passed a package buffer + private key', async () => {
       const buf = fs.readFileSync(UNSIGNED_FOO_TAR)
       let isSigned = await PackageSigner.isSigned(buf)
@@ -195,7 +196,7 @@ describe('PackageSigner', function() {
     })
   })
 
-  describe(`verify = async (pkgSpec: PackageSpecifier, publicKeyInfo?: PublicKeyInfo) : Promise<IVerificationResult>`, function() {
+  describe(`verify = async (pkgSpec: PackageData, publicKeyInfo?: PublicKeyInfo) : Promise<IVerificationResult>`, function() {
     it('verifies a local package without an ethereum address', async () => {
       const pkg = await TarPackage.from(SIGNED_FOO_TAR)
       const verificationResult = await PackageSigner.verify(pkg)

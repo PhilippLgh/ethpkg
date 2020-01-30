@@ -1,15 +1,16 @@
 import fs from 'fs'
 import path from 'path'
 import { assert } from 'chai'
-import * as PackageSigner from '../../src/PackageSigner'
-import { IPackage } from '../../src'
-import * as KeyStoreUtils from '../../src/PackageSigner/KeyStoreUtils'
+import * as PackageSigner from '.'
+import { IPackage } from '..'
+import * as KeyStoreUtils from './KeyStoreUtils'
 
-const KEYSTORE_PATH = path.join(__dirname, '..', 'fixtures', 'KeyStore')
+const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
+const KEYSTORE_PATH = path.join(FIXTURES, 'KeyStore')
 
 const KEY_1 = {
   address: '0x585c34f863e4064bdeFA52305E3e7c89d39F98cF',
-  path: path.join(__dirname, '..', 'fixtures', 'KeyStore', 'UTC--2019-12-17T10-30-10.617174000Z--585c34f863e4064bdefa52305e3e7c89d39f98cf'),
+  path: path.join(FIXTURES, 'KeyStore', 'UTC--2019-12-17T10-30-10.617174000Z--585c34f863e4064bdefa52305e3e7c89d39f98cf'),
   fileName: 'UTC--2019-12-17T10-30-10.617174000Z--585c34f863e4064bdefa52305e3e7c89d39f98cf',
   password: 'test',
   privateKey: 'B9CB3C948D043BEF4551E1679D441F6DB567D0C74148166BFC6270D2E5D30E39'
@@ -17,7 +18,7 @@ const KEY_1 = {
 
 const KEY_2 = {
   address: '0x1cD1f547bE181Dcd53cF8Fb067A159f68938BfCd',
-  path: path.join(__dirname, '..', 'fixtures', 'KeyStore', 'UTC--2019-12-17T10-30-30.026422000Z--1cd1f547be181dcd53cf8fb067a159f68938bfcd'),
+  path: path.join(FIXTURES, 'KeyStore', 'UTC--2019-12-17T10-30-30.026422000Z--1cd1f547be181dcd53cf8fb067a159f68938bfcd'),
   fileName: 'UTC--2019-12-17T10-30-30.026422000Z--1cd1f547be181dcd53cf8fb067a159f68938bfcd',
   password: 'test2'
 }
@@ -27,12 +28,12 @@ const PEM_KEY = {
   // openssl ec -in ./test/fixtures/Keys/ec-codesign-pk.pem -text -noout
   privateKey: '6994100d6b46868391a3b908def2726a1b3d85c373676371146b9aad48059ec2',
   fileName: 'ec-codesign-pk.pem',
-  path: path.join(__dirname, '..', 'fixtures', 'Keys', 'ec-codesign-pk.pem')
+  path: path.join(FIXTURES, 'Keys', 'ec-codesign-pk.pem')
 }
 
-const INVALID_KEYFILE_PATH = path.join(__dirname, '..', 'fixtures', 'KeyStore', 'INVALID_KEYFILE')
-const KEYFILE_1_PATH_OUTSIDE = path.join(__dirname, '..', 'fixtures', 'Keys', 'UTC--2019-12-17T10-30-10.617174000Z--585c34f863e4064bdefa52305e3e7c89d39f98cf')
-const KEYFILE_VERSION_1 = path.join(__dirname, '..', 'fixtures', 'Keys', 'UTC--2019-13-17T10-30-10.617174000Z--585c34f863e4064bdefa52305e3e7c89d39f98cf')
+const INVALID_KEYFILE_PATH = path.join(FIXTURES, 'KeyStore', 'INVALID_KEYFILE')
+const KEYFILE_1_PATH_OUTSIDE = path.join(FIXTURES, 'Keys', 'UTC--2019-12-17T10-30-10.617174000Z--585c34f863e4064bdefa52305e3e7c89d39f98cf')
+const KEYFILE_VERSION_1 = path.join(FIXTURES, 'Keys', 'UTC--2019-13-17T10-30-10.617174000Z--585c34f863e4064bdefa52305e3e7c89d39f98cf')
 
 describe("KeyStoreUtils", function() {
 
