@@ -1,4 +1,5 @@
-import { IRepository, IRelease, FetchOptions } from '../Repositories/IRepository'
+import fs from 'fs'
+import { IRelease, FetchOptions } from '../Repositories/IRepository'
 import Mock from '../Repositories/test/Mock'
 import { compareVersions, multiSort, compareDate } from '../utils/PackageUtils'
 import { download } from '../Downloader'
@@ -8,29 +9,16 @@ import { hasPackageExtension } from '../utils/FilenameUtils'
 import Parser from '../SpecParser'
 import RepositoryManager from '../Repositories/RepositoryManager'
 
-// see https://github.com/npm/npm-package-arg
-type PackageSpecifier = string
+export type PackageQuery = string
+export const instanceOfPackageQuery = (str : string) : str is PackageQuery => str.includes(':') && !fs.existsSync(str) 
 
 type PackageUrl = string
 
-type PackageLocator = PackageUrl | IRelease | PackageSpecifier
-
-export interface FetchPackageOptions {
-  spec?: string, // FIXME make required
-  version?: string;
+export interface FetchPackageOptions extends FetchOptions{
+  spec?: PackageQuery, // FIXME make required
   platform?: string;
   listener?: StateListener
-
   cache?: string;
-
-  // pass-through for FetchOptions
-  filter?: (release: IRelease) => boolean; // custom filter logic
-  semverFilter?: string // version or version range that should be returned
-  prefix? : string // server-side processed name- / path-filter. default: undefined
-  timeout? : number // time in ms for request timeouts.
-  skipCache? : boolean // if cached files should be ignored. default: false 
-  pagination?: boolean | number // is pagination should be used and number of pages
-  limit?: number // number of results
 }
 
 export function instanceofFetchPackageOptions(object: any): object is FetchPackageOptions {
@@ -69,14 +57,14 @@ export default class Fetcher {
 
   /**
    * 
-   * @param spec : PackageSpecifier
+   * @param spec : PackageQuery
    * @param options : FetchOptions
    */
-  async listReleases(spec: PackageSpecifier, {
+  async listReleases(spec: PackageQuery, {
     filter = undefined,
     filterInvalid = true,
     sort = true,
-    semverFilter = undefined,
+    version = undefined,
     prefix = undefined,
     timeout = 0,
     skipCache = false,
@@ -96,7 +84,6 @@ export default class Fetcher {
       const { repo, version } = parsed
       versionSpecifier = version
       repository = await this.repoManager.getRepository(repo, parsed)
-  
     }
 
     if (!repository) {
@@ -125,7 +112,7 @@ export default class Fetcher {
     }
 
     // filter releases based on version or version range info
-    const versionFilter = semverFilter || versionSpecifier
+    const versionFilter = version || versionSpecifier
     if(versionFilter) {
       // TODO move filter in utils
       releases = releases.filter(release => {
@@ -157,10 +144,11 @@ export default class Fetcher {
     return releases
   }
   
-  async getRelease(spec: PackageSpecifier, { 
+  async getRelease(spec: PackageQuery, { 
     listener = () => {},
     filter = undefined,
-    semverFilter = undefined,
+    version = undefined,
+    platform = process.platform, // FIXME this info is only implemented via filters
     prefix = undefined,
     timeout = 0,
     skipCache = false,
@@ -168,16 +156,13 @@ export default class Fetcher {
     limit = 0
   } : FetchPackageOptions = {}) : Promise<IRelease | undefined> {
 
-    const platform = process.platform // FIXME this info is only implemented via filters
-    const version = semverFilter || 'latest'
-
     // notify client about process start
     listener(PROCESS_STATES.RESOLVE_PACKAGE_STARTED, { platform, version })
     const releases = await this.listReleases(spec, {
       filter,
       filterInvalid: true,
       sort: true,
-      semverFilter,
+      version,
       prefix,
       timeout,
       skipCache,
@@ -218,7 +203,7 @@ export default class Fetcher {
     return latest
   }
 
-  async downloadPackage(locator : PackageLocator, listener : StateListener = () => {}) : Promise<Buffer> {
+  async downloadPackage(release: IRelease, listener : StateListener = () => {}) : Promise<Buffer> {
 
     // wrap onProgress
     let progress = 0;
@@ -227,17 +212,17 @@ export default class Fetcher {
       if (progressNew > progress) {
         progress = progressNew;
          // console.log(`downloading update..  ${pn}%`)
-        listener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress, release: locator })
+        listener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress, release })
       }
     }
 
     // download release data / asset
-    const { location } = locator as IRelease // FIXME
+    const { location } = release
     if (!location) throw new Error('package location not found')
-    listener(PROCESS_STATES.DOWNLOAD_STARTED, { location, release: locator })
+    listener(PROCESS_STATES.DOWNLOAD_STARTED, { location, release })
 
     const packageData = await download(location, _onProgress)
-    listener(PROCESS_STATES.DOWNLOAD_FINISHED, { location, size: packageData.length, release: locator })
+    listener(PROCESS_STATES.DOWNLOAD_FINISHED, { location, size: packageData.length, release })
 
     return packageData
   }
