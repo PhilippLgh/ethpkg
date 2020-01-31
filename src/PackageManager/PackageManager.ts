@@ -6,7 +6,7 @@ import Fetcher from '../Fetcher'
 import * as PackageSigner from '../PackageSigner'
 import { StateListener } from '../IStateListener'
 import { IRelease, FetchOptions, IRepository } from '../Repositories/IRepository'
-import { FetchPackageOptions, instanceofFetchPackageOptions, PackageQuery, instanceOfPackageQuery } from '../Fetcher/Fetcher'
+import { ResolvePackageOptions, instanceofResolvePackageOptions, PackageQuery, instanceOfPackageQuery, DownloadPackageOptions } from '../Fetcher/Fetcher'
 import getRepository from '../Repositories/RepositoryManager'
 import { IVerificationResult } from '../IVerificationResult'
 import ISigner from '../PackageSigner/ISigner'
@@ -46,10 +46,6 @@ export interface PackOptions {
   type?: string;
 }
 
-export interface DownloadPackageOptions extends FetchPackageOptions {
-  destPath?: string
-}
-
 export default class PackageManager {
 
   private cache?: ICache<ISerializable>;
@@ -74,7 +70,7 @@ export default class PackageManager {
   }
 
   info() {
-    return 'ethpkg version: '+ '1.0.0'
+    return 'ethpkg version: '+ require('../../package.json').version
   }
 
   async addRepository(name: string, repo: ConstructorOf<IRepository>) : Promise<void> {
@@ -126,15 +122,15 @@ export default class PackageManager {
     return releases
   }
 
-  async resolve(spec: PackageQuery, options? : FetchPackageOptions): Promise<IRelease | undefined> {
+  async resolve(spec: PackageQuery, options? : ResolvePackageOptions): Promise<IRelease | undefined> {
     const fetcher = new Fetcher(this.repoManager)
     const release = await fetcher.getRelease(spec, options)
     return release
   }
 
-  async fetchPackage(release: IRelease, listener?: StateListener) : Promise<IPackage | undefined> {
+  async fetchPackage(release: IRelease, options?: DownloadPackageOptions) : Promise<IPackage | undefined> {
     const fetcher = new Fetcher(this.repoManager)
-    const buf = await fetcher.downloadPackage(release, listener)
+    const buf = await fetcher.downloadPackage(release, options)
     const pkg = await getPackage(buf, release)
     return pkg
   }
@@ -143,12 +139,12 @@ export default class PackageManager {
    * Downloads a package to disk
    * A combination of resolve, fetchPackage and verify. Steps can be specified through download options
    */
-  async downloadPackage(pkgSpec: PackageQuery, options? : DownloadPackageOptions) : Promise<IPackage> {
+  async downloadPackage(pkgSpec: PackageQuery, options?: DownloadPackageOptions) : Promise<IPackage> {
     const release = await this.resolve(pkgSpec, options)
     if (!release) {
       throw new Error(`Package query "${pkgSpec}" could not be resolved`)
     }
-    const pkg = await this.fetchPackage(release, options ? options.listener : undefined)
+    const pkg = await this.fetchPackage(release, options)
     if (!pkg) {
       throw new Error('Package could not be fetched')
     }
@@ -166,23 +162,19 @@ export default class PackageManager {
     }
     */
 
-    if (!options || !options.destPath) {
-      return pkg
-    }
-
-    let destPath = '.'
     if (options && options.destPath) {
-      destPath = path.resolve(options.destPath)
+      let destPath = path.resolve(options.destPath)
+      await pkg.writePackage(destPath)
     }
 
-    await pkg.writePackage(destPath)
     return pkg
   }
 
   /**
    * Creates and returns an IPackage based on a filepath, url, or package specifier
+   * similar to downloadPackage (called internally) but allows to specify the package in more ways and should be default method
    */
-  async getPackage(pkgSpec: PackageQuery | PackageData | FetchPackageOptions, options? : FetchPackageOptions) : Promise<IPackage | undefined> {
+  async getPackage(pkgSpec: PackageQuery | PackageData | ResolvePackageOptions, options? : ResolvePackageOptions) : Promise<IPackage | undefined> {
     
     if (!pkgSpec) {
       throw new Error('Invalid package specification: empty or undefined')
@@ -194,9 +186,9 @@ export default class PackageManager {
     }
 
     // check if the short-hand one argument form is used and extract <PackageQuery>pkgSpec from options before we try to resolve them
-    if (instanceofFetchPackageOptions(pkgSpec)) {
+    if (instanceofResolvePackageOptions(pkgSpec)) {
       if (options) {
-        throw new Error('FetchPackageOptions are provided multiple times')
+        throw new Error('ResolvePackageOptions are provided multiple times')
       }
       if (pkgSpec.spec === undefined) {
         throw new Error('No package specifier provided')
@@ -212,6 +204,7 @@ export default class PackageManager {
         return pkg
       } catch (error) {
         // TODO log error here
+        // console.log('error during download', error)
         return undefined
       }
     }

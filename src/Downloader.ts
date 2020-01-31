@@ -50,7 +50,7 @@ export function request(method : string, _url : string, opts : any = {}) : Promi
     let form = new FormData()
     // FIXME filename in multipart form
     // https://github.com/form-data/form-data#alternative-submission-methods
-    form.append('data', opts.Body, { filename: 'foo.tar'})
+    form.append('data', opts.Body, { filename: opts.fileName})
     opts = {
       headers: form.getHeaders()
     }
@@ -128,7 +128,7 @@ const downloadPartial = async (_url : string, start : any , end : any) => {
   return buf
 }
 
-export async function download(_url : string, onProgress = (progress : number) => {}, redirectCount = 0, options = { parallel: 0 }): Promise<Buffer> {
+export async function download(_url : string, onProgress = (progress : number) => {}, redirectCount = 0, options = { parallel: 0, headers: undefined }): Promise<Buffer> {
   if(redirectCount > 5) {
     throw new Error('too many redirects: ' + redirectCount)
   }
@@ -176,7 +176,13 @@ export async function download(_url : string, onProgress = (progress : number) =
       return data
     } 
   }
-  const response = await request('GET', _url)
+  let requestOptions
+  if (options && options.headers) {
+    requestOptions = {
+      headers: options.headers
+    }
+  }
+  const response = await request('GET', _url, requestOptions)
   headers = response.headers
   // console.log('headers of GET', _url, result.statusCode, headers)
   if (headers.location) {

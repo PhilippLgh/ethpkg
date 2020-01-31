@@ -77,6 +77,12 @@ describe('PackageManager', () => {
     })
   })
 
+  describe('info()', function() {
+    it('display some basic info about this library', () => {
+      assert.isDefined(new PackageManager().info())
+    })
+  })
+
   describe('async clearCache() : Promise<void>', function(){
     this.timeout(60*1000)
     it('removes all saved data (http responses, packages) from cache', async () => {
@@ -162,7 +168,7 @@ describe('PackageManager', () => {
     // TODO usage of fetch options
   })
 
-  describe('async resolve(spec: PackageQuery, options?: FetchPackageOptions): Promise<IRelease | undefined>', function() {
+  describe('async resolve(spec: PackageQuery, options?: ResolvePackageOptions): Promise<IRelease | undefined>', function() {
     it('resolves a PackageQuery to a specific release - this fetches only metadata and not the package itself', async () => {
       const pm = new PackageManager()
       const release = await pm.resolve(PACKAGE_QUERY_LATEST)
@@ -177,7 +183,7 @@ describe('PackageManager', () => {
     })
   })
 
-  describe('async fetchPackage(release: IRelease, listener?: StateListener) : Promise<IPackage | undefined>', function() {
+  describe('async fetchPackage(release: IRelease, options?: DownloadPackageOptions) : Promise<IPackage | undefined>', function() {
     this.timeout(60 * 1000)
     it('fetches the package data (e.g. release asset on github) for a given IRelease', async () => {
       const pm = new PackageManager()
@@ -191,12 +197,24 @@ describe('PackageManager', () => {
   })
 
   describe('async downloadPackage(pkgSpec: PackageQuery, dest: string = ".") : Promise<IPackage>', function() {
+    this.timeout(60 * 1000)
     it('downloads a package to disk', () => {
       
     })
+    it('allows to specify a proxy server to avoid cors issues during package download in the browser', async () => {
+      const pkg = await new PackageManager().downloadPackage('github:ethereum/grid-ui', {
+        proxy: 'https://cors-anywhere.herokuapp.com/',
+        // proxy will block requests not coming from browser -> sorry
+        headers: {
+          Origin: null,
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.84 Mobile Safari/537.36'
+        }
+      })
+      assert.isDefined(pkg)
+    })
   })
 
-  describe('async getPackage(pkgSpec: PackageQuery | PackageData | FetchPackageOptions, options? : FetchPackageOptions) : Promise<IPackage | undefined>', function(){
+  describe('async getPackage(pkgSpec: PackageQuery | PackageData | ResolvePackageOptions, options? : ResolvePackageOptions) : Promise<IPackage | undefined>', function(){
     this.timeout(60*1000)
     it('accepts an IPackage as pkgSpec (pass-through)', async () => {
       const pkg = await TarPackage.from(UNSIGNED_FOO_TAR)
@@ -254,7 +272,7 @@ describe('PackageManager', () => {
       const index = await pkg.getContent('index.html')
       assert.isDefined(index)
     })
-    it('has a short form which accepts a single FetchPackageOptions object', async () => {
+    it('has a short form which accepts a single ResolvePackageOptions object', async () => {
       const pkg = await new PackageManager().getPackage({
         spec: 'github:ethereum/grid-ui',
         version: '1.6.0'
@@ -266,6 +284,13 @@ describe('PackageManager', () => {
         return assert.fail()
       }
       assert.equal(pkg.metadata.version, '1.6.0')
+    })
+    it('forwards download options to the fetcher', async () => {
+      const pkg = await new PackageManager().getPackage('github:ethereum/grid-ui', {
+        proxy: 'https://cors-anywhere.herokuapp.com/'
+      })
+      // proxy will block requests not coming from browser (see above)
+      assert.isUndefined(pkg)
     })
   })
 

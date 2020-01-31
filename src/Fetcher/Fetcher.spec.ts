@@ -63,7 +63,7 @@ describe('Fetcher', () => {
 
   })
 
-  describe('async getRelease(spec: PackageQuery, options: FetchPackageOptions = {}) : Promise<IRelease | undefined>', () => {
+  describe('async getRelease(spec: PackageQuery, options: ResolvePackageOptions = {}) : Promise<IRelease | undefined>', () => {
     it ('fetches the release info based on a query and additional filter options', async () => {
       
     })

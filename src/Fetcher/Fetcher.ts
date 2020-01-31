@@ -14,14 +14,20 @@ export const instanceOfPackageQuery = (str : string) : str is PackageQuery => st
 
 type PackageUrl = string
 
-export interface FetchPackageOptions extends FetchOptions{
-  spec?: PackageQuery, // FIXME make required
+export interface DownloadPackageOptions {
+  proxy?: string; // allows to specify a cors proxy to avoid issues in browser
+  headers?: any; // http request headers
+  listener?: StateListener;
+  destPath?: string; // ignored by fetcher
+}
+
+export interface ResolvePackageOptions extends FetchOptions, DownloadPackageOptions{
+  spec?: PackageQuery; // FIXME make required
   platform?: string;
-  listener?: StateListener
   cache?: string;
 }
 
-export function instanceofFetchPackageOptions(object: any): object is FetchPackageOptions {
+export function instanceofResolvePackageOptions(object: any): object is ResolvePackageOptions {
   return typeof object === 'object' && ('spec' in object)
 }
 
@@ -154,7 +160,7 @@ export default class Fetcher {
     skipCache = false,
     pagination = false,
     limit = 0
-  } : FetchPackageOptions = {}) : Promise<IRelease | undefined> {
+  } : ResolvePackageOptions = {}) : Promise<IRelease | undefined> {
 
     // notify client about process start
     listener(PROCESS_STATES.RESOLVE_PACKAGE_STARTED, { platform, version })
@@ -203,7 +209,10 @@ export default class Fetcher {
     return latest
   }
 
-  async downloadPackage(release: IRelease, listener : StateListener = () => {}) : Promise<Buffer> {
+  async downloadPackage(release: IRelease, options: DownloadPackageOptions = {}) : Promise<Buffer> {
+
+    let { listener, proxy } = options
+    const stateListener = listener || (() => {})
 
     // wrap onProgress
     let progress = 0;
@@ -212,17 +221,25 @@ export default class Fetcher {
       if (progressNew > progress) {
         progress = progressNew;
          // console.log(`downloading update..  ${pn}%`)
-        listener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress, release })
+        stateListener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress, release })
       }
     }
 
     // download release data / asset
-    const { location } = release
+    let { location } = release
     if (!location) throw new Error('package location not found')
-    listener(PROCESS_STATES.DOWNLOAD_STARTED, { location, release })
+    stateListener(PROCESS_STATES.DOWNLOAD_STARTED, { location, release })
 
-    const packageData = await download(location, _onProgress)
-    listener(PROCESS_STATES.DOWNLOAD_FINISHED, { location, size: packageData.length, release })
+    // TODO if proxy is used issue warning
+    if (proxy && proxy.endsWith('/')) {
+      proxy = proxy.slice(0, -1)
+    }
+    location = proxy ? `${proxy}/${encodeURI(location)}` : location
+    const packageData = await download(location, _onProgress, 0, {
+      parallel: 0,
+      headers: options.headers
+    })
+    stateListener(PROCESS_STATES.DOWNLOAD_FINISHED, { location, size: packageData.length, release })
 
     return packageData
   }
