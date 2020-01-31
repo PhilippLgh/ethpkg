@@ -1,9 +1,10 @@
 import SpecParser from './SpecParser'
 import { assert } from 'chai'
+import { PackageQuery } from './Fetcher/Fetcher'
 
 describe('SpecParser', () => {
 
-  const specs = [
+  const queries : Array<PackageQuery> = [
     'github:ethereum/remix-ide',
     'azure:gethstore',
     'npm:philipplgh/ethpkg',
@@ -16,10 +17,15 @@ describe('SpecParser', () => {
   const versionedSpecs = [
     'azure:gethstore@<=1.5.0',
   ]
+
+  const fullUrls = [
+    'https://gethstore.blob.core.windows.net',
+    'https://www.github.com/ethereum/grid-ui'
+  ]
   
   describe('static async parseSpec(spec: string) : Promise<ParsedSpec>', () => {
-    for (const spec of specs) {
-      it (`parses ${spec}`, async () => {
+    for (const spec of queries) {
+      it (`parses query: "${spec}"`, async () => {
         const result = await SpecParser.parseSpec(spec)
         assert.isDefined(result)
         assert.isDefined(result.repo)
@@ -27,12 +33,20 @@ describe('SpecParser', () => {
       })
     }
     for (const spec of versionedSpecs) {
-      it (`parses ${spec}`, async () => {
+      it (`parses query+version: "${spec}"`, async () => {
         const result = await SpecParser.parseSpec(spec)
         assert.isDefined(result)
         assert.isDefined(result.repo)
         assert.isDefined(result.project)
         assert.isDefined(result.version)
+      })
+    }
+    for (const spec of fullUrls) {
+      it(`parses full url: "${spec}"`, async () => {
+        const result = await SpecParser.parseSpec(spec)
+        assert.isDefined(result)
+        assert.isDefined(result.repo, 'repo should be parsed from url')
+        assert.isDefined(result.project, 'project should be parsed from url')
       })
     }
   })

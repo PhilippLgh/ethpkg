@@ -2,10 +2,38 @@ import { isUrl } from './util'
 import url from 'url'
 
 export interface ParsedSpec {
-  repo: string;
+  repo?: string;
   owner?: string;
-  project: string;
-  version?: string
+  project?: string;
+  version?: string;
+  input: string;
+}
+
+const parseUrl = (urlStr: string) : ParsedSpec => {
+  const parsedUrl = url.parse(urlStr)
+  const { pathname, host } = parsedUrl
+  // @ts-ignore
+  const hostParts = host.split('.')
+  hostParts.pop() // remove top-level domain
+
+  let project = undefined
+  let owner = undefined
+  if (pathname && pathname != '/') {
+    let pathParts = pathname.split('/')
+    pathParts = pathParts.filter(p => p && p !== '')
+    project = pathParts[0]
+    owner = pathParts[1]
+  } else {
+    project = hostParts[0]
+  }
+  const result = {
+    repo: hostParts.pop(), // get part before top-level: api.github.com => github
+    owner,
+    project,
+    version: undefined,
+    input: urlStr
+  }
+  return result
 }
 
 export default class Parser {
@@ -19,20 +47,7 @@ export default class Parser {
     if (!spec) throw new Error('spec cannot be parsed - spec is undefined')
     if (isUrl(spec)) {
       try {
-        const parsedUrl = url.parse(spec)
-        const { pathname, host } = parsedUrl
-        // @ts-ignore
-        const hostParts = host.split('.')
-        // @ts-ignore
-        let pathParts = pathname.split('/')
-        pathParts = pathParts.filter(p => p && p !== '')
-        const result = {
-          repo: hostParts[0], // TODO does this cover api.host.com?
-          owner: pathParts[0],
-          project: pathParts[1],
-          version: undefined
-        }
-        return result
+        return parseUrl(spec)
       } catch (error) {
         throw new Error(`SpecParser error for "${spec}": ${error.message}`)
       }
@@ -53,7 +68,8 @@ export default class Parser {
         repo,
         owner,
         project,
-        version
+        version,
+        input: spec
       }
     }
     throw new Error(`SpecParser error: no parser found for "${spec}"`)
