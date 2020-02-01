@@ -21,8 +21,8 @@ const parseUrl = (urlStr: string) : ParsedSpec => {
   if (pathname && pathname != '/') {
     let pathParts = pathname.split('/')
     pathParts = pathParts.filter(p => p && p !== '')
-    project = pathParts[0]
-    owner = pathParts[1]
+    owner = pathParts[0]
+    project = pathParts[1]
   } else {
     project = hostParts[0]
   }

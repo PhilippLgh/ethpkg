@@ -9,7 +9,6 @@ describe('SpecParser', () => {
     'azure:gethstore',
     'npm:philipplgh/ethpkg',
     'npm:ethpkg',
-    'https://github.com/PhilippLgh/ethpkg',
     'bintray:hyperledger-org/besu-repo/besu',
     'azure:gethstore/geth-alltools-darwin-amd64-1.9.8-unstable-22e3bbbf.tar.gz'
   ]
@@ -19,8 +18,20 @@ describe('SpecParser', () => {
   ]
 
   const fullUrls = [
-    'https://gethstore.blob.core.windows.net',
-    'https://www.github.com/ethereum/grid-ui'
+    {input: 'https://gethstore.blob.core.windows.net', expected: {
+      repo: 'windows',
+      project: 'gethstore'
+    }},
+    {input: 'https://www.github.com/PhilippLgh/ethpkg', expected: {
+      repo: 'github',
+      owner: 'PhilippLgh',
+      project: 'ethpkg'
+    }},
+    {input: 'https://github.com/ethereum/grid-ui', expected: {
+      repo: 'github',
+      owner: 'ethereum',
+      project: 'grid-ui'
+    }}
   ]
   
   describe('static async parseSpec(spec: string) : Promise<ParsedSpec>', () => {
@@ -41,12 +52,14 @@ describe('SpecParser', () => {
         assert.isDefined(result.version)
       })
     }
-    for (const spec of fullUrls) {
-      it(`parses full url: "${spec}"`, async () => {
-        const result = await SpecParser.parseSpec(spec)
+    for (const testCase of fullUrls) {
+      const { input, expected } = testCase
+      it(`parses full url: "${input}"`, async () => {
+        const result: any = await SpecParser.parseSpec(input)
         assert.isDefined(result)
-        assert.isDefined(result.repo, 'repo should be parsed from url')
-        assert.isDefined(result.project, 'project should be parsed from url')
+        for(const k in expected) {
+          assert.equal(result[k], (<any>expected)[k], `parsed result should have ${k}`)
+        }
       })
     }
   })
