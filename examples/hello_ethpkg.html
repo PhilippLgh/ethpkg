@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+  <h1>hello ethpkg</h1>
+  <div>
+    ethpkg can be included as a single js file in any website.
+    to try out this example build the bundle first with: <pre>yarn build:web</pre>
+    once the build script finishes you should have a folder <b>bundles</b> and file <b>ethpkg.js</b>.
+    reload this page to see the package manager in action in your browser.
+  </div>
+  <hr/>
+  <script src="../bundles/ethpkg.js"></script>
+  <script>
+    const { PackageManager } = ethpkg
+    const pm = new PackageManager()
+    document.write(pm.info())
+
+    const start = async () => {
+      const pkg = await pm.getPackage('github:ethereum/grid-ui', {
+        proxy: 'https://cors-anywhere.herokuapp.com/'
+      })
+      console.log(pkg.metadata)
+      // const pkg = await pm.getPackage('npm:ethpkg')
+      // console.log(pkg.metadata)
+    }
+    start()
+
+  </script>
+</body>
+</html>
