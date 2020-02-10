@@ -10,15 +10,18 @@ import Parser from '../SpecParser'
 import RepositoryManager from '../Repositories/RepositoryManager'
 
 export type PackageQuery = string
-export const instanceOfPackageQuery = (str : string) : str is PackageQuery => str.includes(':') && !fs.existsSync(str) 
+export const instanceOfPackageQuery = (str : any) : str is PackageQuery => typeof str === 'string' && str.includes(':') && !fs.existsSync(str) 
 
 type PackageUrl = string
 
 export interface DownloadPackageOptions {
   proxy?: string; // allows to specify a cors proxy to avoid issues in browser
   headers?: any; // http request headers
+  onDownloadProgress?: (progress: number, release: IRelease) => void; // convenience wrapper for listener
   listener?: StateListener;
   destPath?: string; // ignored by fetcher
+  extract?: boolean; // extract package contents?
+  verify?: boolean; // will reject packages that are not valid / not trusted before writing them to disk / returning them
 }
 
 export interface ResolvePackageOptions extends FetchOptions, DownloadPackageOptions{
@@ -86,17 +89,28 @@ export default class Fetcher {
     } else {
       const parsed = await Parser.parseSpec(spec)
       if (!parsed) throw new Error(`Unsupported or invalid package specification: "${spec}"`)
-  
-      const { repo, version } = parsed
+      const { version } = parsed
       versionSpecifier = version
-      repository = await this.repoManager.getRepository(repo, parsed)
+      repository = await this.repoManager.getRepository(parsed)
     }
 
     if (!repository) {
       throw new Error('Could not find a repository for specification: ' + spec)
     }
 
-    let releases = await repository.listReleases()
+
+    let releases: Array<IRelease> = []
+    try {
+      releases = await repository.listReleases({
+        prefix,
+        pagination,
+        timeout
+      })
+    } catch (error) {
+      // TODO logger
+      console.log('Repository exception: could not retrieve release list', error && error.message)
+      return releases
+    }
 
     // filter non-package releases e.g. Github assets that are .txt, .json etc
     releases = releases.map(release => {
@@ -211,10 +225,11 @@ export default class Fetcher {
 
   async downloadPackage(release: IRelease, options: DownloadPackageOptions = {}) : Promise<Buffer> {
 
-    let { listener, proxy } = options
+    let { listener, proxy, onDownloadProgress } = options
     const stateListener = listener || (() => {})
 
     // wrap onProgress
+    // TODO protect with try catch
     let progress = 0;
     const _onProgress = (p : number) => {
       const progressNew = Math.floor(p * 100);
@@ -222,6 +237,9 @@ export default class Fetcher {
         progress = progressNew;
          // console.log(`downloading update..  ${pn}%`)
         stateListener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress, release })
+        if (typeof onDownloadProgress === 'function') {
+          onDownloadProgress(progress, release)
+        }
       }
     }
 

@@ -9,20 +9,33 @@ describe('Fetcher', () => {
     this.timeout(60 * 1000)
 
     // FIXME http responses need to be mocked
-    const repoSpecs = [
-      {spec: 'github:ethereum/grid-ui', expected: 30}, 
-      {spec: 'npm:philipplgh/ethpkg', expected: 18}, 
-      {spec: 'npm:ethpkg', expected: 3},
+    const repoQueries = [
+      {query: 'github:ethereum/grid-ui', expected: 30}, 
+      {query: 'npm:philipplgh/ethpkg', expected: 18}, 
+      {query: 'npm:ethpkg', expected: 3},
       // TODO without releases info part we probably have to assume that client wants whatever is in master
-      {spec: 'github:ethereum/remix-ide', expected: 14},
-      {spec: 'azure:gethstore', expected: 2342}
+      {query: 'github:ethereum/remix-ide', expected: 14},
+      {query: 'azure:gethstore', expected: 2500}
     ]
 
-    for (const specObj of repoSpecs) {
-      const {spec, expected} = specObj
-      it.skip(`lists releases for ${spec}`, async () => {
+    for (const testCase of repoQueries) {
+      const {query, expected} = testCase
+      it.skip(`lists releases for PackageQuery: "${query}"`, async () => {
         const fetcher = new Fetcher()
-        const result = await fetcher.listReleases(spec)
+        const result = await fetcher.listReleases(query)
+        assert.equal(result.length, expected)
+      })
+    }
+
+    const repoUrls = [
+      {url: 'https://gethstore.blob.core.windows.net', expected: 2500 }
+    ]
+
+    for (const testCase of repoUrls) {
+      const {url: repoUrl, expected} = testCase
+      it.skip(`lists releases for repository URL: ${repoUrl}`, async () => {
+        const fetcher = new Fetcher()
+        const result = await fetcher.listReleases(repoUrl)
         assert.equal(result.length, expected)
       })
     }
