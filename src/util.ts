@@ -6,7 +6,6 @@ import { IPackage } from './PackageManager/IPackage'
 // @ts-ignore
 import { parseString } from 'xml2js'
 import { ProgressListener, IFile } from './PackageManager/IPackage'
-import { getPackage } from './PackageManager/PackageService'
 
 // const keythereum = require('keythereum')
 
@@ -25,7 +24,10 @@ export const formatBytes = (bytes : number) => {
 }
 
 
-export const isDirSync = (filePath : string) => {
+export const isDirSync = (filePath : string | undefined) => {
+  if (filePath === undefined) {
+    return false
+  }
   try {
     const fileStats = fs.lstatSync(filePath);
     return fileStats.isDirectory()
@@ -244,4 +246,8 @@ export const deleteFolderRecursive = function(dirPath: string) {
     });
     fs.rmdirSync(dirPath);
   }
+}
+
+export const is = {
+  browser: () => process === undefined
 }
