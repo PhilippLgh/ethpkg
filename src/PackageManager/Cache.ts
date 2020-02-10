@@ -1,28 +1,37 @@
-import { promises as fs} from 'fs'
+import _fs, { promises as fs } from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import { ISerializable, SerializationInfo } from './ISerializable'
+import { ISerializable, SerializationInfo, isSerializable } from './ISerializable'
 
 export const md5 = (data : Buffer | string) => crypto.createHash('md5').update(data).digest('hex')
 
 export abstract class ICache<T extends ISerializable> {
-  public abstract async put(key: string, obj: T | undefined) : Promise<string>;
+  public abstract async put(key: string, obj: T | undefined | any /* accept POJO */) : Promise<string>;
+  public abstract async has(key: string) : Promise<boolean>;
   public abstract async get(key: string) : Promise<T | undefined>;
   public abstract async clear() : Promise<void>;
+}
+export function instanceOfICache(obj: any): obj is ICache<any> {
+  return obj && typeof obj.put === 'function' && typeof obj.get === 'function' && typeof obj.has === 'function'
 }
 
 // TODO specify return value
 // TODO test with multiple args
-export function withCache<T extends ISerializable>(cache: ICache<T>, fn: (...args: any) => Promise<T | undefined>): any {
+export function withCache<T extends ISerializable>(cache: ICache<T>, fn: (...args: any) => Promise<T | undefined | any>, keyFn?: (...args: any) => string): any {
   return async (...args: any[]) => {
-    const n = md5(JSON.stringify(args))
-    let result = await cache.get(n)
-    // TODO based on hit/miss wen can extend the cache lifetime here or load to mem
-    if (result) {
-      return result
+    // if function to generate key is provided use it otherwise try to hash args
+    // FIXME handle functions such as listener by removing them from key
+    const key = keyFn ? keyFn(...args) : md5(JSON.stringify(args))
+    if (await cache.has(key)) {
+      // TODO based on hit/miss we can extend the cache lifetime here or load to mem
+      try {
+        return cache.get(key)
+      } catch (error) {
+        // ignore errors during restore and just fallback to fetch + overwrite
+      }
     }
-    result = await fn(...args)
-    await cache.put(n, result)
+    const result = await fn(...args)
+    await cache.put(key, result)
     return result
   }
 }
@@ -32,14 +41,22 @@ export class MemCache<T extends ISerializable> extends ICache<T> {
   constructor() {
     super()
   }
-  public async put(key: string, obj: T | undefined): Promise<string> {
+  public async put(key: string, obj: T | undefined | any): Promise<string> {
     this.cache[key] = obj
     return key
+  }
+  public keys() : Array<string> {
+    return Object.keys(this.cache)
+  }
+  public async has(key: string) {
+    return key in this.cache
   }      
   public async get(key: string) {
     return this.cache[key]
   }
-  public async clear() {}
+  public async clear() {
+    this.cache = {}
+  }
 }
 
 // TODO consider using a compressed tar package as cache
@@ -59,14 +76,14 @@ export class PersistentJsonCache<T extends ISerializable> extends ICache<T> {
     this.dirPath = dirPath
     this.ctor = ctor
   }
-  private keyToFileName(key: string) {
+  private keyToFilepath(key: string) {
     const name = `${md5(key)}.json`
-    return name
-  }
-  public async put(key: string, obj: T | undefined): Promise<string> {
-    const name = this.keyToFileName(key)
     const fullPath = path.join(this.dirPath, name)
-    const data = obj === undefined ?  undefined : (await obj.getObjectData())
+    return fullPath
+  }
+  public async put(key: string, obj: T | undefined | any): Promise<string> {
+    const fullPath = this.keyToFilepath(key)
+    const data = isSerializable(obj) ? (await obj.getObjectData()) : obj
     const serializationInfo = {
       data,
       ctor: obj === undefined ? undefined : obj.constructor.name,
@@ -75,22 +92,31 @@ export class PersistentJsonCache<T extends ISerializable> extends ICache<T> {
     const dataHash = md5(JSON.stringify(serializationInfo))
     await fs.writeFile(fullPath, JSON.stringify(serializationInfo))
     return dataHash
+  }
+  public async has(key: string) : Promise<boolean> {
+    const fullPath = this.keyToFilepath(key)
+    return _fs.existsSync(fullPath)
   }      
-  public async get<T>(key: string) : Promise<T> {
-    const name = this.keyToFileName(key)
-    const fullPath = path.join(this.dirPath, name)
+  public async get<T>(key: string) : Promise<T | undefined> {
+    const exists = await this.has(key)
+    if (!exists) {
+      return undefined
+    }
+    const fullPath = this.keyToFilepath(key)
+    // console.log('load from cache', fullPath)
     try {
       const result = await fs.readFile(fullPath)
       // json.parse does not handle nested buffers: see Cache.test
       const data = JSON.parse(result.toString(), (key, value) => {
-        if (value.type && value.type === 'Buffer') {
+        if (value && value.type && value.type === 'Buffer') {
           return Buffer.from(value.data)
         }
         return value
       })
       return this.ctor(data)
     } catch (error) {
-      throw new Error('de-serialization error')
+      // console.log('cache error:', error)
+      throw new Error('de-serialization error: '+error.message)
     }
   }
   public async clear() {
@@ -102,4 +128,21 @@ export class PersistentJsonCache<T extends ISerializable> extends ICache<T> {
       }
     }
   }
+}
+
+export class NoCache<T extends ISerializable> extends ICache<T> {
+  public async put(key: string, obj: T | undefined): Promise<string> {
+    return key
+  }  
+  public async has(key: string): Promise<boolean> {
+    return false
+  }
+  public async get(key: string): Promise<T | undefined> {
+    return undefined
+  }
+  public async clear(): Promise<void> {
+    // nothing to do
+  }
+
+
 }

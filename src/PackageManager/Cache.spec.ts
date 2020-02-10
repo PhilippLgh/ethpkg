@@ -8,6 +8,7 @@ import TarPackage from './TarPackage'
 import { IPackage } from './IPackage'
 import ZipPackage from './ZipPackage'
 import { toIFile } from '../utils/PackageUtils'
+import { IRelease } from '../Repositories/IRepository'
 
 class Dummy implements ISerializable {
   public data: string;
@@ -97,8 +98,8 @@ describe('Cache', () => {
       const DATA = 'foo bar'
       const cache = new PersistentJsonCache<Dummy>(CACHE_PATH, Dummy.getConstructor())
       await cache.put(KEY, new Dummy(DATA))
-      const obj : Dummy = await cache.get(KEY)
-      assert.equal(obj.data, DATA)
+      const obj = await cache.get(KEY)
+      assert.equal((<Dummy>obj).data, DATA)
     })
     it('persists and restores tar/IPackage objects', async () => {
       const pkg: IPackage = await TarPackage.create('NewPackage.tar')
@@ -131,6 +132,33 @@ describe('Cache', () => {
       const restored = await cache.get(KEY) as IPackage
       const entry = await restored.getContent(relPath)
       assert.equal(entry.toString(), 'world2')
+    })
+    it('persists and restores IRelease objects', async () => {
+      const KEY = '123456789'
+      const release: IRelease = {
+        fileName: 'hello',
+        version: '1.0.0',
+        channel: 'beta',
+        size: 2000000000,
+        original: {
+          foo: 'bar'
+        }
+      }
+      const ctor = (info: SerializationInfo) => info.data
+      const cache = new PersistentJsonCache(CACHE_PATH, ctor)
+      await cache.put(KEY, release)
+      const restored = await cache.get(KEY) as IRelease
+      assert.deepEqual(restored, release)
+    })
+    it('returns undefined for keys that don\'t exist in the cache', async () => {
+      const ctor = (info: SerializationInfo) => {
+        const { ctor, data } = info
+        const { filePath, buffer } = data
+        return new TarPackage(filePath).loadBuffer(buffer)
+      }
+      const cache = new PersistentJsonCache<IPackage>(CACHE_PATH, ctor)
+      const obj = await cache.get('12345')
+      assert.isUndefined(obj)
     })
     after('remove temp cache dirs', () => {
       // node 12: fs.rmdir(CACHE_PATH, { recursive: true });
