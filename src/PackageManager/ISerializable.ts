@@ -10,3 +10,6 @@ export interface ISerializable {
   // https://stackoverflow.com/questions/46969551/constructor-in-typescript-interface
   // static getConstructor() : Promise<(info: SerializationInfo) => T>;
 }
+export function isSerializable(obj: any): obj is ISerializable {
+  return obj && typeof obj.getObjectData === 'function'
+}
