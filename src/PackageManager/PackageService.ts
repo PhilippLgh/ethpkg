@@ -8,6 +8,7 @@ import { instanceofIPackage } from './IPackage'
 import { IRelease } from '../Repositories/IRepository'
 import { hasPackageExtension } from '../utils/FilenameUtils'
 import { readFileToBuffer } from '../utils/BrowserUtils'
+import { is } from '../util'
 
 // TODO redundant impl. move to utils
 const isFilePath = (pkgPath: string) => {
@@ -20,7 +21,7 @@ const isFilePath = (pkgPath: string) => {
 
 export type PackageData = IPackage | Buffer | File | string /* filename */
 export function instanceOfPackageData(obj: any): obj is PackageData {
-  return instanceofIPackage(obj) || Buffer.isBuffer(obj) || (typeof obj === 'string' && isFilePath(obj)) || (File && obj instanceof File)
+  return instanceofIPackage(obj) || Buffer.isBuffer(obj) || (typeof obj === 'string' && isFilePath(obj)) || (is.browser() && File && obj instanceof File)
 }
 
 const getPackageFromBuffer = async (pkgBuf: Buffer, pkgFileName?: string): Promise<IPackage> => {
@@ -65,7 +66,7 @@ export const getPackageFromFile = async (pkgSrc: string): Promise<IPackage> => {
   }
 }
 
-export const getPackage = async (pkgSpec : PackageData, release?: IRelease) => {
+export const toPackage = async (pkgSpec : PackageData, release?: IRelease) => {
   if (instanceofIPackage(pkgSpec)){
     return pkgSpec
   } 
@@ -86,7 +87,7 @@ export const getPackage = async (pkgSpec : PackageData, release?: IRelease) => {
     }
   }     
   // browser support:
-  else if (pkgSpec instanceof File && hasPackageExtension(pkgSpec.name)) {
+  else if (is.browser() && pkgSpec instanceof File && hasPackageExtension(pkgSpec.name)) {
     const fileBuffer = await readFileToBuffer(pkgSpec)
     return getPackageFromBuffer(fileBuffer)
   }
