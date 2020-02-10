@@ -3,7 +3,7 @@ import fs from 'fs'
 import zlib from 'zlib'
 import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
 import tarStream from 'tar-stream'
-import { streamToBuffer, bufferToStream, streamPromise, isDirSync } from '../util'
+import { streamToBuffer, bufferToStream, streamPromise, isDirSync, extractPackage } from '../util'
 import { getExtension } from '../utils/FilenameUtils'
 import { relativePathEquals } from '../utils/PackageUtils'
 import { IRelease } from '../Repositories/IRepository'
@@ -189,6 +189,7 @@ export default class TarPackage implements IPackage {
   async getObjectData(): Promise<any> {
     return {
       buffer: await this.toBuffer(),
+      metadata: this.metadata,
       filePath: this.filePath
     }
   }
@@ -206,7 +207,7 @@ export default class TarPackage implements IPackage {
     return outPath
   }
   async extract(destPath: string, onProgress?: ProgressListener | undefined): Promise<string> {
-    throw new Error('Method not implemented.');
+    return extractPackage(this, destPath, onProgress)
   }
   async printEntries() {
     const entries = await this.getEntries()

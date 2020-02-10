@@ -83,7 +83,7 @@ export default class ZipPackage implements IPackage {
   async getContent(relativePath: string) : Promise<Buffer> {
     const entry = await this.getEntry(relativePath)
     // TODO standardize errors
-    if (!entry) throw new Error('entry does not exist')
+    if (!entry) throw new Error('entry does not exist: '+relativePath)
     if (entry.file.isDir) throw new Error('entry is not a file')
     return entry.file.readContent()
   }
@@ -108,6 +108,7 @@ export default class ZipPackage implements IPackage {
   async getObjectData(): Promise<any> {
     return {
       buffer: await this.toBuffer(),
+      metadata: this.metadata,
       filePath: this.filePath
     }
   }
