@@ -1,9 +1,11 @@
-import { IRepository, IRelease, FetchOptions } from "./IRepository"
-import { download } from "../Downloader"
-import { parseXml } from "../util"
-import { hasPackageExtension, hasSignatureExtension, removeExtension } from "../utils/FilenameUtils"
-import { extractPlatformFromString, extractArchitectureFromString, extractVersionFromString, versionToDisplayVersion } from "../utils/FilenameHeuristics"
-import { datestring } from "../utils/PackageUtils"
+import url from 'url'
+import { IRepository, IRelease, FetchOptions } from './IRepository'
+import { download } from '../Downloader'
+import { parseXml } from '../util'
+import { hasPackageExtension, hasSignatureExtension, removeExtension } from '../utils/FilenameUtils'
+import { extractPlatformFromString, extractArchitectureFromString, extractVersionFromString, versionToDisplayVersion } from '../utils/FilenameHeuristics'
+import { datestring } from '../utils/PackageUtils'
+import { ParsedSpec } from '../SpecParser'
 
 interface AzureBlob {
   Name: Array<string>
@@ -57,7 +59,7 @@ export default class AzureRepository implements IRepository {
     md5AtoB = md5AtoB.split('').map(char => ('0' + char.charCodeAt(0).toString(16)).slice(-2)).join('')
 
     // FIXME use url parser
-    const baseUrl = this.repositoryUrl.split("?").shift()
+    const baseUrl = this.repositoryUrl.split('?').shift()
 
     const location = `${baseUrl}/${fileName}`
 
@@ -87,9 +89,12 @@ export default class AzureRepository implements IRepository {
     return release
   }
   
-  async listReleases(options? : FetchOptions): Promise<IRelease[]> {
+  async listReleases(options : FetchOptions = {}): Promise<IRelease[]> {
     // console.time('download')
-    const parameterizedUrl = this.repositoryUrl
+    let parameterizedUrl = this.repositoryUrl
+    if (options.prefix) {
+      parameterizedUrl += `&prefix=${options.prefix}`
+    }
     const result = await download(parameterizedUrl)
     // console.timeEnd('download')
 
@@ -141,5 +146,9 @@ export default class AzureRepository implements IRepository {
     })
 
     return packages
+  }
+
+  static handlesSpec(spec: ParsedSpec) : ParsedSpec | undefined {
+    return undefined
   }
 }
