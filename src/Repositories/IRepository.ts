@@ -6,6 +6,7 @@ export interface FetchOptions {
   prefix? : string // server-side processed name- / path-filter. default: undefined
   timeout? : number // time in ms for request timeouts.
   skipCache? : boolean // if cached files should be ignored. default: false 
+  cache?: string | Array<string> // user defined path to cache dir(s) where to look for packages 
   pagination?: boolean | number // is pagination should be used and number of pages
   limit?: number // number of results
 }
@@ -26,6 +27,10 @@ export interface IRelease {
 
   location?: string; // download url or path to package
   remote? : boolean; // if package is available locally or only remote
+}
+export function instanceOfIRelease(obj: any): obj is IRelease {
+  //TODO ['displayVersion', 'channel'].some(p => obj[p])
+  return obj.fileName && obj.version
 }
 
 export interface IRepository {
