@@ -3,7 +3,7 @@ import path from 'path'
 import { assert } from 'chai'
 import { IPackage, IPackageEntry } from '../PackageManager/IPackage'
 import * as SignerUtils from './SignerUtils'
-import { getPackage } from '../PackageManager/PackageService'
+import { toPackage } from '../PackageManager/PackageService'
 import { sign } from '.'
 import { IVerificationResult, ISignerInfo } from '../IVerificationResult'
 import { toIFile } from '../utils/PackageUtils'
@@ -42,22 +42,22 @@ describe('SignerUtils', function() {
 
   describe('calculateDigests = async (pkg: IPackage, alg = "sha512") : Promise<Digests>', function() {
     it('calculates the sha5125 checksums / digests of all files within a compressed .tar.gz package', async () => {
-      const pkg = await getPackage(UNSIGNED_FOO_TAR)
+      const pkg = await toPackage(UNSIGNED_FOO_TAR)
       const digests = await SignerUtils.calculateDigests(pkg)
       assert.isDefined(digests)
       const { sha512 } = digests
       assert.equal(Object.keys(sha512).length, 2)
     })
     it('calculates the sha5125 checksums / digests of all files within a decompressed .tar package', async () => {
-      const pkg = await getPackage(UNSIGNED_FOO_TAR_DECOMPRESSED)
+      const pkg = await toPackage(UNSIGNED_FOO_TAR_DECOMPRESSED)
       const digests = await SignerUtils.calculateDigests(pkg)
       assert.isDefined(digests)
       const { sha512 } = digests
       assert.equal(Object.keys(sha512).length, 2)
     })
     it('produces the same digests for the same files inside different containers (.tar and .tar.gz)', async () => {
-      const pkg = await getPackage(UNSIGNED_FOO_TAR)
-      const pkg2 = await getPackage(UNSIGNED_FOO_TAR_DECOMPRESSED)
+      const pkg = await toPackage(UNSIGNED_FOO_TAR)
+      const pkg2 = await toPackage(UNSIGNED_FOO_TAR_DECOMPRESSED)
       const digests = await SignerUtils.calculateDigests(pkg)
       const digests2 = await SignerUtils.calculateDigests(pkg2)
       const { sha512 } = digests
@@ -65,13 +65,13 @@ describe('SignerUtils', function() {
       assert.deepEqual(sha512, _sha512)
     })
     it('ignores files contained in the _META_ special dir of signed packages', async () => {
-      const pkg = await getPackage(SIGNED_FOO_TAR)
+      const pkg = await toPackage(SIGNED_FOO_TAR)
       const digests = await SignerUtils.calculateDigests(pkg)
       assert.isDefined(digests)
       assert.deepEqual(digests, SIGNED_FOO_DIGESTS)
     })
     it('allows to specify an alternative hash function', async () => {
-      const pkg = await getPackage(SIGNED_FOO_TAR)
+      const pkg = await toPackage(SIGNED_FOO_TAR)
       const digests = await SignerUtils.calculateDigests(pkg, 'md5')
       assert.isDefined(digests)
       const { md5 } = digests
@@ -81,14 +81,14 @@ describe('SignerUtils', function() {
 
   describe('compareDigests = (digestsFile: Digests, calculatedDigests: Digests) : boolean', function() {
     it('compares two digest/checksum maps and returns true if they have ALL the same files/keys and checksums/values', async () => {
-      const pkg = await getPackage(UNSIGNED_FOO_TAR)
+      const pkg = await toPackage(UNSIGNED_FOO_TAR)
       const digests1 = await SignerUtils.calculateDigests(pkg)
       const digests2 = await SignerUtils.calculateDigests(pkg)
       const result = SignerUtils.compareDigests(digests1, digests2)
       assert.isTrue(result)
     })
     it('throws if one Digests map is empty or has fewer keys', async () => {
-      const pkg = await getPackage(UNSIGNED_FOO_TAR)
+      const pkg = await toPackage(UNSIGNED_FOO_TAR)
       const digests = await SignerUtils.calculateDigests(pkg)
       const empty = {'sha512': {}}
       assert.throws(() => {
@@ -169,7 +169,7 @@ describe('SignerUtils', function() {
       }
     })
     it('can compare _checksums.json inside a signed package with a computed digest map', async () => {
-      const pkg = await getPackage(SIGNED_FOO_TAR)
+      const pkg = await toPackage(SIGNED_FOO_TAR)
       const checksumsPath = await SignerUtils.checksumsPath(pkg)
       const digestsFile = JSON.parse((await pkg.getContent(checksumsPath)).toString())
       const digests = await SignerUtils.calculateDigests(pkg)
@@ -184,7 +184,7 @@ describe('SignerUtils', function() {
 
   describe('createPayload = async (pkg : IPackage)', function() {
     it('calculates the unserialized jws payload', async () => {
-      const pkg = await getPackage(SIGNED_FOO_TAR)
+      const pkg = await toPackage(SIGNED_FOO_TAR)
       const payload = await SignerUtils.createPayload(pkg)
       assert.isDefined(payload.data)
     })
@@ -193,12 +193,12 @@ describe('SignerUtils', function() {
   describe('getSignatureEntriesFromPackage = async (pkg : IPackage, address? : string) : Promise<Array<IPackageEntry>>', function() {
     // TODO test with more than one
     it('returns all signatures from a signed package', async () => {
-      const pkg = await getPackage(SIGNED_FOO_TAR)
+      const pkg = await toPackage(SIGNED_FOO_TAR)
       const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg)
       assert.equal(signatures.length, 1)
     })
     it('returns an empty array from an unsigned package', async () => {
-      const pkg = await getPackage(UNSIGNED_FOO_TAR)
+      const pkg = await toPackage(UNSIGNED_FOO_TAR)
       const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg)
       assert.equal(signatures.length, 0)
     })
@@ -206,7 +206,7 @@ describe('SignerUtils', function() {
 
   describe('verifySignature = async (signatureEntry : IPackageEntry, digests : Digests) : Promise<IVerificationResult>', function() {
     it('verifies a signature entry containing a jws when passed pkg digests and returns IVerificationResult', async () => {
-      const pkg = await getPackage(SIGNED_FOO_TAR)
+      const pkg = await toPackage(SIGNED_FOO_TAR)
       const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
       assert.isDefined(signatureEntry)
       const result = await SignerUtils.verifySignature(<IPackageEntry>signatureEntry, SIGNED_FOO_DIGESTS)
@@ -214,7 +214,7 @@ describe('SignerUtils', function() {
     })
     describe('performs integrity checks:', function() {
       it('returns isValid=false if the signature applies to different file digests than the actual ones from package', async () => {
-        const pkg = await getPackage(SIGNED_FOO_TAR)
+        const pkg = await toPackage(SIGNED_FOO_TAR)
         const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
         // the passed-in digests are considered "ground truth" so even if the signature is actually valid
         // passing in different checksums should result in invalid signature
@@ -228,7 +228,7 @@ describe('SignerUtils', function() {
         assert.isFalse(result.isValid)
       })
       it('returns isValid=false if the signature applies to fewer files than the package contains at the moment (no partial signatures)', async () => {
-        const pkg = await getPackage(SIGNED_FOO_TAR)
+        const pkg = await toPackage(SIGNED_FOO_TAR)
         const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
         const SIGNED_FOO_DIGESTS_UPDATED =  {
           sha512: {
@@ -241,7 +241,7 @@ describe('SignerUtils', function() {
         assert.isFalse(result.isValid)
       })
       it('adding new files invalidates all included signatures', async () => {
-        const pkg = await getPackage(SIGNED_FOO_TAR)
+        const pkg = await toPackage(SIGNED_FOO_TAR)
         const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
         // package modification: adding new files invalidates included signature
         const newEntry = await toIFile('new/entry.txt', 'hello world')
@@ -251,7 +251,7 @@ describe('SignerUtils', function() {
         assert.isFalse(result.isValid)
       })
       it('modifying the content of files inside the package invalidates all included signatures', async () => {
-        const pkg = await getPackage(SIGNED_FOO_TAR)
+        const pkg = await toPackage(SIGNED_FOO_TAR)
         const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
         // package modification: overwriting files invalidates included signature
         let c = await pkg.getContent('./foo.txt')
@@ -268,7 +268,7 @@ describe('SignerUtils', function() {
         // TODO needs implementation in IPackage
       })
       it('re-signing after files were added to pkg results in a valid signature again', async () => {
-        const pkg = await getPackage(SIGNED_FOO_TAR)
+        const pkg = await toPackage(SIGNED_FOO_TAR)
         const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
         // package modification: adding new files invalidates included signature
         const newEntry = await toIFile('new/entry.txt', 'hello world')
@@ -283,7 +283,7 @@ describe('SignerUtils', function() {
     })
     describe('the signers array contains a single ISignerInfo object', async () => {
       it('which includes the recovered ethereum address of the signer', async () => {
-        const pkg = await getPackage(SIGNED_FOO_TAR)
+        const pkg = await toPackage(SIGNED_FOO_TAR)
         const signatureEntry = await pkg.getEntry('_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json')
         const result : IVerificationResult = await SignerUtils.verifySignature(<IPackageEntry>signatureEntry, SIGNED_FOO_DIGESTS)
         const { signers } = result
@@ -296,7 +296,7 @@ describe('SignerUtils', function() {
       })
       it('the recovered address should match the address part of the file name', async () => {
         const FILEPATH = '_META_/_sig_0xf863ac227b0a0bca88cb2ff45d91632626ce32e7.json'
-        const pkg = await getPackage(SIGNED_FOO_TAR)
+        const pkg = await toPackage(SIGNED_FOO_TAR)
         const signatureEntry = await pkg.getEntry(FILEPATH)
         const result : IVerificationResult = await SignerUtils.verifySignature(<IPackageEntry>signatureEntry, SIGNED_FOO_DIGESTS)
         const { signers } = result
