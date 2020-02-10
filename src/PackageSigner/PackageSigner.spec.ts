@@ -5,7 +5,7 @@ import * as PackageSigner from '.'
 import { IPackage } from '../PackageManager/IPackage'
 import * as SignerUtils from './SignerUtils'
 import TarPackage from '../PackageManager/TarPackage'
-import { getPackage } from '../PackageManager/PackageService'
+import { toPackage } from '../PackageManager/PackageService'
 import { writeEntry, toIFile } from '../utils/PackageUtils'
 
 const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', 'hex')
@@ -91,17 +91,17 @@ describe('PackageSigner', function() {
 
   describe('isValid = async (pkgSpec: PackageData) : Promise<boolean>', function() {
     it('returns true if the package is signed AND ALL signatures are <valid>: the signed digests match and cover the actual digests/current state of the package', async () => {
-      const pkg = await getPackage(MULTISIGNED_FOO_TAR)
+      const pkg = await toPackage(MULTISIGNED_FOO_TAR)
       const result = await PackageSigner.isValid(pkg)
       assert.isTrue(result)
     })
     it('returns false if the package is unsigned', async () => {
-      const pkg = await getPackage(UNSIGNED_FOO_TAR)
+      const pkg = await toPackage(UNSIGNED_FOO_TAR)
       const result = await PackageSigner.isValid(pkg)
       assert.isFalse(result)
     })
     it('returns false if the package contains ANY invalid/malformed signature', async () => {
-      const pkg = await getPackage(MULTISIGNED_CORRUPTED_FOO_TAR)
+      const pkg = await toPackage(MULTISIGNED_CORRUPTED_FOO_TAR)
       const result = await PackageSigner.isValid(pkg)
       assert.isFalse(result)
     })
@@ -110,12 +110,12 @@ describe('PackageSigner', function() {
 
     })
     it('returns false if the package contents are not covered 100% by all signatures', async () => {
-      const pkg = await getPackage(MULTISIGNED_INVALID_FOO_TAR)
+      const pkg = await toPackage(MULTISIGNED_INVALID_FOO_TAR)
       const result = await PackageSigner.isValid(pkg)
       assert.isFalse(result)
     })
     it('returns false if the package contains ANY expired signature', async () => {
-      const pkg = await getPackage(EXPIRED_SIGNED_FOO_TAR)
+      const pkg = await toPackage(EXPIRED_SIGNED_FOO_TAR)
       const result = await PackageSigner.isValid(pkg)
       assert.isFalse(result)
     })
@@ -178,7 +178,7 @@ describe('PackageSigner', function() {
     })
     it('overrides the signature of a signed package when same key is used and extends expiration field', async () => {
       const buf = fs.readFileSync(SIGNED_FOO_TAR)
-      const pkg = await getPackage(buf)
+      const pkg = await toPackage(buf)
       const jws = await SignerUtils.getSignature(pkg, ETH_ADDRESS_1)
       if (!jws) {
         return assert.fail('Package should already be signed by: '+ETH_ADDRESS_1)

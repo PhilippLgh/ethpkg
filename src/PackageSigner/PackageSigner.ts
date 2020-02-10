@@ -5,7 +5,7 @@ import ISigner from './ISigner'
 import { IVerificationResult, ISignerInfo } from '../IVerificationResult'
 import * as SignerUtils from './SignerUtils'
 import { isKeyfile, getPrivateKey } from './KeyStoreUtils'
-import { getPackage, PackageData } from '../PackageManager/PackageService'
+import { toPackage, PackageData } from '../PackageManager/PackageService'
 import { createHeader, ALGORITHMS, IFlattenedJwsSerialization } from '../jws'
 import { getSigner, PrivateKeyInfo, PublicKeyInfo } from './KeyService'
 import { toIFile } from '../utils/PackageUtils'
@@ -49,7 +49,7 @@ const writeSignatureEntry = async (pkg: IPackage, jws: IFlattenedJwsSerializatio
 }
 
 export const isSigned = async (pkgSpec: PackageData) : Promise<boolean> => {
-  const pkg = await getPackage(pkgSpec)
+  const pkg = await toPackage(pkgSpec)
   const signatures = await SignerUtils.getSignatureEntriesFromPackage(pkg)
   return signatures.length > 0
 }
@@ -78,7 +78,7 @@ export const sign = async (pkgSpec: PackageData, privateKey: PrivateKeyInfo, opt
   
   let pkg 
   try {
-    pkg = await getPackage(pkgSpec)
+    pkg = await toPackage(pkgSpec)
   } catch (error) {
     throw new Error(VERIFICATION_ERRORS.BAD_PACKAGE)
   }
@@ -122,7 +122,7 @@ export const verify = async (pkgSpec: PackageData, publicKeyInfo?: PublicKeyInfo
   
   let pkg 
   try {
-    pkg = await getPackage(pkgSpec)
+    pkg = await toPackage(pkgSpec)
     if (!pkg) throw new Error('Package could not be fetched for specifier: '+pkgSpec)
   } catch (error) {
     return verificationError(VERIFICATION_ERRORS.BAD_PACKAGE)
