@@ -1,10 +1,23 @@
 import { IRelease } from '../Repositories/IRepository'
 import { ISerializable } from './ISerializable'
+import { StateListener } from '../IStateListener'
 
-export type ProgressListener = (progress: number, filePath: string) => void
+export interface WritePackageOptions {
+  overwrite?: boolean; // should overwrite existing pkg with same name
+  compression?: boolean;
+}
+
+export interface CreatePackageOptions {
+  listener?: StateListener
+}
+
+export interface ExtractPackageOptions {
+  listener?: StateListener
+}
 
 export interface IPackage extends ISerializable {
   fileName: string;
+  filePath?: string;
   metadata?: IRelease;
   loadBuffer(buf : Buffer) : Promise<IPackage>;
   getEntries() : Promise<Array<IPackageEntry>>;
@@ -12,8 +25,9 @@ export interface IPackage extends ISerializable {
   getContent(relativePath : string) : Promise<Buffer>; 
   addEntry(relativePath : string, file: IFile) : Promise<string>;
   toBuffer() : Promise<Buffer>;
-  writePackage(outPath: string): Promise<string>;
-  extract(destPath: string, onProgress?: ProgressListener) : Promise<string>;
+  writePackage(outPath: string, options?: WritePackageOptions): Promise<string>;
+  extract(destPath: string, options?: ExtractPackageOptions) : Promise<string>;
+  // static create(dirPathOrName: string, options?: CreatePackageOptions)
 }
 
 export function instanceofIPackage(object: any): object is IPackage {

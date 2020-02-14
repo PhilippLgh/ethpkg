@@ -1,12 +1,13 @@
-import path from 'path'
-import fs from 'fs'
+import path, { relative } from 'path'
+import fs, { realpath } from 'fs'
 import zlib from 'zlib'
-import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
+import { IPackage, IPackageEntry, IFile, WritePackageOptions, CreatePackageOptions, ExtractPackageOptions } from './IPackage'
 import tarStream from 'tar-stream'
-import { streamToBuffer, bufferToStream, streamPromise, isDirSync, extractPackage } from '../util'
+import { streamToBuffer, bufferToStream, streamPromise, isDirSync, isFileSync, extractPackage } from '../util'
 import { getExtension } from '../utils/FilenameUtils'
 import { relativePathEquals } from '../utils/PackageUtils'
 import { IRelease } from '../Repositories/IRepository'
+import { PROCESS_STATES } from '../IStateListener'
 
 export default class TarPackage implements IPackage {
 
@@ -193,7 +194,13 @@ export default class TarPackage implements IPackage {
       filePath: this.filePath
     }
   }
-  async writePackage(outPath: string): Promise<string> {
+  async writePackage(outPath: string, {
+    overwrite = false,
+    compression = true // TODO handle compression param
+  } : WritePackageOptions = {}): Promise<string> {
+    if (fs.existsSync(outPath) && !overwrite) {
+      throw new Error('Package exists already! Use "overwrite" options')
+    }
     if (this.isGzipped && (!(outPath.endsWith('.tgz') || outPath.endsWith('.tar.gz')))){
       throw new Error('Attempt to write compressed into a decompressed file: consider using ".tar.gz" or ".tgz" or explicitly decompress')
     }
@@ -206,14 +213,18 @@ export default class TarPackage implements IPackage {
     await streamPromise(s)
     return outPath
   }
-  async extract(destPath: string, onProgress?: ProgressListener | undefined): Promise<string> {
-    return extractPackage(this, destPath, onProgress)
+  async extract(destPath: string, {
+    listener = undefined
+  } : ExtractPackageOptions = {}): Promise<string> {
+    return extractPackage(this, destPath, listener)
   }
   async printEntries() {
     const entries = await this.getEntries()
     console.log(entries.map(e => e.relativePath).join('\n'))
   }
-  static async create(dirPathOrName : string) : Promise<TarPackage> {
+  static async create(dirPathOrName : string, {
+    listener = () => {}
+  } : CreatePackageOptions = {}) : Promise<TarPackage> {
     // pack is a streams2 stream
     const pack = tarStream.pack()
     const dirPath = path.basename(dirPathOrName) === dirPathOrName ? undefined : dirPathOrName
@@ -224,6 +235,9 @@ export default class TarPackage implements IPackage {
           const content = fs.readFileSync(filePath)
           const relativePath = path.relative(dirPath, filePath)
           let entry = pack.entry({ name: relativePath }, content)
+          listener(PROCESS_STATES.CREATE_PACKAGE_PROGRESS, {
+            file: relativePath
+          })
           entry.on('finish', () => {
             resolve()
           })
@@ -235,12 +249,15 @@ export default class TarPackage implements IPackage {
         // console.log('write dir', dirPath)
         const fileNames = fs.readdirSync(dirPath)
         for (const fileName of fileNames) {
+          // TODO implement listener
           const fullPath = path.join(dirPath, fileName)
           if (isDirSync(fullPath)){
             await writeDirToPackStream(fullPath)
-          } else {
+          } 
+          else if(isFileSync(fullPath)){
             await writeFileToPackStream(fullPath)
           }
+          // else ignore symlinks etc
         }
       }
       await writeDirToPackStream(dirPath)

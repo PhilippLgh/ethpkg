@@ -1,10 +1,11 @@
 import path from 'path'
 import fs from 'fs'
-import { IPackage, IPackageEntry, IFile, ProgressListener } from './IPackage'
+import { IPackage, IPackageEntry, IFile, CreatePackageOptions, WritePackageOptions, ExtractPackageOptions } from './IPackage'
 import JSZip from 'jszip'
-import { extractPackage, isDirSync, localFileToIFile } from '../util'
+import { extractPackage, isDirSync, localFileToIFile, isFileSync } from '../util'
 import { IRelease } from '../Repositories/IRepository'
 import { toIFile } from '../utils/PackageUtils'
+import { PROCESS_STATES } from '../IStateListener'
 
 export default class ZipPackage implements IPackage {
 
@@ -12,7 +13,7 @@ export default class ZipPackage implements IPackage {
   private zip : JSZip | undefined
   fileName = '<unknown>'
   metadata?: IRelease
-  private filePath: string | undefined
+  readonly filePath: string | undefined
 
   constructor(packagePathOrName: string) {
     this.filePath = packagePathOrName || ''
@@ -112,31 +113,44 @@ export default class ZipPackage implements IPackage {
       filePath: this.filePath
     }
   }
-  async extract(destPath: string, onProgress: ProgressListener = (p, f) => {}) : Promise<string> {
-    return extractPackage(this, destPath, onProgress)
+  async extract(destPath: string, {
+    listener = undefined
+  } : ExtractPackageOptions = {}) : Promise<string> {
+    return extractPackage(this, destPath, listener)
   }
-  async writePackage(filePath : string, useCompression = true) {
+  async writePackage(outPath : string, {
+    overwrite = false,
+    compression = true
+  } : WritePackageOptions = {}) {
+    if (fs.existsSync(outPath) && !overwrite) {
+      throw new Error('Package exists already! Use "overwrite" options')
+    }
     await this.tryLoad()
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
     let options : any = {type: 'nodebuffer', compression: 'DEFLATE'}
-    if(!useCompression){
+    if(!compression){
       delete options.compression
     }
     const content = await this.zip.generateAsync(options)
-    fs.writeFileSync(filePath, content)
-    return filePath
+    fs.writeFileSync(outPath, content)
+    return outPath
   }
-  static async create(dirPathOrName : string) : Promise<ZipPackage> {
+  static async create(dirPathOrName : string, {
+    listener = () => {}
+  } : CreatePackageOptions = {}) : Promise<ZipPackage> {
     const dirPath = path.basename(dirPathOrName) === dirPathOrName ? undefined : dirPathOrName
     const packageName = dirPath ? path.basename(dirPathOrName) : dirPathOrName
 
     const pkg = new ZipPackage(packageName).init()
 
     const writeFileToPackage = async (fullPath: string) => {
-      const relPath = path.relative(<string>dirPath, fullPath)
-      await pkg.addEntry(relPath, localFileToIFile(fullPath))
+      const relativePath = path.relative(<string>dirPath, fullPath)
+      listener(PROCESS_STATES.CREATE_PACKAGE_PROGRESS, {
+        file: relativePath
+      })
+      await pkg.addEntry(relativePath, localFileToIFile(fullPath))
     }
 
     const writeDirToPackage = async (dirPath: string) => {
@@ -146,9 +160,10 @@ export default class ZipPackage implements IPackage {
         const fullPath = path.join(dirPath, fileName)
         if (isDirSync(fullPath)){
           await writeDirToPackage(fullPath)
-        } else {
+        } else if (isFileSync(fullPath)) {
           await writeFileToPackage(fullPath)
         }
+        // else ignore symlinks etc
       }
     }
 
