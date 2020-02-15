@@ -43,7 +43,7 @@ export const extractPlatformFromString = (str : string) => {
     return 'windows'
   }
   if (str.includes('darwin') || str.includes('mac') || str.includes('macos')) {
-    return 'mac'
+    return 'darwin'
   }
   if (str.includes('linux')) {
     return 'linux'
