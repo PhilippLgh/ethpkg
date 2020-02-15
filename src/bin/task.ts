@@ -56,6 +56,9 @@ export const startNewTask = (name: string) => {
       }
       _spinner.succeed(chalk.bold(text || `${name}\t\t || Time: ${time()} ms ||`))
     },
+    fail: (text?: string) => {
+      _spinner.fail(text)
+    },
     time
   }
 }
