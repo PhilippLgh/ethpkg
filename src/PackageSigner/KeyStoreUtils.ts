@@ -7,7 +7,7 @@ const Wallet = require('ethereumjs-wallet')
 const secp256k1 = require('secp256k1')
 const asn1 = require('asn1.js')
 
-const SUPPORTED_KEYFILE_VERSIONS = [3]
+const SUPPORTED_KEYFILE_VERSIONS = [3, 'ethpkg-3']
 
 // https://github.com/ethereum/go-ethereum/wiki/Backup-&-restore#data-directory
 const getDefaultDataDir = () => {
@@ -19,7 +19,7 @@ const getDefaultDataDir = () => {
   }
 }
 
-export const getKeyStorePath = async () : Promise<string> => {
+export const getKeyStorePath = () : string => {
   // TODO support different network IDs
   const dataDir = getDefaultDataDir().replace('~', os.homedir())
   const keystore = path.join(dataDir, 'keystore')
@@ -37,9 +37,11 @@ export const listKeys = async (keystorePath?: string) : Promise<Array<KeyFileInf
   const keystore = keystorePath || await getKeyStorePath()
   // TODO we could filter keys here for e.g. a prefix like 'ethpkg' to avoid misuse
   const keyFiles = fs.readdirSync(keystore).map(f => {
+    let address = f.split('--').pop() || ''
+    address = address.startsWith('0x') ?  address : `0x${address}`
     return {
       // FIXME this is very fragile: parsing the address would be better but slower
-      address: '0x' + f.split('--').pop(),
+      address,
       fileName: f,
       filePath: path.join(keystore, f)
     }
@@ -131,9 +133,9 @@ const getPrivateKeyFromPEM = async (keyfilePath: string) : Promise<Buffer | unde
     const BEGIN_ARMOR = '-----BEGIN EC PRIVATE KEY-----'
     str = str.substring(
       str.lastIndexOf(BEGIN_ARMOR) + BEGIN_ARMOR.length, 
-      str.lastIndexOf("-----END EC PRIVATE KEY-----")
+      str.lastIndexOf('-----END EC PRIVATE KEY-----')
     )
-    return str.split('\n').map(l => l.replace(/\s/g, "")).filter(l => !l.startsWith('-----')).join('')
+    return str.split('\n').map(l => l.replace(/\s/g, '')).filter(l => !l.startsWith('-----')).join('')
   }
 
   if (!fs.existsSync(keyfilePath)) {
