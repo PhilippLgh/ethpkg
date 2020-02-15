@@ -1,4 +1,4 @@
-import fs, { lstatSync } from 'fs'
+import fs from 'fs'
 import path from 'path'
 import { IPackage, instanceofIPackage } from './IPackage'
 
@@ -17,6 +17,9 @@ import ZipPackage from './ZipPackage'
 import { isDirSync, ConstructorOf } from '../util'
 import RepositoryManager from '../Repositories/RepositoryManager'
 import { isArray } from 'util'
+import { StateListener, PROCESS_STATES } from '../IStateListener'
+import KeyStore from '../PackageSigner/KeyStore'
+import { SignPackageOptions } from '../PackageSigner'
 
 // browser / webpack support
 if (!fs.existsSync) {
@@ -55,10 +58,27 @@ const packageFactory = async (info: SerializationInfo) : Promise<IPackage | unde
 
 export interface PackOptions {
   type?: string;
+  listener?: StateListener;
+  filePath?: string; // if package should be written to disk
+  overwrite?: boolean; // if existing package should be overwritten
+}
+
+export interface PublishOptions {
+  repo?: string;
+  listener?: StateListener;
 }
 
 export interface PackageManagerOptions {
-  cache?: string | ICache<any>
+  cache?: string | ICache<ISerializable>
+}
+
+type PasswordCallback = () => Promise<string> | string
+
+export interface GetSigningKeyOptions {
+  keyStore?: string; // path where to search for keys
+  password?: string | PasswordCallback
+  listener?: StateListener,
+  selectKeyCallback?: Function,
 }
 
 export default class PackageManager {
@@ -69,7 +89,6 @@ export default class PackageManager {
 
   private signers: Array<ISigner> = []
 
-  // FIXME type options
   constructor(options?: PackageManagerOptions) {
 
     this.repoManager = new RepositoryManager()
@@ -122,24 +141,34 @@ export default class PackageManager {
     }
   }
 
-  async createPackage(srcDirPathOrName: string, options?: PackOptions) : Promise<IPackage> {
-    //  determine the package type e.g zip / tar based on out path
-    options = Object.assign({
-      type: 'tar'
-    }, options)
+  async createPackage(srcDirPathOrName: string, {
+    type = 'tar',
+    listener = () => {},
+    filePath = undefined,
+    overwrite = false
+  }: PackOptions = {}) : Promise<IPackage> {
 
+    const createPackageOptions = {
+      listener: listener,
+      compress: true
+    }
+
+    listener(PROCESS_STATES.CREATE_PACKAGE_STARTED)
+    // TODO determine the package type e.g zip / tar based on out path
     let pkg
-    if (options.type === 'zip') {
-      pkg = await ZipPackage.create(srcDirPathOrName)
+    if (type === 'zip') {
+      pkg = await ZipPackage.create(srcDirPathOrName, createPackageOptions)
     } else {
-      pkg = await TarPackage.create(srcDirPathOrName)
+      pkg = await TarPackage.create(srcDirPathOrName, createPackageOptions)
+    }
+    listener(PROCESS_STATES.CREATE_PACKAGE_FINISHED, { name: pkg.fileName, pkg })
+
+    if(filePath) {
+      await pkg.writePackage(filePath, {
+        overwrite
+      })
     }
 
-    /*
-    if(pkgOutPath) {
-      await pkg.writePackage(pkgOutPath)
-    }
-    */
     return pkg
   }
 
@@ -166,16 +195,27 @@ export default class PackageManager {
    * Downloads a package to disk
    * A combination of resolve, fetchPackage and verify. Steps can be specified through download options
    */
-  private async downloadPackage(release: IRelease, options?: DownloadPackageOptions) : Promise<IPackage> {
-
-    options = Object.assign({}, options)
+  private async downloadPackage(release: IRelease, {
+    proxy = undefined,
+    headers = undefined,
+    onDownloadProgress = undefined,
+    listener = undefined,
+    destPath = undefined,
+    extract = false,
+    verify = true
+  } : DownloadPackageOptions = {}) : Promise<IPackage> {
 
     const fetcher = new Fetcher(this.repoManager)
-    const buf = await fetcher.downloadPackage(release, options)
+    const buf = await fetcher.downloadPackage(release, {
+      proxy,
+      headers,
+      onDownloadProgress,
+      listener
+    })
     const pkg = await toPackage(buf, release) // != this.getPackage
 
     // TODO if download options verify
-    if (options.verify) {
+    if (verify) {
       /*
       let addressOrEnsName = undefined
       if (verifyWith.length > 0) {
@@ -190,9 +230,8 @@ export default class PackageManager {
     }
 
     const isDirPath = (str:string) => !path.extname(str)
-    if (options.destPath) {
-      let destPath = path.resolve(options.destPath)
-      console.log('is dir?', path.extname(destPath), destPath, isDirPath(destPath))
+    if (destPath) {
+      destPath = path.resolve(destPath)
       if (isDirPath(destPath)) {
         if(isDirSync(destPath)) {
           destPath = path.join(destPath, release.fileName)
@@ -203,18 +242,16 @@ export default class PackageManager {
           })
         }
       }
-      console.log('write package to disk', destPath, release.fileName)
       await pkg.writePackage(destPath)
       if(pkg.metadata) {
         pkg.metadata.remote = false // indicate that local version is available
       }
-      console.log('package written to', destPath)
     }
 
-    if (options.extract) {
-      if (options.destPath && isDirSync(options.destPath)) {
-        await pkg.extract(options.destPath, () => {
-
+    if (extract) {
+      if (destPath && isDirSync(destPath)) {
+        await pkg.extract(destPath, {
+          listener
         })
         // TODO stateListener(PROCESS_STATES.EXTRACT_FINISHED, { location, size: packageData.length, release })
       }
@@ -253,6 +290,7 @@ export default class PackageManager {
     if (instanceOfPackageQuery(pkgSpec)) {
       try {
         const release = await this.resolve(pkgSpec, options)
+        // console.log('resolved to', release)
         if (!release) {
           throw new Error(`Package query "${pkgSpec}" could not be resolved`)
         }
@@ -269,21 +307,83 @@ export default class PackageManager {
 
       const release : IRelease = pkgSpec
 
-      // TODO handle caching
       // TODO write tests
       if (options && options.cache && fs.existsSync(options.cache)) {
+
         let cachedData = path.join(options.cache, release.fileName)
         if (fs.existsSync(cachedData)) {
           const pkg = await toPackage(cachedData)
           pkg.metadata = release
+          pkg.filePath = cachedData
+          pkg.metadata.remote = false // indicate that it was loaded from cache
           return pkg
         }
       }
 
-      return this.downloadPackage(release, options)
+      const pkg = await this.downloadPackage(release, options)
+
+      if(pkg.metadata && options && options.cache) {
+        fs.writeFileSync(path.join(options.cache, `${pkg.fileName}.json`), JSON.stringify(pkg.metadata))
+      }
+
+      return pkg
     }
 
-    throw new Error('unsupported input type for package')
+    throw new Error('Unsupported input type for package')
+  }
+
+  /**
+   * Helps to select or create a designated signing key
+   */
+  async getSigningKey({
+    keyStore = undefined,
+    password = undefined,
+    listener = () => {},
+    selectKeyCallback = undefined,
+  } : GetSigningKeyOptions = {}) {
+
+    const getPassword = async () => {
+      if (!password) {
+        throw new Error('No password provided to encrypt key')
+      }
+      if (typeof password === 'function') {
+        password = await password()
+        if (!password) {
+          throw new Error('Password callback proved no or invalid password')
+        }
+      } else {
+        return password
+      }
+    }
+
+    // TODO move to PackageSigner
+    const keystore = new KeyStore(keyStore)
+    const keys = await keystore.listKeys()
+    let keyPath // path to keyfile
+    let unlockedKey
+    if (keys.length === 0) {
+      listener(PROCESS_STATES.CREATE_SIGNING_KEY_STARTED)
+      const password = await getPassword()
+      const { filePath, key } = await keystore.createKey({
+        password
+      })
+      unlockedKey = key
+      // TODO allow user to backup key
+      listener(PROCESS_STATES.CREATE_SIGNING_KEY_FINISHED, { keyPath: filePath})
+      keyPath = filePath
+    } else if(keys.length > 1) {
+      if (typeof selectKeyCallback === 'function') {
+        keyPath = await selectKeyCallback(keys)
+        const password = await getPassword()
+        // keyStore.getUnlockedKey(key, password)
+      } else {
+        throw new Error('Ambiguous keys')
+      }
+    } else {
+      keyPath = keys[0].filePath
+    }
+
+    return keyPath
   }
 
   async addSigner(signer: ISigner) : Promise<void> {
@@ -301,9 +401,9 @@ export default class PackageManager {
   /**
    * Signs a package or directory
    */
-  async signPackage(pkg: PackageData, privateKey: Buffer /*| ISigner*/, pkgPathOut? : string) : Promise<IPackage> {
+  async signPackage(pkg: PackageData, privateKey: Buffer /*| ISigner*/, options?: SignPackageOptions) : Promise<IPackage> {
     // TODO support all package specifier options that this.getPackage supports
-    return PackageSigner.sign(pkg, privateKey, pkgPathOut)
+    return PackageSigner.sign(pkg, privateKey, options)
   }
 
   async verifyPackage(pkg: PackageData, addressOrEnsName? : string) : Promise<IVerificationResult> {
@@ -313,10 +413,17 @@ export default class PackageManager {
   /**
    * 
    */
-  async publishPackage(pkgSpec: PackageData, repoSpecifier: string = 'ipfs') {
+  async publishPackage(pkgSpec: PackageData, options: string | PublishOptions) {
     const pkg = typeof pkgSpec === 'string' ? await this.getPackage(pkgSpec) : pkgSpec
-    /* FIXME
-    const repo = await getRepository(repoSpecifier, {})
+    options = {
+      repo: typeof options === 'string' ? options : options.repo || 'ianu'
+    }
+    const repoSpecifier = options.repo as string
+    const listener = options.listener
+    const repo = await this.repoManager.getRepository({
+      repo: repoSpecifier,
+      input: repoSpecifier
+    })
     if (!repo) {
       throw new Error('Repository not found for specifier: '+repoSpecifier)
     }
@@ -325,8 +432,9 @@ export default class PackageManager {
       throw new Error('Repository does not implement publish')
     }
     // @ts-ignore
-    const result = await repo.publish(pkg)
+    const result = await repo.publish(pkg, {
+      listener
+    })
     return result
-    */
   }
 }
