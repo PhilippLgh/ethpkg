@@ -4,7 +4,7 @@ import Fetcher from '.'
 
 describe('Fetcher', () => {
   
-  describe('async listReleases(spec: PackageQuery, options: FetchOptions): Promise<IRelease[]>', function() {
+  describe.skip('async listReleases(spec: PackageQuery, options: FetchOptions): Promise<IRelease[]>', function() {
 
     this.timeout(60 * 1000)
 
@@ -76,9 +76,17 @@ describe('Fetcher', () => {
 
   })
 
-  describe('async getRelease(spec: PackageQuery, options: ResolvePackageOptions = {}) : Promise<IRelease | undefined>', () => {
-    it ('fetches the release info based on a query and additional filter options', async () => {
+  describe('async getRelease(spec: PackageQuery, options: ResolvePackageOptions = {}) : Promise<IRelease | undefined>', function() {
+    this.timeout(60 * 1000)
+    it('fetches the release info based on a query and additional filter options', async () => {
       
+    })
+
+    it.only('handles queries with filenames', async () => {
+      const query = 'azure:gethstore@geth-alltools-linux-amd64-1.9.11-unstable-38d1b0cb.tar.gz '
+      const fetcher = new Fetcher()
+      const result = await fetcher.getRelease(query)
+      assert.isDefined(result)
     })
   })
   
