@@ -4,13 +4,49 @@ import { PackageQuery } from './Fetcher/Fetcher'
 
 describe('SpecParser', () => {
 
-  const queries : Array<PackageQuery> = [
-    'github:ethereum/remix-ide',
-    'azure:gethstore',
-    'npm:philipplgh/ethpkg',
-    'npm:ethpkg',
-    'bintray:hyperledger-org/besu-repo/besu',
-    'azure:gethstore/geth-alltools-darwin-amd64-1.9.8-unstable-22e3bbbf.tar.gz'
+  const queries = [
+    {
+      input: 'github:ethereum/remix-ide',
+      expected: {
+        repo: 'github',
+        project: 'remix-ide'
+      }
+    },
+    {
+      input: 'azure:gethstore',
+      expected: {
+        repo: 'azure',
+        project: 'gethstore'
+      }
+    },
+    {
+      input: 'npm:philipplgh/ethpkg',
+      expected: {
+        repo: 'npm',
+        project: 'ethpkg'
+      }
+    },
+    { 
+      input: 'npm:ethpkg',
+      expected: {
+        repo: 'npm',
+        project: 'ethpkg'
+      }
+    },
+    { 
+      input: 'bintray:hyperledger-org/besu-repo/besu',
+      expected: {
+        repo: 'bintray',
+        project: 'besu-repo/besu'
+      } 
+    },
+    { 
+      input: 'azure:gethstore@geth-alltools-darwin-amd64-1.9.8-unstable-22e3bbbf.tar.gz',
+      expected: {
+        repo: 'azure',
+        project: 'gethstore'
+      }
+    }
   ]
 
   const versionedSpecs = [
@@ -36,11 +72,12 @@ describe('SpecParser', () => {
   
   describe('static async parseSpec(spec: string) : Promise<ParsedSpec>', () => {
     for (const spec of queries) {
-      it (`parses query: "${spec}"`, async () => {
-        const result = await SpecParser.parseSpec(spec)
+      const { input, expected } = spec
+      it (`parses query: "${input}"`, async () => {
+        const result = await SpecParser.parseSpec(input)
         assert.isDefined(result)
-        assert.isDefined(result.repo)
-        assert.isDefined(result.project)
+        assert.equal(result.repo, expected.repo)
+        assert.equal(result.project, expected.project)
       })
     }
     for (const spec of versionedSpecs) {

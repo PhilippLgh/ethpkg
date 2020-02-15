@@ -1,5 +1,6 @@
 import { isUrl } from './util'
 import url from 'url'
+import { hasPackageExtension } from './utils/FilenameUtils'
 
 export interface ParsedSpec {
   repo?: string;
@@ -52,24 +53,50 @@ export default class Parser {
         throw new Error(`SpecParser error for "${spec}": ${error.message}`)
       }
     }
-    const parts = spec.split(':')
-    if (parts.length > 0) {
-      const repo = parts[0]
-      const package_parts = parts[1].split('/')
-      const owner = package_parts.length > 1 ? package_parts.shift() : undefined
-      let project = package_parts.length === 1 ? package_parts[0] : package_parts.join('/')
-      // parses ethpkg@1.0.0
+    const getRepo = (spec : string) => {
+      const parts = spec.split(':')
+      return parts.length > 1 ? parts[0] : undefined
+    }
+
+    const repo = getRepo(spec)
+    if (!repo) {
+      throw new Error('Malformed query')
+    }
+    spec = spec.slice(repo.length + 1)
+
+    const getVersion = (project: string) => {
       const project_parts = project.split('@')
       const version = project_parts.length > 1 ? project_parts[1] : undefined
       if (project_parts.length > 1) {
         project = project.substring(0, project.indexOf('@'))
       }
       return {
+        version,
+        project
+      }
+    }
+
+    const parts = spec.split('/')
+    if (parts.length > 1) {
+      const owner = parts.shift()
+      const project = parts.join('/')
+      const { version, project: projectParsed } = getVersion(project)
+      return {
+        input: spec,
         repo,
         owner,
-        project,
-        version,
-        input: spec
+        project: projectParsed,
+        version
+      }
+    } else if(parts.length === 1) {
+      const project = parts[0]
+      const { version, project: projectParsed } = getVersion(project)
+      return {
+        input: spec,
+        repo,
+        owner: undefined,
+        project: projectParsed,
+        version: version
       }
     }
     throw new Error(`SpecParser error: no parser found for "${spec}"`)
