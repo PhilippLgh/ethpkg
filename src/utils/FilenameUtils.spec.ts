@@ -21,7 +21,7 @@ describe('FilenameUtils', () => {
     }
   })
 
-  describe('hasPackageExtension = (fileName : string | undefined) : boolean', () => {
+  describe.only('hasPackageExtension = (fileName : string | undefined) : boolean', () => {
     const testCases = [
       { fileName: 'foo.jpg', expected: false },
       { fileName: 'foo.zip', expected: true },
@@ -34,6 +34,7 @@ describe('FilenameUtils', () => {
       { fileName: '.zip.asc', expected: false },
       { fileName: '', expected: false },
       { fileName: undefined, expected: false },
+      { fileName: 'geth-alltools-linux-amd64-1.9.11-unstable-38d1b0cb.tar.gz ', expected: true}
     ]
     for (const testCase of testCases) {
       const { fileName, expected } = testCase

@@ -15,7 +15,8 @@ export const getExtension = (fileName : string) : string => {
 }
 
 export const hasPackageExtension = (fileName : string | undefined) : boolean => {
-  if (fileName === undefined) return false
+  if (!fileName) return false
+  fileName = fileName.trim()
   const ext = getExtension(fileName)
   return PACKAGE_EXTENSIONS.includes(ext)
 }
