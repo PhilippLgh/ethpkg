@@ -155,12 +155,6 @@ describe('PackageSigner', function() {
     it.skip('signs a package using an ISigner service', async () => {
 
     })
-    it.skip('signs a package and writes it to disk if passed a destination path', async () => {
-      const buf = fs.readFileSync(UNSIGNED_FOO_TAR)
-      assert.isFalse(fs.existsSync(SIGNED_FOO_TAR), 'signed package should not exist on disk before test')
-      const pkgSigned = await PackageSigner.sign(buf, Buffer.from(PRIVATE_KEY_1), SIGNED_FOO_TAR)
-      assert.isTrue(fs.existsSync(SIGNED_FOO_TAR), 'signed package should exist on disk after test')
-    })
     it('adds a signature to a signed package when different keys are used', async () => {
       const buf = fs.readFileSync(SIGNED_FOO_TAR)
       const verificationInfoBefore = await PackageSigner.verify(buf)

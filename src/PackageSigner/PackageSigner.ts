@@ -4,11 +4,16 @@ import * as jws from '../jws'
 import ISigner from './ISigner'
 import { IVerificationResult, ISignerInfo } from '../IVerificationResult'
 import * as SignerUtils from './SignerUtils'
-import { isKeyfile, getPrivateKey } from './KeyStoreUtils'
 import { toPackage, PackageData } from '../PackageManager/PackageService'
 import { createHeader, ALGORITHMS, IFlattenedJwsSerialization } from '../jws'
 import { getSigner, PrivateKeyInfo, PublicKeyInfo } from './KeyService'
 import { toIFile } from '../utils/PackageUtils'
+import { StateListener, PROCESS_STATES } from '../IStateListener'
+
+export interface SignPackageOptions {
+  expiresIn?: number,
+  listener?: StateListener
+}
 
 const VERIFICATION_ERRORS : any = {
   UNSIGNED: 0,
@@ -74,7 +79,10 @@ const isTrusted = async (pkgSpec: PackageData, publicKeyInfo?: PublicKeyInfo) : 
   }
 }
 
-export const sign = async (pkgSpec: PackageData, privateKey: PrivateKeyInfo, options: any = {}) : Promise<IPackage> => {
+export const sign = async (pkgSpec: PackageData, privateKey: PrivateKeyInfo, {
+  expiresIn = undefined,
+  listener = () => {}
+}: SignPackageOptions = {}) : Promise<IPackage> => {
   
   let pkg 
   try {
@@ -92,23 +100,30 @@ export const sign = async (pkgSpec: PackageData, privateKey: PrivateKeyInfo, opt
   const address = await signer.getAddress()
 
   // create the content to be used as the JWS Payload.
+  listener(PROCESS_STATES.CREATE_PAYLOAD_STARTED)
   const payload = await SignerUtils.createPayload(pkg, {
-    expiresIn: options.expiresIn
+    expiresIn
   })
+  listener(PROCESS_STATES.CREATE_PAYLOAD_FINISHED, { payload })
+
   const header = createHeader({
     algorithm: ALGORITHMS.EC_SIGN, // TODO use when node, use eth_sign when browser (metamask)
     address
   })
   // sign payload according to RFC7515 Section 5.1
+
+  listener(PROCESS_STATES.SIGNING_PAYLOAD_STARTED)
   const flattenedJwsSerialization =  await jws.sign(payload, signer, header)
   if (!flattenedJwsSerialization) {
     throw new Error('jws signing failed')
   }
+  listener(PROCESS_STATES.SIGNING_PAYLOAD_FINISHED)
 
   // add entries
+  listener(PROCESS_STATES.ADDING_SIGNATURE_METADATA_STARTED)
   await writeChecksumsJson(pkg, payload)
-
   await writeSignatureEntry(pkg, flattenedJwsSerialization, address)
+  listener(PROCESS_STATES.ADDING_SIGNATURE_METADATA_FINISHED)
 
   return pkg
 }
