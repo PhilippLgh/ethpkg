@@ -2,10 +2,10 @@ import fs, { WriteStream } from 'fs'
 import path from 'path'
 import stream, { Readable, Writable } from 'stream'
 import ZipPackage from './PackageManager/ZipPackage'
-import { IPackage } from './PackageManager/IPackage'
+import { IPackage, IFile } from './PackageManager/IPackage'
 // @ts-ignore
 import { parseString } from 'xml2js'
-import { ProgressListener, IFile } from './PackageManager/IPackage'
+import { StateListener, PROCESS_STATES } from './IStateListener'
 
 // const keythereum = require('keythereum')
 
@@ -30,14 +30,26 @@ export const isDirSync = (filePath : string | undefined) => {
   }
   try {
     const fileStats = fs.lstatSync(filePath);
-    return fileStats.isDirectory()
+    return fileStats.isDirectory() && !fileStats.isSymbolicLink()
+  } catch (error) {
+    return false
+  }
+}
+
+export const isFileSync = (filePath : string | undefined) => {
+  if (filePath === undefined) {
+    return false
+  }
+  try {
+    const fileStats = fs.lstatSync(filePath);
+    return fileStats.isFile && !fileStats.isSymbolicLink() && !fileStats.isFIFO() && !fileStats.isSocket()
   } catch (error) {
     return false
   }
 }
 
 // FIXME note that this is not performance optimized and we do multiple runs on the package data stream
-export const extractPackage = async (pkg : IPackage, destPath: string, onProgress: ProgressListener = (p, f) => {}) => {
+export const extractPackage = async (pkg : IPackage, destPath: string, listener?: StateListener) => {
   // get a list of all entries in the package
   const entries = await pkg.getEntries()
   // iterate over all entries and write them to disk next to the package
@@ -76,9 +88,12 @@ export const extractPackage = async (pkg : IPackage, destPath: string, onProgres
     }
     // TODO change to size based progress?
     const progress = Math.floor((100 / entries.length) * ++i)
-    if (onProgress) {
+    if (listener) {
       try {
-        onProgress(progress, entry.file.name)
+        listener(PROCESS_STATES.EXTRACT_PACKAGE_PROGRESS, {
+          progress, 
+          file: entry.file.name
+        })
       } catch (error) {
         console.log('error in onProgress handler')
       }
