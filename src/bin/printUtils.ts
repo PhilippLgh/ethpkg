@@ -50,11 +50,13 @@ export const printFormattedRelease = (release?: IRelease) => {
 export const printFormattedPackageContents = async (pkg: IPackage) => {
   const entries = await pkg.getEntries()
   const printEntries = entries.slice(0, 30)
-  console.log('Files', entries.length, ':')
+  console.log(`Files ${entries.length}:`)
 
   const lengthLongestPath = printEntries.reduce((prev: IPackageEntry, cur: IPackageEntry) => prev.relativePath.length > cur.relativePath.length ? prev : cur).relativePath.length
   console.log(printEntries.map(e => `- ${e.relativePath} ${' '.repeat(lengthLongestPath - e.relativePath.length)} ${formatBytes(e.file.size) || 'NaN'}`).join('\n'))
-  console.log(entries.length - printEntries.length, 'More files')
+  if (entries.length > 30) {
+    console.log(entries.length - printEntries.length, 'More files')
+  }
 }
 
 export const printFormattedPackageInfo = async (pkg?: IPackage) => {
@@ -137,15 +139,31 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
         task.succeed(cb)
         break;
       }
+      case PROCESS_STATES.CREATE_PACKAGE_STARTED: {
+        task = startTask('Creating package')
+        break;
+      }
+      case PROCESS_STATES.CREATE_PACKAGE_PROGRESS: {
+        const { file } = args
+        if (task) {
+          task.updateText(`Packing file: "${file}" ...`)
+        }
+        break;
+      }
+      case PROCESS_STATES.CREATE_PACKAGE_FINISHED: {
+        const { pkg } = args
+        task.succeed(`Package created ${pkg.fileName}`)
+        break;
+      }
     }
   }
   return {
     listener,
-    print: (text: string, {isTask = true} = {}) => {
+    print: (text: string, {isTask = true, bold = true} = {}) => {
       if (isTask) {
         startNewTask(text).succeed(text)
       } else {
-        console.log(chalk.bold(text))
+        console.log(bold ? chalk.bold(text) : text)
       }
     },
     fail: (error: Error | string) => {
