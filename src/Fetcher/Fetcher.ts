@@ -279,7 +279,6 @@ export default class Fetcher {
       listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { release: resolved, platform, version })
       return undefined
     }
-
     // notify client about process end
     listener(PROCESS_STATES.RESOLVE_PACKAGE_FINISHED, { release: resolved, platform, version })
 
@@ -305,7 +304,7 @@ export default class Fetcher {
       if (progressNew > progress) {
         progress = progressNew;
          // console.log(`downloading update..  ${pn}%`)
-        stateListener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress, release })
+        stateListener(PROCESS_STATES.DOWNLOAD_PROGRESS, { progress, release, size: release.size })
         if (typeof onDownloadProgress === 'function') {
           onDownloadProgress(progress, release)
         }
