@@ -1,3 +1,4 @@
+import path from 'path'
 import { Command, command, param } from 'clime'
 import PackageManager from '../../PackageManager/PackageManager'
 import { createCLIPrinter } from '../printUtils'
@@ -35,6 +36,13 @@ export default class extends Command {
       
     } catch (error) {
       printer.fail(error)
+    }
+    if(!pkg) {
+      return printer.fail('Package could not be downloaded')
+    }
+    if (!destPath) {
+      destPath = path.join(process.cwd(), pkg.fileName)
+      await pkg.writePackage(destPath)
     }
     // console.log('buffer length', packageBuf.length)
     printer.print(`File written to ${destPath}`)
