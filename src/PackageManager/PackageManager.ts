@@ -233,15 +233,15 @@ export default class PackageManager {
     if (destPath) {
       destPath = path.resolve(destPath)
       if (isDirPath(destPath)) {
-        if(isDirSync(destPath)) {
-          destPath = path.join(destPath, release.fileName)
-        } else {
+        if(!isDirSync(destPath)) {
           // TODO try create dir if non-existent dir path
           fs.mkdirSync(destPath, {
             recursive: true
           })
         }
+        destPath = path.join(destPath, release.fileName)
       }
+      pkg.filePath = destPath
       await pkg.writePackage(destPath)
       if(pkg.metadata) {
         pkg.metadata.remote = false // indicate that local version is available
