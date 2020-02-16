@@ -114,25 +114,26 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
         break;
       } 
       case PROCESS_STATES.RESOLVE_PACKAGE_FINISHED: {
-        if (task) {
-          // task.succeed()
-        }
+        const { release } = args
+        startTask(`Resolving Package`).succeed(`Package query resolved to: `)
+        // TODO await?
+        printFormattedRelease(release)
         break;
       }
       case PROCESS_STATES.DOWNLOAD_STARTED: {
-        task = startTask('[2/2] Downloading package...')
+        task = startTask('Downloading package...')
         break;
       }
       case PROCESS_STATES.DOWNLOAD_PROGRESS: {
-        const { progress } = args
+        const { progress, size } = args
         if (task) {
-          task.updateText(chalk.green(`[2/2] Downloading package... ${progress}%`))
+          task.updateText(chalk.greenBright(`Downloading package... ${progress}% \t|| ${formatBytes(progress / 100 *  size)} / ${formatBytes(size)} ||`))
         }
         break;
       }
       case PROCESS_STATES.DOWNLOAD_FINISHED: {
         const { size } = args
-        let cb : FormatCallback = ({ taskName, timeMs }) => `${taskName}\t\t || Time: ${timeMs} ms || Size: ${formatBytes(size)} || Speed: ${ ((size / 1024) / (timeMs / 1000)).toFixed(2) } KB/s`
+        let cb : FormatCallback = ({ taskName, timeMs }) => `${taskName}\t\t || Time: ${timeMs} ms || Size: ${formatBytes(size)} || Speed: ${ ((size / 1024) / (timeMs / 1000)).toFixed(2) } KB/s ||`
         task.succeed(cb)
         break;
       }
@@ -140,6 +141,13 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
   }
   return {
     listener,
+    print: (text: string, {isTask = true} = {}) => {
+      if (isTask) {
+        startNewTask(text).succeed(text)
+      } else {
+        console.log(chalk.bold(text))
+      }
+    },
     fail: (error: Error | string) => {
       if (task) {
         task.fail(typeof error === 'string' ? error : error.message)
