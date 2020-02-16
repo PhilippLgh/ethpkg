@@ -21,6 +21,9 @@ export default class extends Command {
     })
     destPath: string
   ) {
+
+    destPath = path.resolve(destPath)
+
     const packageManager = new PackageManager()
     const printer = createCLIPrinter()
     printer.print(`Download package: "${spec}"`, {
@@ -35,16 +38,12 @@ export default class extends Command {
       })
       
     } catch (error) {
-      printer.fail(error)
+      return printer.fail(error)
     }
     if(!pkg) {
       return printer.fail('Package could not be downloaded')
     }
-    if (!destPath) {
-      destPath = path.join(process.cwd(), pkg.fileName)
-      await pkg.writePackage(destPath)
-    }
     // console.log('buffer length', packageBuf.length)
-    printer.print(`File written to ${destPath}`)
+    printer.print(`File written to ${pkg.filePath}`)
   }
 }
