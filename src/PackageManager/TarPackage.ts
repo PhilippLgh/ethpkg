@@ -4,7 +4,7 @@ import zlib from 'zlib'
 import { IPackage, IPackageEntry, IFile, WritePackageOptions, CreatePackageOptions, ExtractPackageOptions } from './IPackage'
 import tarStream from 'tar-stream'
 import { streamToBuffer, bufferToStream, streamPromise, isDirSync, isFileSync, extractPackage } from '../util'
-import { getExtension } from '../utils/FilenameUtils'
+import { getExtension, hasPackageExtension } from '../utils/FilenameUtils'
 import { relativePathEquals } from '../utils/PackageUtils'
 import { IRelease } from '../Repositories/IRepository'
 import { PROCESS_STATES } from '../IStateListener'
@@ -218,17 +218,21 @@ export default class TarPackage implements IPackage {
   } : ExtractPackageOptions = {}): Promise<string> {
     return extractPackage(this, destPath, listener)
   }
-  async printEntries() {
+  async printPackageInfo() {
     const entries = await this.getEntries()
     console.log(entries.map(e => e.relativePath).join('\n'))
   }
   static async create(dirPathOrName : string, {
+    compressed = true,
     listener = () => {}
   } : CreatePackageOptions = {}) : Promise<TarPackage> {
     // pack is a streams2 stream
-    const pack = tarStream.pack()
+    const pack : any = tarStream.pack() 
     const dirPath = path.basename(dirPathOrName) === dirPathOrName ? undefined : dirPathOrName
-    const packageName = dirPath ? path.basename(dirPathOrName) : dirPathOrName
+    let packageName = dirPath ? path.basename(dirPathOrName) : dirPathOrName
+    if (!hasPackageExtension(packageName)) {
+      packageName += (compressed ? '.tgz' : 'tar')
+    }
     if (dirPath) {
       const writeFileToPackStream = (filePath: string) => {
         return new Promise(async (resolve, reject) => {
@@ -262,8 +266,10 @@ export default class TarPackage implements IPackage {
       }
       await writeDirToPackStream(dirPath)
     }
+
+    let strm = compressed ? pack.pipe(zlib.createGzip()) : pack
     pack.finalize()
-    const packageBuffer = await streamToBuffer(pack)
+    const packageBuffer = await streamToBuffer(strm)
     const t = new TarPackage(packageName, false)
     await t.loadBuffer(packageBuffer)
     return t

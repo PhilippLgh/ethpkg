@@ -60,6 +60,7 @@ export interface PackOptions {
   type?: string;
   listener?: StateListener;
   filePath?: string; // if package should be written to disk
+  compressed?: boolean;
   overwrite?: boolean; // if existing package should be overwritten
 }
 
@@ -145,6 +146,7 @@ export default class PackageManager {
     type = 'tar',
     listener = () => {},
     filePath = undefined,
+    compressed = true,
     overwrite = false
   }: PackOptions = {}) : Promise<IPackage> {
 
