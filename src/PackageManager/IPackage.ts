@@ -8,6 +8,7 @@ export interface WritePackageOptions {
 }
 
 export interface CreatePackageOptions {
+  compressed?: boolean,
   listener?: StateListener
 }
 
