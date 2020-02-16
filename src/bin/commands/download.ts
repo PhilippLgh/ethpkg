@@ -1,6 +1,6 @@
 import { Command, command, param } from 'clime'
 import PackageManager from '../../PackageManager/PackageManager'
-import boxen from 'boxen'
+import { createCLIPrinter } from '../printUtils'
 
 @command({
   description: 'finds a package and display release info',
@@ -21,8 +21,22 @@ export default class extends Command {
     destPath: string
   ) {
     const packageManager = new PackageManager()
-    const packagePath = await packageManager.downloadPackage(spec)
+    const printer = createCLIPrinter()
+    printer.print(`Download package: "${spec}"`, {
+      isTask: false
+    })
+    let pkg
+    try {
+      pkg = await packageManager.getPackage({
+        spec,
+        destPath,
+        listener: printer.listener
+      })
+      
+    } catch (error) {
+      printer.fail(error)
+    }
     // console.log('buffer length', packageBuf.length)
-    console.log('done.')
+    printer.print(`File written to ${destPath}`)
   }
 }
