@@ -1,6 +1,4 @@
 import { Command, command, param, Options, option, metadata } from 'clime'
-import fs from 'fs'
-import path from 'path'
 import { createCLIPrinter } from '../../printUtils'
 import { KeyStore } from '../../..'
 import { getPasswordFromUser } from '../../interactive'
