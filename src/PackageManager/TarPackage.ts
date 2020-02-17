@@ -203,7 +203,7 @@ export default class TarPackage implements IPackage {
     compression = true // TODO handle compression param
   } : WritePackageOptions = {}): Promise<string> {
     if (fs.existsSync(outPath) && !overwrite) {
-      throw new Error('Package exists already! Use "overwrite" options')
+      throw new Error('Package exists already! Use "overwrite" option')
     }
     if (this.isGzipped && (!(outPath.endsWith('.tgz') || outPath.endsWith('.tar.gz')))){
       throw new Error('Attempt to write compressed into a decompressed file: consider using ".tar.gz" or ".tgz" or explicitly decompress')

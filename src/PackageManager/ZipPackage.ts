@@ -131,7 +131,7 @@ export default class ZipPackage implements IPackage {
     compression = true
   } : WritePackageOptions = {}) {
     if (fs.existsSync(outPath) && !overwrite) {
-      throw new Error('Package exists already! Use "overwrite" options')
+      throw new Error('Package exists already! Use "overwrite" option')
     }
     await this.tryLoad()
     if(!this.zip) {
