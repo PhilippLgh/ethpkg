@@ -20,8 +20,10 @@ export class SignOptions extends Options {
   @option({
     flag: 'o',
     description: 'WARNING: will overwite package contents',
+    default: true
   })
   overwrite: boolean = false;
+  /*
   @option({
     flag: 'a',
     description: 'tries to auto-detect correct key for project',
@@ -37,6 +39,7 @@ export class SignOptions extends Options {
     description: 'creates a key',
   })
   createKey: boolean = false;
+  */
 }
 
 @command({
@@ -57,8 +60,10 @@ export default class extends Command {
       default: undefined
     })
     keyAlias?: string,
-    // options?: SignOptions,
+    options?: SignOptions,
   ) {
+
+    const printer = createCLIPrinter()
 
     /*
     TODO interactive mode
@@ -70,8 +75,16 @@ export default class extends Command {
     */
     inputPath = path.resolve(inputPath)
 
+    options = Object.assign({
+      overwrite: false
+    }, options)
+
+    let outPath = buildOutputPathSigned(inputPath)
+    if (fs.existsSync(outPath) && !options.overwrite) {
+      return printer.fail('Package exists already! Use "overwrite" option')
+    }
+
     const packageManager = new PackageManager()
-    const printer = createCLIPrinter()
 
     let pkg
     try {
@@ -119,15 +132,14 @@ export default class extends Command {
       return printer.fail('Something went wrong')
     }
 
-    let outPath = ''
     try {
-      outPath = buildOutputPathSigned(inputPath)
-      await pkg.writePackage(outPath)
+      await pkg.writePackage(outPath, {
+        overwrite: options.overwrite
+      })
     } catch (error) {
       return printer.fail(error)
     }
 
     printer.print(`Success! Package signed and written to ${outPath}`)
-
   }
 }
