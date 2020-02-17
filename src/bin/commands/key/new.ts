@@ -1,122 +1,57 @@
-import { Command, command, param, Options, option } from 'clime'
-import { prompt } from 'enquirer'
-
+import { Command, command, param, Options, option, metadata } from 'clime'
 import fs from 'fs'
 import path from 'path'
-// @ts-ignore
-// import keythereum from 'keythereum'
-import { getKeystorePath } from '../../../util';
-import { failed, succeed } from '../../task';
-
-
-/**
- * Generate filename for a keystore file.
- * @param {string} address Ethereum address.
- * @return {string} Keystore filename.
- */
-const generateKeystoreFilename = (project : string, address : string) => {
-  var filename = `ethpkg--UTC--${new Date().toISOString()}--${project}--${address}`
-  // Windows does not permit ":" in filenames, replace all with "-"
-  if (process.platform === "win32") filename = filename.split(":").join("-");
-  return filename;
-}
-
-let task = 'Generate new key'
-
-const getProjectNameFromPackageJson = () => {
-  const pkgJsonPath = path.join(process.cwd(), 'package.json')
-  if (fs.existsSync(pkgJsonPath)) {
-    try {          
-      const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'))
-      let {name, version} = pkgJson
-      name = name.replace('@', '')
-      name = name.replace('/', '-')
-      return `${name}-${version}`        
-    } catch (error) {
-      failed(task, 'project.json could not be parsed')
-    }
-  } else {
-    failed(task, 'project.json not found and no project identifier provided')
-  }
-}
+import { createCLIPrinter } from '../../printUtils'
+import { KeyStore } from '../../..'
+import { getPasswordFromUser } from '../../interactive'
 
 export class KeyOptions extends Options {
   @option({
-    flag: 'p',
-    description: 'project name',
+    flag: 'a',
+    description: 'alias name for key',
+    default: 'ethpkg'
   })
-  projectName?: string = '';
+  alias: string = 'ethpkg';
+  @option({
+    flag: 'p',
+    description: 'WARNING: use interactive mode: password for key',
+    required: false
+  })
+  password?: string = undefined;
 }
 
 @command({
-  description: 'create a new key for signing',
+  description: 'Create a new key for signing',
 })
 export default class extends Command {
+  @metadata
   public async execute(
-    @param({
-      name: 'out',
-      description: 'output path for keyfile',
-      required: false,
-    })
-    outPath?: string,
-    options?: KeyOptions,
+    options: KeyOptions,
   ) {  
-
-    const keystorePath = getKeystorePath()
-    try {      
-      if (!fs.existsSync(keystorePath)) {
-        fs.mkdirSync(keystorePath, { recursive: true })
-      }
-    } catch (error) {
-      failed(task, 'could not find or create keystore: '+ keystorePath)
-      return console.log('err',  error)
-    }
-
-    // fail fast: this block should be executed before password is asked for
-    let projectName = options && options.projectName
-    if(!outPath) {
-      if (!projectName) {
-        projectName = getProjectNameFromPackageJson()
-      }
-      // FIXME should ask / double check path in this case
-      if(!projectName) {
-        return failed(task, 'project.json not found and no project identifier provided')
-      }
-    }
-
-    const questionKeyPassword = {
-      type: 'password',
-      name: 'password',
-      message: `Enter password to encrypt key`
-    };
-    const { password } = await prompt(questionKeyPassword)
-    if (!password) {
-      return failed(task, 'password empty or invalid')
-    }
-
-    /*
-    const dk = keythereum.create()
-    const keyObject = keythereum.dump(password, dk.privateKey, dk.salt, dk.iv)
-    keyObject.usage = `ethpkg-${projectName}`
-    keyObject.version = ('ethpkg-'+keyObject.version)
-    */
-    const keyObject = {} // FIXME find keythereum replacement
-
-    if(!outPath) {
-      // @ts-ignore
-      const keyFileName = generateKeystoreFilename(projectName, keyObject.address)
-      outPath = path.join(keystorePath, keyFileName)
-    }
-
-    if (!path.isAbsolute(outPath)){
-      outPath = path.join(__dirname, outPath)
-    }
-
+    const keyManager = new KeyStore()
+    const { alias, password } = options
+    const printer = createCLIPrinter()
+    printer.print(`Creating a new key with alias "${alias}"`)
+    let keyInfo
     try {
-      const result = fs.writeFileSync(outPath, JSON.stringify(keyObject, null, 2))
-      succeed('Keyfile generated at '+outPath)
+      const result = await keyManager.createKey({
+        listener: printer.listener,
+        password: async () => {
+          if (password) {
+            return password
+          }
+          const userPassword = await getPasswordFromUser({ repeat: true})
+          return userPassword
+        }
+      })
+      keyInfo = result.info
     } catch (error) {
-      failed(task, 'Could not write keyfile to '+outPath)
+      printer.fail(error)
     }
+    if(!keyInfo) {
+      return printer.fail('Key could not be created')
+    }
+    const { address, filePath } = keyInfo
+    printer.print(`Success! New key with address ${address} created at:\n${filePath}`)
   }
 }
