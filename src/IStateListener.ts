@@ -23,6 +23,9 @@ export const PROCESS_STATES = {
   UNLOCKING_KEY_STARTED: 'unlocking_key_started',
   UNLOCKING_KEY_FINISHED: 'unlocking_key_finished',
 
+  FINDING_KEY_BY_ALIAS_STARTED: 'finding_key_by_alias_started',
+  FINDING_KEY_BY_ALIAS_FINISHED: 'finding_key_by_alias_finished',
+
   CREATE_SIGNING_KEY_STARTED: 'create_signing_key_started',
   CREATE_SIGNING_KEY_FINISHED: 'create_signing_key_finished',
 

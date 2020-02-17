@@ -18,7 +18,7 @@ import { isDirSync, isDirPath, ConstructorOf, isFilePath } from '../util'
 import RepositoryManager from '../Repositories/RepositoryManager'
 import { isArray } from 'util'
 import { StateListener, PROCESS_STATES } from '../IStateListener'
-import KeyStore, { PasswordCallback } from '../PackageSigner/KeyStore'
+import KeyStore, { PasswordCallback, getPassword } from '../PackageSigner/KeyStore'
 import { SignPackageOptions } from '../PackageSigner'
 import { KeyFileInfo } from '../PackageSigner/KeyFileInfo'
 
@@ -69,6 +69,7 @@ export interface GetSigningKeyOptions {
   keyStore?: string; // path where to search for keys
   password?: string | PasswordCallback
   listener?: StateListener,
+  alias?: string, // key alias or address
   selectKeyCallback?: (keys: Array<KeyFileInfo>) => Promise<KeyFileInfo>,
 }
 
@@ -348,6 +349,7 @@ export default class PackageManager {
     keyStore = undefined,
     password = undefined,
     listener = () => {},
+    alias = undefined, // TODO alias = address is not handled
     selectKeyCallback = undefined,
   } : GetSigningKeyOptions = {}) : Promise<Buffer> {
 
@@ -357,22 +359,28 @@ export default class PackageManager {
 
     // create new key
     if (keys.length === 0) {
-      password = await getPassword(password)
-      const { filePath, key } = await keystore.createKey({
+      const { info, key } = await keystore.createKey({
         password,
         listener
       })
-      let privateKey = key.getPrivateKey()
       // TODO allow user to backup key
+      let privateKey = key.getPrivateKey()
       return privateKey
     } 
-    if (keys.length > 1 && typeof selectKeyCallback !== 'function') {
-      throw new Error('Ambiguous signing keys and no select callback provided')
-    }
-    const selectedKey = keys.length > 1 ? await (<Function>selectKeyCallback)(keys) : keys[0]
-    
-    if (!selectedKey) {
-      throw new Error('Callback to select a key did not result in a valid key selection')
+
+    let selectedKey
+    if (keys.length > 1) {
+      if (alias) {
+        listener(PROCESS_STATES.FINDING_KEY_BY_ALIAS_STARTED, { alias })
+        selectedKey = await keystore.getKeyByAlias(alias)
+        listener(PROCESS_STATES.FINDING_KEY_BY_ALIAS_FINISHED, { alias, key: selectedKey })
+      }
+      if (!selectedKey && typeof selectKeyCallback === 'function') {
+        selectedKey = await (<Function>selectKeyCallback)(keys)
+      } 
+      if (!selectedKey) {
+        throw new Error('Ambiguous signing keys and no select callback or alias provided')
+      }
     }
 
     password = await getPassword(password)

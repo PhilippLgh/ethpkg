@@ -51,11 +51,12 @@ export default class extends Command {
     })
     inputPath: string,
     @param({
-      name: 'key file',
-      description: 'path to key file',
+      name: 'alias',
+      description: 'key alias or address',
       required: false,
+      default: undefined
     })
-    keyFilePath?: string,
+    keyAlias?: string,
     // options?: SignOptions,
   ) {
 
@@ -82,6 +83,7 @@ export default class extends Command {
       }
 
       const privateKey = await packageManager.getSigningKey({
+        alias: keyAlias,
         listener: printer.listener,
         password: async () => {
           const password = await getPasswordFromUser()

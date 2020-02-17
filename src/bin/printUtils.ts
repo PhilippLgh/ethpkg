@@ -180,6 +180,16 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
         task.succeed(`Key unlocked ${address}`)
         break;
       }
+      case PROCESS_STATES.FINDING_KEY_BY_ALIAS_STARTED: {
+        const { alias } = args
+        task = startTask(`Finding key by alias "${alias}"`)
+        break;
+      }
+      case PROCESS_STATES.FINDING_KEY_BY_ALIAS_FINISHED: {
+        const { alias, key } = args
+        task.succeed(`Key found by alias "${alias}": ${key && key.address}`)
+        break;
+      }
     }
   }
   return {

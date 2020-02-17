@@ -33,6 +33,7 @@ export default class extends Command {
     let keyInfo
     try {
       const result = await keyManager.createKey({
+        alias,
         listener: printer.listener,
         password: async () => {
           if (password) {

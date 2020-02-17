@@ -11,7 +11,7 @@ const Wallet = require('ethereumjs-wallet')
  * @return {string} Keystore filename.
  */
 const generateKeystoreFilename = (address : string) => {
-  var filename = `ethpkg--UTC--${new Date().toISOString()}--${address}`
+  var filename = `ethpkg--UTC--${new Date().toISOString().split(':').join('-')}--${address}`
   // Windows does not permit ":" in filenames, replace all with "-"
   if (process.platform === 'win32') filename = filename.split(':').join('-');
   return filename;
@@ -20,6 +20,8 @@ const generateKeystoreFilename = (address : string) => {
 const sleep = (t: number) : Promise<string> => new Promise((resolve, reject) => {
   setTimeout(() => resolve(`slept ${t} ms`), t)
 })
+
+const KEYFILE_VERSION = 'ethpkg-3'
 
 export interface CreateKeyOptions {
   password?: string | PasswordCallback
@@ -31,6 +33,12 @@ export const getPrivateKeyFromKeyfile = async (keyfilePath: string, password: st
   let w
   try {
     w = JSON.parse(fs.readFileSync(keyfilePath, 'utf8'))
+    if ('alias' in w) {
+      delete w.alias
+    }
+    if (w.version === KEYFILE_VERSION) {
+      w.version = 3
+    }
   } catch (error) {
     throw new Error('Key cannot be parsed')
   }
@@ -41,7 +49,7 @@ export const getPrivateKeyFromKeyfile = async (keyfilePath: string, password: st
 
 export type PasswordCallback = () => Promise<string> | string
 
-const getPassword = async (password: string | PasswordCallback | undefined) : Promise<string> =>  {
+export const getPassword = async (password: string | PasswordCallback | undefined) : Promise<string> =>  {
   if (!password) {
     throw new Error('No password provided to de/encrypt key')
   }
@@ -69,6 +77,22 @@ export default class KeyStore {
     const keys = await this.listKeys()
     const selectedKey = keys.find(k => k.address === address)
     return selectedKey
+  }
+  async getKeyByAlias(alias: string): Promise<KeyFileInfo | undefined> {
+    const keys = await this.listKeys()
+    const fullKeys = keys.map(k => {
+      try {
+        return JSON.parse(fs.readFileSync(k.filePath, 'utf8'))
+      } catch (error) {
+        return undefined
+      }
+    }).filter(k => k !== undefined)
+    const aliasKey = fullKeys.find(k => k.alias && k.alias.includes(alias))
+    if (!aliasKey) {
+      return undefined
+    }
+
+    return keys.find(k => k.address.toLowerCase() == `0x${aliasKey.address.toLowerCase()}`)
   }
   async unlockKey(addressOrKey: string | KeyFileInfo, password: string, listener: StateListener = () => {}) {
     let key
@@ -98,7 +122,7 @@ export default class KeyStore {
     listener(PROCESS_STATES.CREATE_SIGNING_KEY_STARTED)
     const key = Wallet.generate()
     const json = key.toV3(password)
-    json.version = 'ethpkg-3'
+    json.version = KEYFILE_VERSION
     json.alias = [alias]
     const address = key.getChecksumAddressString()
     const fileName = generateKeystoreFilename(address)
