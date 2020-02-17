@@ -1,3 +1,6 @@
+import { StateListener } from '../IStateListener'
+import { IPackage } from '../PackageManager/IPackage'
+
 export interface FetchOptions {
   filter?: (release: IRelease) => boolean; // custom filter logic
   filterInvalid?: boolean // if corrupted or invalid releases should be removed from list
@@ -9,6 +12,11 @@ export interface FetchOptions {
   cache?: string | Array<string> // user defined path to cache dir(s) where to look for packages 
   pagination?: boolean | number // is pagination should be used and number of pages
   limit?: number // number of results
+  listener?: StateListener
+}
+
+export interface PublishOptions {
+  listener?: StateListener;
 }
 
 export interface IRelease {
@@ -37,4 +45,5 @@ export interface IRepository {
   readonly name : string // used e.g. for logging
   // repositoryUrl?: string
   listReleases(options?: FetchOptions): Promise<Array<(IRelease)>>
+  publish?: (pkg: IPackage, options?: PublishOptions) => Promise<IRelease>
 }
