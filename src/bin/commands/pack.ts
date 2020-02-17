@@ -53,7 +53,7 @@ export default class extends Command {
       await pkg.writePackage(filePath)
       printer.print(`Package written to: ${filePath}`)
     } catch (error) {
-      printer.fail('Could not write package: '+error.message)
+      return printer.fail('Could not write package: '+error.message)
     }
   }
 }

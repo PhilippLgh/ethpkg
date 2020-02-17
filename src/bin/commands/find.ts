@@ -3,7 +3,7 @@ import PackageManager from '../../PackageManager/PackageManager'
 import { printFormattedRelease, createCLIPrinter } from '../printUtils'
 
 @command({
-  description: 'Finds a package and display release info',
+  description: 'Finds a package and displays its release info',
 })
 export default class extends Command {
   public async execute(
