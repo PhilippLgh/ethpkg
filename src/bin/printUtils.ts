@@ -9,6 +9,7 @@ import { startNewTask, FormatCallback } from './task'
 import { formatBytes } from '../util'
 import { recursiveSearch } from './utils'
 import { format } from 'path'
+import { IVerificationResult } from '../IVerificationResult'
 
 /**
  * Takes a list of IRelease objects and prints them as a table
@@ -46,26 +47,40 @@ export const printFormattedRelease = (release?: IRelease) => {
   console.log(boxen(JSON.stringify(release, undefined, 2)))
 }
 
-
-export const printFormattedPackageContents = async (pkg: IPackage) => {
+export const printFormattedPackageEntries = async (pkg: IPackage) => {
   const entries = await pkg.getEntries()
   const printEntries = entries.slice(0, 30)
-  console.log(`Files ${entries.length}:`)
-
   const lengthLongestPath = printEntries.reduce((prev: IPackageEntry, cur: IPackageEntry) => prev.relativePath.length > cur.relativePath.length ? prev : cur).relativePath.length
   console.log(printEntries.map(e => `- ${e.relativePath} ${' '.repeat(lengthLongestPath - e.relativePath.length)} ${formatBytes(e.file.size) || 'NaN'}`).join('\n'))
   if (entries.length > 30) {
     console.log(entries.length - printEntries.length, 'More files')
   }
+  return entries
 }
 
-export const printFormattedPackageInfo = async (pkg?: IPackage) => {
+export const printFormattedPackageInfo = async (pkg?: IPackage, verificationInfo?: IVerificationResult) => {
   if (!pkg) {
     return console.log('Cannot inspect invalid package')
   }
-  await printFormattedPackageContents(pkg)
+
+  let { fileName, filePath, metadata, size } = pkg
+  let { name, version /*, size*/ } = metadata || {}
+
+  console.log(`📦 ${fileName}@${version}`)
+  console.log('=== Package Contents ===')
+  const entries = await printFormattedPackageEntries(pkg)
+  console.log('=== Package Details ===')
+  console.log(`name:          ${name}`)
+  console.log(`version:       ${version}`)
+  console.log(`filename:      ${fileName}`)
+  console.log(`package size:  ${formatBytes(size)}`)
+    // unpacked size: 1.9 kB    
+  // shasum:        b7682338f315f0b4f
+  // integrity:     sha512-iALBTO+6YH[...]GsfqhVK/bNExA==
+  console.log(`total files:   ${entries.length}`)
+
   /*
-  const verificationInfo = await packageManager.verifyPackage(pkg)
+  console.log('=== Signature Details ===')
   const signatureInfo = boxen(`${JSON.stringify(verificationInfo, undefined, 2)}`, {
     borderColor: 'cyanBright' // TODO color based on signature status: green, yellow, red
   })
@@ -111,7 +126,7 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
         break;
       }
       case PROCESS_STATES.RESOLVE_PACKAGE_STARTED: {
-        // FIXME wraps multiple
+        // WARNING: wraps multiple
         // task = startTask('[1/2] Resolving package...')
         break;
       } 
@@ -152,7 +167,7 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
       }
       case PROCESS_STATES.CREATE_PACKAGE_FINISHED: {
         const { pkg } = args
-        task.succeed(`Package created ${pkg.fileName}`)
+        task.succeed(`Package created "${pkg.fileName}"`)
         break;
       }
     }

@@ -4,7 +4,7 @@ import PackageManager from '../../PackageManager/PackageManager'
 import { createCLIPrinter } from '../printUtils'
 
 @command({
-  description: 'finds a package and display release info',
+  description: 'Downloads a package',
 })
 export default class extends Command {
   public async execute(

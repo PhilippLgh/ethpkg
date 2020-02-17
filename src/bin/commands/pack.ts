@@ -2,7 +2,7 @@ import path from 'path'
 import fs from 'fs'
 import { Command, command, param, Options, option } from 'clime'
 import PackageManager from '../../PackageManager/PackageManager'
-import { createCLIPrinter, printFormattedPackageContents } from '../printUtils'
+import { createCLIPrinter, printFormattedPackageInfo } from '../printUtils'
 
 const existsInDir = (dirPath: string, fileNames: Array<string>) => {
   const fullPaths = fileNames.map(f => path.join(dirPath, f))
@@ -10,7 +10,7 @@ const existsInDir = (dirPath: string, fileNames: Array<string>) => {
 }
 
 @command({
-  description: 'creates a package from a directory',
+  description: 'Creates a package from a directory',
 })
 export default class extends Command {
   public async execute(
@@ -46,7 +46,7 @@ export default class extends Command {
     if(!pkg) {
       return printer.fail('Package could not be created')
     }
-    await printFormattedPackageContents(pkg)
+    await printFormattedPackageInfo(pkg)
 
     try {
       const filePath = path.join(inputDirPath, '..', pkg.fileName)
