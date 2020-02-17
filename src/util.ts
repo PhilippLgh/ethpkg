@@ -6,6 +6,7 @@ import { IPackage, IFile } from './PackageManager/IPackage'
 // @ts-ignore
 import { parseString } from 'xml2js'
 import { StateListener, PROCESS_STATES } from './IStateListener'
+import { getExtension } from './utils/FilenameUtils'
 
 // const keythereum = require('keythereum')
 
@@ -20,9 +21,16 @@ export function parseXml(xml : string | Buffer){
 
 export const formatBytes = (bytes : number) => {
   const kb = bytes / 1024
+  const mb = kb / 1024
+  if (mb > 1) {
+    return `${mb.toFixed(2)} MB`
+  }
   return `${kb.toFixed(2)} KB`
 }
 
+export const isDirPath = (str: string) => !path.extname(str)
+
+export const isFilePath = (str: string | undefined) => str && (!!getExtension(str))
 
 export const isDirSync = (filePath : string | undefined) => {
   if (filePath === undefined) {
