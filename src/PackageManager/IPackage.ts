@@ -20,6 +20,7 @@ export interface IPackage extends ISerializable {
   fileName: string;
   filePath?: string;
   metadata?: IRelease;
+  size: number;
   loadBuffer(buf : Buffer) : Promise<IPackage>;
   getEntries() : Promise<Array<IPackageEntry>>;
   getEntry(relativePath : string) : Promise<IPackageEntry | undefined>;

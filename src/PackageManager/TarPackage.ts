@@ -25,6 +25,10 @@ export default class TarPackage implements IPackage {
     this.isGzipped = this.filePath ? ['.tgz', '.tar.gz'].includes(getExtension(this.filePath)) : compressed
   }
 
+  get size() {
+    return this.tarbuf ? this.tarbuf.length : 0
+  }
+
   init() { /* no op */}
 
   async loadBuffer(buf: Buffer): Promise<IPackage> {

@@ -127,6 +127,9 @@ describe('TarPackage (IPackage)', () => {
       let content = await pkg2.getContent('./bar.txt')
       assert.equal(content.toString(), 'bar')
     })
+    it('can overwrite existing packages', () => {
+      
+    })
   })
 
   describe.skip('static async from(packagePath : string) : Promise<IPackage>', () => {})

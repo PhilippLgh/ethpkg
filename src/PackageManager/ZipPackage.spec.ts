@@ -25,6 +25,18 @@ describe('ZipPackage (IPackage)', () => {
     })
   })
 
+  describe('get size()', () => {
+    it('returns the size of the package', async () => {
+      // finder displays 536
+      const buf = fs.readFileSync(FOO_PACKAGE) // 536 bytes
+      const pkg = new ZipPackage(FOO_PACKAGE)
+      await pkg.loadBuffer(buf)
+      // let _buf = await pkg.toBuffer() // 312 bytes
+      const size = pkg.size
+      assert.equal(size, 536)
+    })
+  })
+
   describe('async getEntries(): Promise<IPackageEntry[]>', () => {
     it('returns all entries (files and dirs) from tar package', async () => {
       const pkg = new ZipPackage(FOO_PACKAGE)

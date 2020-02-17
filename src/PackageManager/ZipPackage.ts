@@ -14,6 +14,7 @@ export default class ZipPackage implements IPackage {
   fileName = '<unknown>'
   metadata?: IRelease
   readonly filePath: string | undefined
+  private _size: number = 0
 
   constructor(packagePathOrName: string) {
     this.filePath = packagePathOrName || ''
@@ -27,6 +28,10 @@ export default class ZipPackage implements IPackage {
     return this
   }
 
+  get size() {
+    return this._size
+  }
+
   private async tryLoad() {
     if(!this.zip && this.filePath) {
       const buf = fs.readFileSync(this.filePath)
@@ -35,6 +40,7 @@ export default class ZipPackage implements IPackage {
   }
 
   async loadBuffer(buf : Buffer) : Promise<IPackage> {
+    this._size = buf.length
     this.zip = await JSZip.loadAsync(buf)
     return this
   }
@@ -94,6 +100,8 @@ export default class ZipPackage implements IPackage {
       throw new Error('package not loaded - load with loadBuffer()')
     }
     const content = await file.readContent()
+    // FIXME does not handle overwrite
+    this._size += content.length
     this.zip.file(relativePath, content);
     return relativePath
   }
