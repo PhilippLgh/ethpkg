@@ -22,8 +22,9 @@ const sleep = (t: number) : Promise<string> => new Promise((resolve, reject) => 
 })
 
 export interface CreateKeyOptions {
-  password?: string;
+  password?: string | PasswordCallback
   alias?: string;
+  listener?: StateListener;
 }
 
 export const getPrivateKeyFromKeyfile = async (keyfilePath: string, password: string) : Promise<Buffer> => {
@@ -36,6 +37,23 @@ export const getPrivateKeyFromKeyfile = async (keyfilePath: string, password: st
   const wallet = Wallet.fromV3(w, password)
   const pk = wallet.getPrivateKey()
   return pk
+}
+
+export type PasswordCallback = () => Promise<string> | string
+
+const getPassword = async (password: string | PasswordCallback | undefined) : Promise<string> =>  {
+  if (!password) {
+    throw new Error('No password provided to de/encrypt key')
+  }
+  if (typeof password === 'function') {
+    password = await password()
+    if (!password) {
+      throw new Error('Password callback returned an empty or invalid password')
+    }
+    return password
+  } else {
+    return password as string
+  }
 }
 
 export default class KeyStore {
@@ -71,8 +89,13 @@ export default class KeyStore {
   }
   async createKey({
     password = undefined,
-    alias = 'ethpkg'
-  } : CreateKeyOptions = {}) : Promise<{ key: any, filePath: string }> {
+    alias = 'ethpkg',
+    listener = () => {}
+  } : CreateKeyOptions = {}) : Promise<{ info: KeyFileInfo, key: any }> {
+    // handle invalid passwords, password callbacks etc
+    password = await getPassword(password)
+
+    listener(PROCESS_STATES.CREATE_SIGNING_KEY_STARTED)
     const key = Wallet.generate()
     const json = key.toV3(password)
     json.version = 'ethpkg-3'
@@ -81,9 +104,14 @@ export default class KeyStore {
     const fileName = generateKeystoreFilename(address)
     const filePath = path.join(this.keystorePath, fileName)
     fs.writeFileSync(filePath, JSON.stringify(json, null, 2))
+    listener(PROCESS_STATES.CREATE_SIGNING_KEY_FINISHED, { keyPath: filePath})
     return {
       key,
-      filePath
+      info: {
+        address,
+        fileName,
+        filePath
+      }
     }
   }
 }

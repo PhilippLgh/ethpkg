@@ -18,7 +18,7 @@ import { isDirSync, isDirPath, ConstructorOf, isFilePath } from '../util'
 import RepositoryManager from '../Repositories/RepositoryManager'
 import { isArray } from 'util'
 import { StateListener, PROCESS_STATES } from '../IStateListener'
-import KeyStore from '../PackageSigner/KeyStore'
+import KeyStore, { PasswordCallback } from '../PackageSigner/KeyStore'
 import { SignPackageOptions } from '../PackageSigner'
 import { KeyFileInfo } from '../PackageSigner/KeyFileInfo'
 
@@ -64,8 +64,6 @@ export interface PackOptions {
   compressed?: boolean;
   overwrite?: boolean; // if existing package should be overwritten
 }
-
-type PasswordCallback = () => Promise<string> | string
 
 export interface GetSigningKeyOptions {
   keyStore?: string; // path where to search for keys
@@ -353,35 +351,19 @@ export default class PackageManager {
     selectKeyCallback = undefined,
   } : GetSigningKeyOptions = {}) : Promise<Buffer> {
 
-    const getPassword = async (password: string | PasswordCallback | undefined) : Promise<string> =>  {
-      if (!password) {
-        throw new Error('No password provided to de/encrypt key')
-      }
-      if (typeof password === 'function') {
-        password = await password()
-        if (!password) {
-          throw new Error('Password callback returned an empty or invalid password')
-        }
-        return password
-      } else {
-        return password as string
-      }
-    }
-
     // TODO move to PackageSigner
     const keystore = new KeyStore(keyStore)
     const keys = await keystore.listKeys()
 
     // create new key
     if (keys.length === 0) {
-      listener(PROCESS_STATES.CREATE_SIGNING_KEY_STARTED)
       password = await getPassword(password)
       const { filePath, key } = await keystore.createKey({
-        password
+        password,
+        listener
       })
       let privateKey = key.getPrivateKey()
       // TODO allow user to backup key
-      listener(PROCESS_STATES.CREATE_SIGNING_KEY_FINISHED, { keyPath: filePath})
       return privateKey
     } 
     if (keys.length > 1 && typeof selectKeyCallback !== 'function') {

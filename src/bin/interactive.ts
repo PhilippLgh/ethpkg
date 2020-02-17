@@ -21,15 +21,21 @@ export const getUserFilePath = async (message: string, filePath?: string) : Prom
   return file
 }
 
-export const getPasswordFromUser = async () => {
-  const questionKeyPassword = {
+export const getPasswordFromUser = async ({ repeat = false } = {}) => {
+  const questionKeyPassword = (message = `Enter password to de/encrypt key`) => ({
     type: 'password',
     name: 'password',
-    message: `Enter password to de/encrypt key`
-  };
-  const { password } = await prompt(questionKeyPassword)
+    message
+  })
+  const { password } = await prompt(questionKeyPassword())
   if (!password) {
     throw new Error('Error: no password provided by user')
+  }
+  if (repeat) {
+    const { password: repeated } = await prompt(questionKeyPassword(`Repeat password to de/encrypt key`))
+    if (password !== repeated) {
+      throw new Error('Password input does not match.. typo?')
+    }
   }
   return password
 }
