@@ -14,12 +14,13 @@ import { withCache, MemCache, PersistentJsonCache, ICache, NoCache, instanceOfIC
 import { SerializationInfo, ISerializable } from './ISerializable'
 import TarPackage from './TarPackage'
 import ZipPackage from './ZipPackage'
-import { isDirSync, ConstructorOf } from '../util'
+import { isDirSync, isDirPath, ConstructorOf, isFilePath } from '../util'
 import RepositoryManager from '../Repositories/RepositoryManager'
 import { isArray } from 'util'
 import { StateListener, PROCESS_STATES } from '../IStateListener'
 import KeyStore from '../PackageSigner/KeyStore'
 import { SignPackageOptions } from '../PackageSigner'
+import { KeyFileInfo } from '../PackageSigner/KeyFileInfo'
 
 // browser / webpack support
 if (!fs.existsSync) {
@@ -64,23 +65,26 @@ export interface PackOptions {
   overwrite?: boolean; // if existing package should be overwritten
 }
 
-export interface PublishOptions {
-  repo?: string;
-  listener?: StateListener;
-}
-
-export interface PackageManagerOptions {
-  cache?: string | ICache<ISerializable>
-}
-
 type PasswordCallback = () => Promise<string> | string
 
 export interface GetSigningKeyOptions {
   keyStore?: string; // path where to search for keys
   password?: string | PasswordCallback
   listener?: StateListener,
-  selectKeyCallback?: Function,
+  selectKeyCallback?: (keys: Array<KeyFileInfo>) => Promise<KeyFileInfo>,
 }
+
+export interface PublishOptions {
+  repo?: string; // ignored - used by package manager to find repo
+  listener?: StateListener;
+  keyInfo?: GetSigningKeyOptions
+}
+
+export interface PackageManagerOptions {
+  cache?: string | ICache<ISerializable>
+}
+
+
 
 export default class PackageManager {
 
@@ -231,7 +235,6 @@ export default class PackageManager {
       */
     }
 
-    const isDirPath = (str:string) => !path.extname(str)
     if (destPath) {
       destPath = path.resolve(destPath)
       if (isDirPath(destPath)) {
@@ -275,6 +278,12 @@ export default class PackageManager {
     if (instanceOfPackageData(pkgSpec )) {
       return toPackage(pkgSpec)
     }
+    // test for invalid file paths not handled by instanceOfPackageData()
+    if(typeof pkgSpec === 'string' && isFilePath(pkgSpec)) {
+      if (!fs.existsSync(pkgSpec)){
+        throw new Error(`Path does not point to valid package: "${pkgSpec}"`)
+      }
+    }
 
     // check if the short-hand one argument form is used and extract <PackageQuery>pkgSpec from options before we try to resolve them
     if (instanceofResolvePackageOptions(pkgSpec)) {
@@ -302,7 +311,7 @@ export default class PackageManager {
         // console.log('error during download', error)
         return undefined
       }
-    }
+    } 
 
     // download IRelease if it does not exist in cache
     if (instanceOfIRelease(pkgSpec)) {
@@ -331,7 +340,7 @@ export default class PackageManager {
       return pkg
     }
 
-    throw new Error('Unsupported input type for package')
+    throw new Error(`Unsupported input type for package: "${pkgSpec}"`)
   }
 
   /**
@@ -342,50 +351,51 @@ export default class PackageManager {
     password = undefined,
     listener = () => {},
     selectKeyCallback = undefined,
-  } : GetSigningKeyOptions = {}) {
+  } : GetSigningKeyOptions = {}) : Promise<Buffer> {
 
-    const getPassword = async () => {
+    const getPassword = async (password: string | PasswordCallback | undefined) : Promise<string> =>  {
       if (!password) {
-        throw new Error('No password provided to encrypt key')
+        throw new Error('No password provided to de/encrypt key')
       }
       if (typeof password === 'function') {
         password = await password()
         if (!password) {
-          throw new Error('Password callback proved no or invalid password')
+          throw new Error('Password callback returned an empty or invalid password')
         }
-      } else {
         return password
+      } else {
+        return password as string
       }
     }
 
     // TODO move to PackageSigner
     const keystore = new KeyStore(keyStore)
     const keys = await keystore.listKeys()
-    let keyPath // path to keyfile
-    let unlockedKey
+
+    // create new key
     if (keys.length === 0) {
       listener(PROCESS_STATES.CREATE_SIGNING_KEY_STARTED)
-      const password = await getPassword()
+      password = await getPassword(password)
       const { filePath, key } = await keystore.createKey({
         password
       })
-      unlockedKey = key
+      let privateKey = key.getPrivateKey()
       // TODO allow user to backup key
       listener(PROCESS_STATES.CREATE_SIGNING_KEY_FINISHED, { keyPath: filePath})
-      keyPath = filePath
-    } else if(keys.length > 1) {
-      if (typeof selectKeyCallback === 'function') {
-        keyPath = await selectKeyCallback(keys)
-        const password = await getPassword()
-        // keyStore.getUnlockedKey(key, password)
-      } else {
-        throw new Error('Ambiguous keys')
-      }
-    } else {
-      keyPath = keys[0].filePath
+      return privateKey
+    } 
+    if (keys.length > 1 && typeof selectKeyCallback !== 'function') {
+      throw new Error('Ambiguous signing keys and no select callback provided')
+    }
+    const selectedKey = keys.length > 1 ? await (<Function>selectKeyCallback)(keys) : keys[0]
+    
+    if (!selectedKey) {
+      throw new Error('Callback to select a key did not result in a valid key selection')
     }
 
-    return keyPath
+    password = await getPassword(password)
+    const unlockedKey = await keystore.unlockKey(selectedKey, password, listener)
+    return unlockedKey
   }
 
   async addSigner(signer: ISigner) : Promise<void> {
@@ -415,26 +425,42 @@ export default class PackageManager {
   /**
    * 
    */
-  async publishPackage(pkgSpec: PackageData, options: string | PublishOptions) {
-    const pkg = typeof pkgSpec === 'string' ? await this.getPackage(pkgSpec) : pkgSpec
-    options = {
-      repo: typeof options === 'string' ? options : options.repo || 'ianu'
+  async publishPackage(pkgSpec: string | PackageData, {
+    repo = 'ianu',
+    listener = () => {},
+    keyInfo = undefined
+  } : PublishOptions = {}) {
+
+    const repository = await this.repoManager.getRepository(repo)
+    if (!repository) {
+      throw new Error(`Repository not found for specifier: "${repo}"`)
     }
-    const repoSpecifier = options.repo as string
-    const listener = options.listener
-    const repo = await this.repoManager.getRepository({
-      repo: repoSpecifier,
-      input: repoSpecifier
+
+    let pkg
+    if (typeof pkgSpec === 'string' && isDirSync(pkgSpec)) {
+      pkg = await this.createPackage(pkgSpec, {
+        listener
+      })
+    } else {
+      pkg = await this.getPackage(pkgSpec, {
+        listener
+      })
+    }     
+    if (!pkg) {
+      throw new Error('Package not found or could not be created')
+    }
+
+    /*
+    const privateKey = await this.getSigningKey(keyInfo)
+    pkg = await this.signPackage(pkg, privateKey, {
+      listener
     })
-    if (!repo) {
-      throw new Error('Repository not found for specifier: '+repoSpecifier)
-    }
-    // @ts-ignore
-    if (typeof repo.publish !== 'function') {
+    */
+
+    if (typeof repository.publish !== 'function') {
       throw new Error('Repository does not implement publish')
     }
-    // @ts-ignore
-    const result = await repo.publish(pkg, {
+    const result = await repository.publish(pkg, {
       listener
     })
     return result

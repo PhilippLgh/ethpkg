@@ -20,6 +20,9 @@ export const PROCESS_STATES = {
   CREATE_PACKAGE_PROGRESS: 'create_package_progress',
   CREATE_PACKAGE_FINISHED: 'create_package_finished',
 
+  UNLOCKING_KEY_STARTED: 'unlocking_key_started',
+  UNLOCKING_KEY_FINISHED: 'unlocking_key_finished',
+
   CREATE_SIGNING_KEY_STARTED: 'create_signing_key_started',
   CREATE_SIGNING_KEY_FINISHED: 'create_signing_key_finished',
 

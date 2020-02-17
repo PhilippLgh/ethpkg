@@ -1,56 +1,19 @@
-import * as fs from 'fs'
+import fs from 'fs'
 import path from 'path'
-
-import { startTask, succeed, failed, progress } from '../task'
-
 import { Command, command, param, Options, option } from 'clime'
-import { prompt } from 'enquirer'
+import PackageManager from '../../PackageManager/PackageManager'
+import { getExtension } from '../../utils/FilenameUtils'
+import { createCLIPrinter } from '../printUtils'
+import { KeyFileInfo } from '../../PackageSigner/KeyFileInfo'
+import { getSelectedKeyFromUser, getPasswordFromUser } from '../interactive'
 
-import { pkgsign, util } from '../..';
-import { getUserFilePath } from '../lib/InputFilepath';
-import { getSingingMethod, SIGNING_METHOD, getPrivateKey, getExternalSigner } from '../lib/signFlow';
-import { getPrivateKeyFromEthKeyfile, getKeyFilePath, questionKeySelect, listKeys } from '../lib/EthKeystore';
-import { runScriptSync, getKeystorePath } from '../../util'
-
-const signFile = async (inputFilePath : string, privateKey : Buffer, inplace = false) => {
-  startTask('Signing file')
-  const pkg = await pkgsign.sign(inputFilePath, privateKey)
-  if(pkg) {
-    const buildOutpath = (pkgPath : string) => {
-      let ext = path.extname(pkgPath)
-      const basename = path.basename(pkgPath, ext)
-      // ext = '.epk'
-      const dirname = path.dirname(pkgPath)
-      const pkgPathOut = `${dirname}/${basename}_signed${ext}`
-      return pkgPathOut
-    }
-    const outPath = inplace ? inputFilePath : buildOutpath(inputFilePath)
-    await pkg.writePackage(outPath)
-    succeed(`Signed package written to "${outPath}"`)
-  } else {
-    failed(`Package could not be signed`)
-  }
-}
-
-export const startSignFlow = async (inputPath: string, keyFilePath? : string) => {
-
-  const selectedSigningMethod = await getSingingMethod(inputPath)
-  switch (selectedSigningMethod) {
-    case SIGNING_METHOD.PRIVATE_KEY: {
-      const { privateKey } = await getPrivateKey()
-      if (!privateKey) {
-        console.log('>> private key not valid or not able to parse')
-        return
-      }
-      await signFile(inputPath, privateKey)
-      break;
-    }
-    case SIGNING_METHOD.EXTERNAL_SIGNER: {
-      const externalSigner = await getExternalSigner()
-      console.log('selected external signer is', externalSigner)
-      break;
-    }
-  }
+const buildOutputPathSigned = (pkgPath : string) => {
+  let ext = getExtension(pkgPath)
+  const basename = path.basename(pkgPath, ext)
+  // ext = '.epk'
+  const dirname = path.dirname(pkgPath)
+  const pkgPathOut = `${dirname}/${basename}_signed${ext}`
+  return pkgPathOut
 }
 
 export class SignOptions extends Options {
@@ -69,122 +32,100 @@ export class SignOptions extends Options {
     description: 'will trigger npm publish if a signed tarball is found',
   })
   publish: boolean = false;
+  @option({
+    flag: 'c',
+    description: 'creates a key',
+  })
+  createKey: boolean = false;
 }
 
 @command({
-  description: 'sign a package',
+  description: 'Signs a package',
 })
 export default class extends Command {
   public async execute(
     @param({
       name: 'zip | tarball',
       description: 'path to zip or tarball',
-      required: false,
+      required: true,
     })
-    inputPath?: string,
+    inputPath: string,
     @param({
       name: 'key file',
       description: 'path to key file',
       required: false,
     })
     keyFilePath?: string,
-    options?: SignOptions,
+    // options?: SignOptions,
   ) {
 
-    const pkgJsonPath = path.join(process.cwd(), 'package.json')
-    let npmPackageFlow = false
-    let pkgFileName = ''
-
-    let pkgJson = null 
-
-    // used as script after `npm pack`
-    // if (!inputPath) {
-    try {
-      if (fs.existsSync(pkgJsonPath)) {
-        pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'))
-        let {name: pkgName, version: pkgVersion} = pkgJson
-        pkgName = pkgName.replace('@', '')
-        pkgName = pkgName.replace('/', '-')
-        pkgFileName = `${pkgName}-${pkgVersion}.tgz`
-        if(fs.existsSync(pkgFileName)) {
-          console.log('INFO: no input file specified but npm package found')
-          inputPath = pkgFileName
-          // FIXME npmPackageFlow = true
-        }
-      }
-     } catch (error) {
-      console.log('>> could not parse package.json')
-     } 
-
-    // }
-
-    if (!inputPath) {
-      inputPath = await getUserFilePath('Which zip / tar file do you want to sign?')
-    }
-    if (!inputPath) {
-      console.log('>> input path was not provided')
+    /*
+    TODO interactive mode
+    inputPath = await getUserFilePath('Which package (zip, tar) file do you want to sign?', inputPath)
+    if (!inputPath || ) {
+      console.log(`>> File not found or invalid: "${inputPath}"`)
       return
     }
-    if(!path.isAbsolute(inputPath)) {
-      inputPath = path.join(process.cwd(), inputPath)
-      if(!fs.existsSync(inputPath)) {
-        console.log('>> package not found')
-        return
+    */
+    inputPath = path.resolve(inputPath)
+
+    const packageManager = new PackageManager()
+    const printer = createCLIPrinter()
+
+    let pkg
+    try {
+      pkg = await packageManager.getPackage(inputPath, {
+        listener: printer.listener
+      })
+      if (!pkg) {
+        return printer.fail(`Package not found: "${inputPath}"`)
       }
-    }
 
-    let autoDetectKey = options && options.autodetectkey
-    if(autoDetectKey){
-      console.log('>> trying to find key for project...')
-    }
-    if ((!keyFilePath && npmPackageFlow) || autoDetectKey) {
-      let projectName = pkgJson && pkgJson.name
-      projectName = projectName.replace('@', '')
-      projectName = projectName.replace('/', '-')
-
-      let keyfiles = listKeys()
-      keyfiles = keyfiles.filter(k => k.file.includes(projectName))
-
-      if (keyfiles.length > 1) {
-        // ambiguous keys:
-        let { selectedKey } = await prompt(questionKeySelect(keyfiles))
-        keyFilePath = selectedKey.keyFile
-      } else if (keyfiles.length === 1) {
-        keyFilePath = keyfiles[0].filePathFull
-        console.log('>> keyfile for project auto-detected: '+keyFilePath)
-      } else {
-        console.log('>> keyfile could not be auto-detected')
-        // ignore ?
-      }
-    }
-
-    let inplace = options && options.overwrite
-    if (npmPackageFlow) {
-      inplace = true
-    }
-
-    if (keyFilePath) {
-      const privateKey = await getPrivateKeyFromEthKeyfile(keyFilePath)
+      const privateKey = await packageManager.getSigningKey({
+        listener: printer.listener,
+        password: async () => {
+          const password = await getPasswordFromUser()
+          return password
+        },
+        selectKeyCallback: async (keys: Array<KeyFileInfo>) => {
+          const result = await getSelectedKeyFromUser(keys) as KeyFileInfo
+          return result
+        } 
+      })
       if (!privateKey) {
-        console.log('>> private key not valid or not able to parse')
-        return
-      }
-      const res = await signFile(inputPath, privateKey, inplace)
-
-      if (npmPackageFlow && (options && options.publish === true)) {
-        try {
-          runScriptSync('npm publish', [pkgFileName])
-        } catch (error) {
-          console.error(error)
-        }
-        fs.unlinkSync(pkgFileName)
+        return printer.fail('Could not retrieve private key to sign package')
       }
 
-      return res
+      pkg = await packageManager.signPackage(pkg, privateKey, {
+        listener: printer.listener
+      })
+
+      const verificationInfo = await packageManager.verifyPackage(pkg)
+      const { signers } = verificationInfo
+      const signature = signers[0]
+      const { exp } = signature
+      if (typeof exp === 'number') {
+        printer.print(`Signature Expires ${new Date(exp * 1000)}`, {
+          isTask: false
+        })
+      }
+
+    } catch (error) {
+      return printer.fail(error)
+    }
+    if(!pkg) {
+      return printer.fail('Something went wrong')
     }
 
-    await startSignFlow(inputPath, keyFilePath)
+    let outPath = ''
+    try {
+      outPath = buildOutputPathSigned(inputPath)
+      await pkg.writePackage(outPath)
+    } catch (error) {
+      return printer.fail(error)
+    }
 
+    printer.print(`Success! Package signed and written to ${outPath}`)
 
   }
 }

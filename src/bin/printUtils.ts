@@ -170,6 +170,16 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
         task.succeed(`Package created "${pkg.fileName}"`)
         break;
       }
+      case PROCESS_STATES.UNLOCKING_KEY_STARTED: {
+        const { filePath: keyPath } = args
+        task = startTask(`Unlocking key ${keyPath}`)
+        break;
+      }
+      case PROCESS_STATES.UNLOCKING_KEY_FINISHED: {
+        const { address } = args
+        task.succeed(`Key unlocked ${address}`)
+        break;
+      }
     }
   }
   return {
@@ -182,8 +192,11 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
       }
     },
     fail: (error: Error | string) => {
+      let errorMessage = typeof error === 'string' ? error : error.message
       if (task) {
-        task.fail(typeof error === 'string' ? error : error.message)
+        task.fail(errorMessage)
+      } else {
+        console.log(chalk.red(errorMessage))
       }
     }
   }

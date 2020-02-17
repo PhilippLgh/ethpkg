@@ -1,9 +1,4 @@
-import * as fs from 'fs'
-import * as path from 'path'
-import { util } from '../..';
 import { prompt } from 'enquirer'
-import { getPrivateKeyFromEthKeystore, getPrivateKeyFromEthKeyfile } from './EthKeystore';
-import { getPrivateKeyFromPemFile } from './PEMFile';
 
 export const SIGNING_METHOD: { [index: string]: string } = {
   'PRIVATE_KEY': 'Local Private Key',
@@ -13,7 +8,8 @@ export const SIGNING_METHOD: { [index: string]: string } = {
 export const KEY_STORAGE: { [index: string]: string } = {
   'ETH': 'Ethereum Keystore',
   'ETH_KEYFILE': 'Ethereum Keyfile',
-  'PEM': 'PEM File'
+  'PEM': 'PEM File',
+  'CREATE': 'Create new key'
 }
 
 export const getSingingMethod = async (fileName?: string) => {
@@ -41,13 +37,13 @@ export const getKeyLocation = async () => {
     choices: [
       { name: `${KEY_STORAGE.ETH}`, message: 'Keystore' },
       { name: `${KEY_STORAGE.ETH_KEYFILE}`, message: 'Keyfile' },
-      { name: `${KEY_STORAGE.PEM}`, message: 'PEM Keyfile' }
+      { name: `${KEY_STORAGE.PEM}`, message: 'PEM Keyfile' },
+      { name: `${KEY_STORAGE.PEM}`, message: 'Create new key' },
     ]
   }];
   const answerKeyLocation: any = await prompt(questionKeyStorage)
   return answerKeyLocation.storage
 }
-
 
 export const getExternalSigner = async () => {
   const questionSigner = [{
@@ -67,32 +63,49 @@ export const getExternalSigner = async () => {
   return answerExternalSigner.format
 }
 
-export const getPrivateKey = async () => {
+/**
+ export const getPrivateKeyFromPemFile = async () => {
+  const keyFilePath = await getUserFilePath('Provide path to pem keyfile')
+  const privateKey = getPrivateKeyFromPEM(keyFilePath)
+  return privateKey
+}
+ */
+
+export const getPrivateKey = async (options: any) : Promise<any> => {
   const keyLocation = await getKeyLocation()
   switch (keyLocation) {
     case KEY_STORAGE.ETH: {
+      // FIXME 
+      throw new Error('not implemented')
+      /*
       const privateKey = await getPrivateKeyFromEthKeystore()
       return {
         privateKey
       }
+      */
     }
     case KEY_STORAGE.ETH_KEYFILE: {
+      // FIXME
+      throw new Error('not implemented')
+      /*
       const privateKey = await getPrivateKeyFromEthKeyfile()
       return {
         privateKey
       }
+      */
     }
     // helpful debugger: https://lapo.it/asn1js
     // https://github.com/lapo-luchini/asn1js/blob/master/asn1.js#L260
     case KEY_STORAGE.PEM: {
-      const privateKey = await getPrivateKeyFromPemFile()
+      // FIXME const privateKey = await getPrivateKeyFromPemFile()
+      const privateKey = Buffer.from('')
       return {
         privateKey
       }
     }
     default : {
       return {
-        privateKey: null
+        privateKey: undefined
       }
     }
   }

@@ -3,7 +3,8 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import { isDirSync } from '../util'
-const Wallet = require('ethereumjs-wallet')
+import { KeyFileInfo } from './KeyFileInfo'
+import { getPrivateKeyFromKeyfile } from './KeyStore'
 const secp256k1 = require('secp256k1')
 const asn1 = require('asn1.js')
 
@@ -24,13 +25,6 @@ export const getKeyStorePath = () : string => {
   const dataDir = getDefaultDataDir().replace('~', os.homedir())
   const keystore = path.join(dataDir, 'keystore')
   return keystore
-}
-
-export interface KeyFileInfo {
-  address: string;
-  fileName: string;
-  filePath: string;
-  type?: string; // experimental, non-standard : intended use case of the key
 }
 
 export const listKeys = async (keystorePath?: string) : Promise<Array<KeyFileInfo>> => {
@@ -180,26 +174,17 @@ const getPrivateKeyFromPEM = async (keyfilePath: string) : Promise<Buffer | unde
   return privateKey
 }
 
-const getPrivateKeyFromKeystore = async (keyfilePath: string, password: string) : Promise<Buffer> => {
-  try {
-    const w = JSON.parse(fs.readFileSync(keyfilePath, 'utf8'))
-    const wallet = Wallet.fromV3(w, password)
-    const pk = wallet.getPrivateKey()
-    return pk
-  } catch (error) {
-    throw new Error('Key cannot be parsed')
-  }
-}
+
 
 export const getPrivateKey = async (keyfilePathOrAlias: string, passwordOrKeyStore?: string, password?: string) : Promise<Buffer> => {
   const _isKeyStoreFile = await isValidKeyStoreFile(keyfilePathOrAlias, passwordOrKeyStore)
   if (_isKeyStoreFile) {
     const pw = password || passwordOrKeyStore
     if (!pw) {
-      throw new Error('no password provided')
+      throw new Error('No password provided')
     }
     const keyfilePath = await findKeyStoreFile(keyfilePathOrAlias, passwordOrKeyStore)
-    return getPrivateKeyFromKeystore(<string>keyfilePath, pw)
+    return getPrivateKeyFromKeyfile(<string>keyfilePath, pw)
   }
 
   const _isPemFile = await isValidPemKeyfile(keyfilePathOrAlias)
