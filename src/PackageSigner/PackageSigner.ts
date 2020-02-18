@@ -9,6 +9,7 @@ import { createHeader, ALGORITHMS, IFlattenedJwsSerialization } from '../jws'
 import { getSigner, PrivateKeyInfo, PublicKeyInfo } from './KeyService'
 import { toIFile } from '../utils/PackageUtils'
 import { StateListener, PROCESS_STATES } from '../IStateListener'
+import { resolveName } from '../ENS/ens'
 
 export interface SignPackageOptions {
   expiresIn?: number,
@@ -28,10 +29,10 @@ const VERIFICATION_ERRORS : any = {
 }
 
 const VERIFICATION_ERROR_MESSAGES : any = {} 
-VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.UNSIGNED] = `package is unsigned (signatures missing or not parsable)`
-VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.UNSIGNED_BY] = `package does not contain a signature for `
-VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.BAD_PACKAGE] = `could not find or load package`
-VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.PACKAGE_DOWNLOAD] = `could not download package`
+VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.UNSIGNED] = `Package is unsigned (signatures missing or not parsable)`
+VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.UNSIGNED_BY] = `Package does not contain a signature for:`
+VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.BAD_PACKAGE] = `Could not find or load package`
+VERIFICATION_ERROR_MESSAGES[VERIFICATION_ERRORS.PACKAGE_DOWNLOAD] = `Could not download package`
 
 const verificationError = (errorCode : number, val = '') : IVerificationResult => {
   return {
@@ -139,8 +140,21 @@ export const sign = async (pkgSpec: PackageData, privateKey: PrivateKeyInfo, {
  * @param publicKeyInfo 
  */
 export const verify = async (pkgSpec: PackageData, {
-  addressOrEnsName = undefined
+  addressOrEnsName = undefined,
+  listener = () => {}
 }: VerifyPackageOptions = {}) : Promise<IVerificationResult> => {
+
+  if(addressOrEnsName) {
+    if (addressOrEnsName.endsWith('.eth')) {
+      listener(PROCESS_STATES.RESOLVE_ENS_STARTED, { name: addressOrEnsName })
+      const address = await resolveName(addressOrEnsName)
+      if (!address) {
+        throw new Error(`ENS name "${addressOrEnsName}" could not be resolved!`)
+      }
+      listener(PROCESS_STATES.RESOLVE_ENS_FINISHED, { name: addressOrEnsName, address })
+      addressOrEnsName = address
+    }
+  }
   
   let pkg 
   try {
@@ -158,12 +172,17 @@ export const verify = async (pkgSpec: PackageData, {
 
   // TODO handle publicKeyInfo is cert
   // TODO handle publicKeyInfo is ens
+  listener(PROCESS_STATES.CREATE_PAYLOAD_STARTED)
+  const payload = await SignerUtils.createPayload(pkg)
+  const { data: digests } = payload
+  listener(PROCESS_STATES.CREATE_PAYLOAD_FINISHED, { payload })
 
-  const digests = await SignerUtils.calculateDigests(pkg)
-
-  const promises = signatures.map(sig => SignerUtils.verifySignature(sig, digests))
+  // listener(PROCESS_STATES.VERIFYING_SIGNATURES_STARTED)
+  const promises = signatures.map(sig => SignerUtils.verifySignature(sig, digests, listener))
   const verificationResults = await Promise.all(promises)
+  // listener(PROCESS_STATES.VERIFYING_SIGNATURES_FINISHED)
 
+  // TODO this check can be performed before we calculate checksums etc - fail fast
   let signatureFound = false
   if(addressOrEnsName) {
     for (const verificationResult of verificationResults) {
