@@ -3,7 +3,7 @@ import path from 'path'
 import { Command, command, param, Options, option } from 'clime'
 import PackageManager from '../../PackageManager/PackageManager'
 import { getExtension } from '../../utils/FilenameUtils'
-import { createCLIPrinter } from '../printUtils'
+import { createCLIPrinter, printFormattedVerificationResult } from '../printUtils'
 import { KeyFileInfo } from '../../PackageSigner/KeyFileInfo'
 import { getSelectedKeyFromUser, getPasswordFromUser } from '../interactive'
 
@@ -20,9 +20,27 @@ export class SignOptions extends Options {
   @option({
     flag: 'o',
     description: 'WARNING: will overwite package contents',
-    default: true
+    default: false
   })
   overwrite: boolean = false;
+  @option({
+    flag: 'a',
+    description: 'alias name for key',
+    default: 'ethpkg'
+  })
+  alias: string = 'ethpkg';
+  @option({
+    flag: 'p',
+    description: 'WARNING: use interactive mode: password for key',
+    required: false
+  })
+  password?: string = undefined;
+  @option({
+    flag: 'i',
+    description: 'inplace will overwite the package with the signed version',
+    required: false
+  })
+  inplace?: boolean = undefined;
   /*
   @option({
     flag: 'a',
@@ -53,14 +71,7 @@ export default class extends Command {
       required: true,
     })
     inputPath: string,
-    @param({
-      name: 'alias',
-      description: 'key alias or address',
-      required: false,
-      default: undefined
-    })
-    keyAlias?: string,
-    options?: SignOptions,
+    options: SignOptions,
   ) {
 
     const printer = createCLIPrinter()
@@ -75,12 +86,9 @@ export default class extends Command {
     */
     inputPath = path.resolve(inputPath)
 
-    options = Object.assign({
-      overwrite: false
-    }, options)
-
-    let outPath = buildOutputPathSigned(inputPath)
-    if (fs.existsSync(outPath) && !options.overwrite) {
+    let outPath = options.inplace ? inputPath : buildOutputPathSigned(inputPath)
+    let shouldOverwite = options.inplace || options.overwrite
+    if (fs.existsSync(outPath) && !shouldOverwite) {
       return printer.fail('Package exists already! Use "overwrite" option')
     }
 
@@ -96,9 +104,12 @@ export default class extends Command {
       }
 
       const privateKey = await packageManager.getSigningKey({
-        alias: keyAlias,
+        alias: options.alias,
         listener: printer.listener,
         password: async () => {
+          if (options.password) {
+            return options.password
+          }
           const password = await getPasswordFromUser()
           return password
         },
@@ -116,14 +127,7 @@ export default class extends Command {
       })
 
       const verificationInfo = await packageManager.verifyPackage(pkg)
-      const { signers } = verificationInfo
-      const signature = signers[0]
-      const { exp } = signature
-      if (typeof exp === 'number') {
-        printer.print(`Signature Expires ${new Date(exp * 1000)}`, {
-          isTask: false
-        })
-      }
+      await printFormattedVerificationResult(verificationInfo)
 
     } catch (error) {
       return printer.fail(error)
@@ -134,7 +138,7 @@ export default class extends Command {
 
     try {
       await pkg.writePackage(outPath, {
-        overwrite: options.overwrite
+        overwrite: shouldOverwite
       })
     } catch (error) {
       return printer.fail(error)
