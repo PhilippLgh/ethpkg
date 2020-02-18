@@ -7,10 +7,10 @@ export const brief = 'key management'
 export const subcommands: SubcommandDefinition[] = [
   {
     name: 'new',
-    brief: 'create a new key for signing',
+    brief: 'Creates a new key for signing',
   },
   {
     name: 'list',
-    brief: 'list available keys',
+    brief: 'Lists available keys',
   },
 ];

@@ -1,4 +1,4 @@
-import { ICertificatePayload } from "./ICertificate";
+import { ICertificatePayload } from './ICertificate'
 
 export interface ISignerInfo {
   address: string,

@@ -8,8 +8,8 @@ import { printFormattedRelease, createCLIPrinter } from '../printUtils'
 export default class extends Command {
   public async execute(
     @param({
-      name: 'query',
-      description: 'package query',
+      name: 'package query',
+      description: 'a package specifier with format repo:owner/project@version',
       required: true,
     })
     spec: string
