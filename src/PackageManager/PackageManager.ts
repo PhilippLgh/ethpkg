@@ -19,7 +19,7 @@ import RepositoryManager from '../Repositories/RepositoryManager'
 import { isArray } from 'util'
 import { StateListener, PROCESS_STATES } from '../IStateListener'
 import KeyStore, { PasswordCallback, getPassword } from '../PackageSigner/KeyStore'
-import { SignPackageOptions } from '../PackageSigner'
+import { SignPackageOptions, VerifyPackageOptions, isSigned } from '../PackageSigner'
 import { KeyFileInfo } from '../PackageSigner/KeyFileInfo'
 
 // browser / webpack support
@@ -74,8 +74,9 @@ export interface GetSigningKeyOptions {
 }
 
 export interface PublishOptions {
-  repo?: string; // ignored - used by package manager to find repo
+  repository?: string; // ignored - used by package manager to find repo
   listener?: StateListener;
+  signPackage?: boolean;
   keyInfo?: GetSigningKeyOptions
 }
 
@@ -308,7 +309,7 @@ export default class PackageManager {
       } catch (error) {
         // TODO log error here
         // console.log('error during download', error)
-        return undefined
+        throw error
       }
     } 
 
@@ -408,22 +409,26 @@ export default class PackageManager {
     return PackageSigner.sign(pkg, privateKey, options)
   }
 
-  async verifyPackage(pkg: PackageData, addressOrEnsName? : string) : Promise<IVerificationResult> {
-    return PackageSigner.verify(pkg, addressOrEnsName)
+  async verifyPackage(pkg: PackageData, options?: VerifyPackageOptions) : Promise<IVerificationResult> {
+    return PackageSigner.verify(pkg, options)
   }
 
   /**
    * 
    */
   async publishPackage(pkgSpec: string | PackageData, {
-    repo = 'ianu',
+    repository = undefined,
     listener = () => {},
+    signPackage = undefined,
     keyInfo = undefined
   } : PublishOptions = {}) {
 
-    const repository = await this.repoManager.getRepository(repo)
-    if (!repository) {
-      throw new Error(`Repository not found for specifier: "${repo}"`)
+    if(!repository) {
+      throw new Error('No repository specified for upload')
+    }
+    const repo = await this.repoManager.getRepository(repository)
+    if (!repo) {
+      throw new Error(`Repository not found for specifier: "${repository}"`)
     }
 
     let pkg
@@ -440,17 +445,24 @@ export default class PackageManager {
       throw new Error('Package not found or could not be created')
     }
 
-    /*
-    const privateKey = await this.getSigningKey(keyInfo)
-    pkg = await this.signPackage(pkg, privateKey, {
-      listener
-    })
-    */
+    // default to signing for unsigned packages
+    const _isSigned = await isSigned(pkg)
+    signPackage = (typeof signPackage === undefined) ? !_isSigned : signPackage 
+    if (signPackage) {
+      if (!keyInfo) {
+        throw new Error('Cannot sign package without keys')
+      }
+      keyInfo.listener = listener
+      const privateKey = await this.getSigningKey(keyInfo)
+      pkg = await this.signPackage(pkg, privateKey, {
+        listener
+      })
+    }
 
-    if (typeof repository.publish !== 'function') {
+    if (typeof repo.publish !== 'function') {
       throw new Error('Repository does not implement publish')
     }
-    const result = await repository.publish(pkg, {
+    const result = await repo.publish(pkg, {
       listener
     })
     return result
