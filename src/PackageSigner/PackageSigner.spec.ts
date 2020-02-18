@@ -200,14 +200,14 @@ describe('PackageSigner', function() {
     })
     it('verifies a local package against an ethereum address', async () => {
       const pkg = await TarPackage.from(SIGNED_FOO_TAR)
-      const verificationResult = await PackageSigner.verify(pkg, ETH_ADDRESS_1)
+      const verificationResult = await PackageSigner.verify(pkg, { addressOrEnsName: ETH_ADDRESS_1 })
       assert.isTrue(verificationResult.isValid, 'the package should be valid')
       assert.isDefined(verificationResult.signers.find(info => info.address.toLowerCase() === ETH_ADDRESS_1.toLowerCase()), 'the ethereum address should be present in list of signers')
       assert.isTrue(verificationResult.isTrusted, 'when provided a trusted address that matches a signer isTrusted should be true')
     })
     it('verifies a local package against an ethereum ENS name', async () => {
       const pkg = await TarPackage.from(SIGNED_FOO_TAR)
-      const verificationResult = await PackageSigner.verify(pkg, TEST_ENS)
+      const verificationResult = await PackageSigner.verify(pkg, { addressOrEnsName: TEST_ENS })
       assert.isTrue(verificationResult.isValid, 'the package should be valid')
       assert.isDefined(verificationResult.signers.find(info => info.address.toLowerCase() === ETH_ADDRESS_1.toLowerCase()), 'the ethereum address should be present in list of signers')
       assert.isTrue(verificationResult.isTrusted, 'with ENS as identity info the package becomes trusted')
