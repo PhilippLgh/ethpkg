@@ -3,6 +3,7 @@ export const PROCESS_STATES = {
   FETCHING_RELEASE_LIST_FINISHED: 'fetching_release_list_finished',
   FILTER_RELEASE_LIST_STARTED: 'filter_release_list_started',
   FILTER_RELEASE_LIST_FINISHED: 'filter_release_list_finished',
+  FILTERED_INVALID_RELEASES: 'filtered_invalid_releases',
   SORT_RELEASES_STARTED: 'sort_releases_started',
   SORT_RELEASES_FINISHED: 'sort_releases_finished',
   RESOLVE_PACKAGE_STARTED: 'resolve_package_started',

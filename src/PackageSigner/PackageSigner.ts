@@ -15,6 +15,11 @@ export interface SignPackageOptions {
   listener?: StateListener
 }
 
+export interface VerifyPackageOptions {
+  addressOrEnsName?: PublicKeyInfo,
+  listener?: StateListener
+}
+
 const VERIFICATION_ERRORS : any = {
   UNSIGNED: 0,
   UNSIGNED_BY: 1,
@@ -133,7 +138,9 @@ export const sign = async (pkgSpec: PackageData, privateKey: PrivateKeyInfo, {
  * @param pkgSpec 
  * @param publicKeyInfo 
  */
-export const verify = async (pkgSpec: PackageData, publicKeyInfo?: PublicKeyInfo) : Promise<IVerificationResult> => {
+export const verify = async (pkgSpec: PackageData, {
+  addressOrEnsName = undefined
+}: VerifyPackageOptions = {}) : Promise<IVerificationResult> => {
   
   let pkg 
   try {
@@ -158,15 +165,15 @@ export const verify = async (pkgSpec: PackageData, publicKeyInfo?: PublicKeyInfo
   const verificationResults = await Promise.all(promises)
 
   let signatureFound = false
-  if(publicKeyInfo) {
+  if(addressOrEnsName) {
     for (const verificationResult of verificationResults) {
       const { signers } = verificationResult
-      if(await SignerUtils.containsSignature(signers, publicKeyInfo)) {
+      if(await SignerUtils.containsSignature(signers, addressOrEnsName)) {
         signatureFound = true
       }
     }
     if (!signatureFound) {
-      return verificationError(VERIFICATION_ERRORS.UNSIGNED_BY, publicKeyInfo) 
+      return verificationError(VERIFICATION_ERRORS.UNSIGNED_BY, addressOrEnsName) 
     }
   }
 

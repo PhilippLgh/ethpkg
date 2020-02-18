@@ -91,8 +91,9 @@ export default class Fetcher {
     // filter invalid releases i.e. releases that have the error field set
     const invalid = releases.filter(release => ('error' in release && release.error))
     if (invalid.length > 0) {
-      log(LOGLEVEL.WARN, `detected ${invalid.length} corrupted releases`)
-      log(LOGLEVEL.VERBOSE, invalid.map(r => r.error).join('\n\n'))
+      // log(LOGLEVEL.WARN, `detected ${invalid.length} corrupted releases`)
+      // log(LOGLEVEL.VERBOSE, invalid.map(r => r.error).join('\n\n'))
+      listener(PROCESS_STATES.FILTERED_INVALID_RELEASES, { invalid })
     }
     if (filterInvalid) {
       releases = releases.filter(release => !('error' in release && release.error))

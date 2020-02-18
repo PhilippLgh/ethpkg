@@ -1,6 +1,6 @@
-import { isKeyfile, getPrivateKey } from "./KeyStoreUtils"
-import ISigner, { instanceofISigner } from "./ISigner"
-import PrivateKeySigner from "../Signers/PrivateKeySigner"
+import { isKeyfile, getPrivateKey } from './KeyStoreUtils'
+import ISigner, { instanceofISigner } from './ISigner'
+import PrivateKeySigner from '../Signers/PrivateKeySigner'
 import * as ethUtil from 'ethereumjs-util'
 
 export type PrivateKeyInfo = string | Buffer | ISigner

@@ -1,77 +1,55 @@
-import fs from 'fs'
-import path from 'path'
 import { Command, command, param, Options, option } from 'clime'
-import { pkgsign } from '../..'
-import { startTask, succeed, failed } from '../task'
-import { downloadNpmPackage } from '../../util'
-import { pathToFileURL } from 'url';
-import { IVerificationResult } from '../../IVerificationResult';
-
-const formatPrintResult = (result : IVerificationResult) => {
-  if (result.error) {
-    failed(result.error.message)
-    return
-  }
-
-  if(!result.isTrusted) {
-    console.log('\nWARNING: this key is not certified with a trusted signature!')
-    console.log('There is no indication that the signature belongs to the package owner')
-  }
-
-  if (result.isValid /*FIXME && result.isTrusted*/) {
-    const signerAddresses = result.signers.map(s => s.address).join(',')
-    succeed(`package contents passed integrity checks and are signed by [${signerAddresses}]`)
-  } else {
-    failed('invalid package')
-  }
-} 
+import { createCLIPrinter, printFormattedVerificationResult } from '../printUtils'
+import PackageManager from '../../PackageManager/PackageManager' 
 
 @command({
-  description: 'verify a package',
+  description: 'Verifies a package',
 })
 export default class extends Command {
   public async execute(
     @param({
-      name: 'zip | tarball',
-      description: 'path to zip or tarball',
+      name: 'package query',
+      description: 'Path, url, or query string',
       required: true,
     })
-    pkgPath: string,
+    pkgQuery: string,
     @param({
       name: 'address',
-      description: 'Ethereum address',
+      description: 'Ethereum address to verify against',
       required: false,
     })
     address?: string
   ) {
 
-    const isNPM = pkgPath && !fs.existsSync(pkgPath) && !fs.existsSync(path.join(process.cwd(), pkgPath))
+    const printer = createCLIPrinter()
+    const packageManager = new PackageManager()
 
-    if (isNPM) {
-      startTask('npm download')
-      let tempPkgPath = await downloadNpmPackage(pkgPath)
-      if(tempPkgPath) {
-        succeed(`npm package downloaded to ${tempPkgPath}`)
-      } else {
-        return failed(`npm package could not be retrieved`)
-      }
-      startTask('npm package verification')
-      const result = await pkgsign.verify(tempPkgPath, address)
-      return formatPrintResult(result)
+    printer.print(`Verify package: "${pkgQuery}"`, { isTask: false })
+    let pkg
+    try {
+      pkg = await packageManager.getPackage(pkgQuery, {
+        listener: printer.listener
+      })
+    } catch (error) {
+      printer.fail(error)
+    }
+    if (!pkg) {
+      return printer.fail(`Could not find or load package: "${pkgQuery}"`)
     }
 
-    if (!fs.existsSync(pkgPath)) {
-      // try to expand path
-      pkgPath = path.join(process.cwd(), pkgPath)
+    let verificationInfo
+    try {
+      verificationInfo = await packageManager.verifyPackage(pkg, {
+        addressOrEnsName: address,
+        listener: printer.listener
+      })
+    } catch (error) {
+      return printer.fail(error)
+    }
+    if(!verificationInfo) {
+      return printer.fail('Could not verify release!')
     }
 
-    if (!fs.existsSync(pkgPath)) {
-      console.log('>> package could not be found at location: '+pkgPath)
-    }
-
-    startTask('verification')
-    const result = await pkgsign.verify(pkgPath, address)
-    return formatPrintResult(result)
-    
+    printFormattedVerificationResult(verificationInfo)
   }
 }

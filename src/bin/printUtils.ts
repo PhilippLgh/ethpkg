@@ -11,6 +11,18 @@ import { recursiveSearch } from './utils'
 import { format } from 'path'
 import { IVerificationResult } from '../IVerificationResult'
 
+export const printError = (error: Error | string) => {
+  console.log(chalk.white.bgRed.bold(typeof error === 'string' ? error : error.message))
+}
+
+export const printWarning = (msg: string) => {
+  console.log(`🚨 ${chalk.yellowBright.bold(msg)}`)
+}
+
+export const printSuccess = (msg: string) => {
+  console.log(`${chalk.green('✔')} ${chalk.bold(msg)}`)
+}
+
 /**
  * Takes a list of IRelease objects and prints them as a table
  * with property values as columns for each property key specified by attributes
@@ -44,7 +56,34 @@ export const printFormattedReleaseList = (releases: Array<IRelease>, attributes:
 }
 
 export const printFormattedRelease = (release?: IRelease) => {
+  if(!release) {
+    return console.log('No release info provided!')
+  }
+  if ('original' in release) {
+    release = { ...release }
+    release.original = '<Original response data removed from output>'
+  }
   console.log(boxen(JSON.stringify(release, undefined, 2)))
+}
+
+export const printFormattedVerificationResult = (result : IVerificationResult) => {
+  if (result.error) {
+    return printError(result.error.message)
+  }
+
+  if (result.isValid) {
+    const signerAddresses = result.signers.map(s => s.address).join(',')
+    printSuccess(`Package contents passed integrity checks and are signed by [${signerAddresses}]`)
+  } else {
+    printError('Invalid package. The signatures do not match or are corrupted due to modifications')
+  }
+
+  if(result.signers.length > 0 && !result.isTrusted) {
+    printWarning('WARNING: The key used to sign has no certificate!\nThere is no proof that the signature belongs to the package author or the entity you believe it does')
+  }
+  if (result.isTrusted) {
+    printSuccess('The keys used for the signature match with a trusted address')
+  }
 }
 
 export const printFormattedPackageEntries = async (pkg: IPackage) => {
@@ -123,6 +162,11 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
         if (task) {
           task.succeed(`Filtered releases to ${releases.length}`)
         }
+        break;
+      }
+      case PROCESS_STATES.FILTERED_INVALID_RELEASES: {
+        const { invalid } = args
+        console.log(chalk.yellow(`WARNING: filtered ${invalid.length} corrupted releases`))
         break;
       }
       case PROCESS_STATES.RESOLVE_PACKAGE_STARTED: {
@@ -206,7 +250,7 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
       if (task) {
         task.fail(errorMessage)
       } else {
-        console.log(chalk.red(errorMessage))
+        printError(errorMessage)
       }
     }
   }
@@ -214,6 +258,4 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
 
 export const createResolvePrinter = () => {}
 
-export const printError = (error: Error) => {
-  console.log(chalk.red(error.message))
-}
+
