@@ -8,6 +8,7 @@ import { normalizeRelativePath } from '../utils/PackageUtils'
 import { PublicKeyInfo, getSigner } from './KeyService'
 import { resolveName } from '../ENS/ens'
 import { IFlattenedJwsSerialization } from '../jws'
+import { StateListener, PROCESS_STATES } from '../IStateListener'
 
 const META_DIR = '_META_'
 const SIGNATURE_PREFIX = `${META_DIR}/_sig`
@@ -102,19 +103,19 @@ export const createPayload = async (pkg : IPackage, options : { expiresIn?: numb
   const digests = await calculateDigests(pkg)
 
   const payload = {
-    "version": 1,
+    'version': 1,
     // Issuer
-    // The "iss" (issuer) claim identifies the principal that issued the JWT
-    "iss": "self",
+    // The 'iss' (issuer) claim identifies the principal that issued the JWT
+    'iss': 'self',
     // Issued At
-    // The "iat" (issued at) claim identifies the time at which the JWT was issued.
-    "iat": getNumericDate(),
+    // The 'iat' (issued at) claim identifies the time at which the JWT was issued.
+    'iat': getNumericDate(),
     // Expiration Time
-    // The "exp" (expiration time) claim identifies the expiration time on
+    // The 'exp' (expiration time) claim identifies the expiration time on
     // or after which the JWT MUST NOT be accepted for processing.
-    "exp": getNumericDate() + (options.expiresIn === undefined ? daysToSeconds(DEFAULT_EXPIRATION_DAYS) : options.expiresIn),
-    // "jti" : identifier that cna help prevent replay protection not used
-    "data": digests
+    'exp': getNumericDate() + (options.expiresIn === undefined ? daysToSeconds(DEFAULT_EXPIRATION_DAYS) : options.expiresIn),
+    // 'jti' : identifier that cna help prevent replay protection not used
+    'data': digests
   }
 
   return payload
@@ -149,10 +150,11 @@ export const getJwsFromSignatureEntry = async (signatureEntry: IPackageEntry, de
   return signatureObj
 }
 
-export const verifySignature = async (signatureEntry : IPackageEntry, digests : Digests) : Promise<IVerificationResult> => {
+export const verifySignature = async (signatureEntry : IPackageEntry, digests : Digests, listener: StateListener = () => {}) : Promise<IVerificationResult> => {
 
   const encodedToken = await getJwsFromSignatureEntry(signatureEntry)
 
+  listener(PROCESS_STATES.VERIFY_JWS_STARTED, { signatureEntry })
   let decodedToken
   try {
     // try to "verify"/validate the jws:
@@ -163,6 +165,7 @@ export const verifySignature = async (signatureEntry : IPackageEntry, digests : 
     // jws verification failed
     // console.log('verification error', error)
   }
+  listener(PROCESS_STATES.VERIFY_JWS_FINISHED, { signatureEntry, decodedToken })
   if(!decodedToken) {
     return {
       isValid: false,
@@ -175,6 +178,7 @@ export const verifySignature = async (signatureEntry : IPackageEntry, digests : 
   // verify integrity: check if files covered by signature were changed after signing
   // by comparing digests in signature payload with newly computed digests
   // the signature is valid if the signed hashes match the actual computed file hashes
+  listener(PROCESS_STATES.COMPARE_DIGESTS_STARTED, { signatureEntry, decodedToken })
   let isValid = false
   try {
     const { payload } = decodedToken
@@ -184,15 +188,21 @@ export const verifySignature = async (signatureEntry : IPackageEntry, digests : 
     // TODO log if verbosity level applies
     // console.log('error: ', error)
   }
+  listener(PROCESS_STATES.COMPARE_DIGESTS_FINISHED, { signatureEntry, decodedToken })
+
 
   // recover address / public key
   // TODO after jws verify we can actually use the eth address from the jws header - it is already checked against the recovered one
+  listener(PROCESS_STATES.RECOVER_SIGNATURE_ADDRESS_STARTED, { signatureEntry })
   let recoveredAddress
   try {
     recoveredAddress = await jws.recoverAddress(encodedToken)
   } catch (error) {
-    console.log('error during signature check', error)
+    console.log('Error during signature check', error)
+    throw error
   }
+  listener(PROCESS_STATES.RECOVER_SIGNATURE_ADDRESS_FINISHED, { signatureEntry })
+
   isValid = isValid && !!recoveredAddress
 
   let { payload } = decodedToken
@@ -252,7 +262,7 @@ export const getSignature = async (pkg: IPackage, publicKeyInfo: PublicKeyInfo) 
 }
 
 export const containsSignature = async (signers: Array<ISignerInfo>, publicKeyInfo: PublicKeyInfo) : Promise<boolean> => {
-  if (typeof publicKeyInfo === 'string' && publicKeyInfo.endsWith('.ens')) {
+  if (typeof publicKeyInfo === 'string' && publicKeyInfo.endsWith('.eth')) {
     const publicKeyResolved = await resolveName(publicKeyInfo)
     if (publicKeyResolved === undefined) {
       // TODO log ens error
