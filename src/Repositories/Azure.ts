@@ -3,7 +3,7 @@ import { IRepository, IRelease, FetchOptions } from './IRepository'
 import { download } from '../Downloader'
 import { parseXml } from '../util'
 import { hasPackageExtension, hasSignatureExtension, removeExtension } from '../utils/FilenameUtils'
-import { extractPlatformFromString, extractArchitectureFromString, extractVersionFromString, versionToDisplayVersion } from '../utils/FilenameHeuristics'
+import { extractPlatformFromString, extractArchitectureFromString, extractVersionFromString, versionToDisplayVersion, extractChannelFromVersionString } from '../utils/FilenameHeuristics'
 import { datestring } from '../utils/PackageUtils'
 import { ParsedSpec } from '../SpecParser'
 
@@ -50,6 +50,7 @@ export default class AzureRepository implements IRepository {
 
     const version = extractVersionFromString(name)
     const displayVersion = versionToDisplayVersion(version)
+    const channel = extractChannelFromVersionString(displayVersion)
 
     // heuristics are not guaranteed to give accurate results:
     const platform = extractPlatformFromString(name)
@@ -77,7 +78,7 @@ export default class AzureRepository implements IRepository {
       tag: version,
       commit: undefined,
       size,
-      channel: undefined,
+      channel,
       location: location,
       error: undefined,
       checksums: {
