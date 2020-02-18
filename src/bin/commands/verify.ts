@@ -24,7 +24,7 @@ export default class extends Command {
     const printer = createCLIPrinter()
     const packageManager = new PackageManager()
 
-    printer.print(`Verify package: "${pkgQuery}"`, { isTask: false })
+    printer.print(`Verify package: "${pkgQuery}" ${address ? `against address "${address}"` : ''}`, { isTask: false })
     let pkg
     try {
       pkg = await packageManager.getPackage(pkgQuery, {

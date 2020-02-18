@@ -1,3 +1,4 @@
+import path from 'path'
 import { PROCESS_STATES } from '../IStateListener'
 import chalk from 'chalk'
 import Table from 'cli-table'
@@ -8,19 +9,22 @@ import { IPackage, IPackageEntry } from '../PackageManager/IPackage'
 import { startNewTask, FormatCallback } from './task'
 import { formatBytes } from '../util'
 import { recursiveSearch } from './utils'
-import { format } from 'path'
-import { IVerificationResult } from '../IVerificationResult'
+import { IVerificationResult, ISignerInfo } from '../IVerificationResult'
 
 export const printError = (error: Error | string) => {
   console.log(chalk.white.bgRed.bold(typeof error === 'string' ? error : error.message))
 }
 
 export const printWarning = (msg: string) => {
-  console.log(`🚨 ${chalk.yellowBright.bold(msg)}`)
+  console.log(`${chalk.red('✖')} ${chalk.yellowBright.bold(msg)}`)
 }
 
 export const printSuccess = (msg: string) => {
   console.log(`${chalk.green('✔')} ${chalk.bold(msg)}`)
+}
+
+export const print = (msg: string) => {
+  console.log(chalk.bold(msg))
 }
 
 /**
@@ -66,24 +70,39 @@ export const printFormattedRelease = (release?: IRelease) => {
   console.log(boxen(JSON.stringify(release, undefined, 2)))
 }
 
+export const printFormattedSignerInfo = (signature: ISignerInfo) => {
+  const { exp, address, certificates } = signature
+  if (typeof exp === 'number') {
+    print(`-> Signature by ${address} expires: ${new Date(exp * 1000)}`)
+  }
+}
+
 export const printFormattedVerificationResult = (result : IVerificationResult) => {
   if (result.error) {
     return printError(result.error.message)
   }
 
-  if (result.isValid) {
+  if (result.signers.length > 0) {
     const signerAddresses = result.signers.map(s => s.address).join(',')
-    printSuccess(`Package contents passed integrity checks and are signed by [${signerAddresses}]`)
+    printSuccess(`Package is ${chalk.magenta('signed')}: Package contents are signed by [${signerAddresses}]`)
+  }
+  if (result.isValid) {
+    printSuccess(`Package is ${chalk.cyan('valid')}: Package contents are ${chalk.magenta('signed')} and passed integrity checks`)
   } else {
     printError('Invalid package. The signatures do not match or are corrupted due to modifications')
   }
 
   if(result.signers.length > 0 && !result.isTrusted) {
-    printWarning('WARNING: The key used to sign has no certificate!\nThere is no proof that the signature belongs to the package author or the entity you believe it does')
   }
   if (result.isTrusted) {
-    printSuccess('The keys used for the signature match with a trusted address')
+    printSuccess(`Package is ${chalk.greenBright('trusted')}: Signatures are ${chalk.cyan('valid')} and the key of at least one valid signature matches with a trusted address`)
+  } else {
+    printWarning(`Package is NOT ${chalk.greenBright('trusted')}: The key used to sign has no certificate and no trusted address was provided!\nThere is no proof that the signature was created by the author or entity you might believe it was`)
   }
+
+  const { signers } = result
+  signers.forEach(signer => printFormattedSignerInfo(signer))
+
 }
 
 export const printFormattedPackageEntries = async (pkg: IPackage) => {
@@ -138,6 +157,8 @@ export const PROCESSES = {
 
 export const createCLIPrinter = (processStates: Array<any> = []) => {
   let task : any
+  // TODO catch errors in listener
+  // TODO allow event queue and async processing
   const listener =  (newState: string, args: any = {}) => {
     // return console.log('new state', newState, Object.keys(args))
     switch(newState) {
@@ -187,9 +208,7 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
       }
       case PROCESS_STATES.DOWNLOAD_PROGRESS: {
         const { progress, size } = args
-        if (task) {
-          task.updateText(chalk.greenBright(`Downloading package... ${progress}% \t|| ${formatBytes(progress / 100 *  size)} / ${formatBytes(size)} ||`))
-        }
+        task.updateText(chalk.greenBright(`Downloading package... ${progress}% \t|| ${formatBytes(progress / 100 *  size)} / ${formatBytes(size)} ||`))
         break;
       }
       case PROCESS_STATES.DOWNLOAD_FINISHED: {
@@ -204,9 +223,7 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
       }
       case PROCESS_STATES.CREATE_PACKAGE_PROGRESS: {
         const { file } = args
-        if (task) {
-          task.updateText(`Packing file: "${file}" ...`)
-        }
+        task.updateText(`Packing file: "${file}" ...`)
         break;
       }
       case PROCESS_STATES.CREATE_PACKAGE_FINISHED: {
@@ -221,7 +238,7 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
       }
       case PROCESS_STATES.UNLOCKING_KEY_FINISHED: {
         const { address } = args
-        task.succeed(`Key unlocked ${address}`)
+        task.succeed(`Key unlocked: ${address}`)
         break;
       }
       case PROCESS_STATES.FINDING_KEY_BY_ALIAS_STARTED: {
@@ -231,7 +248,54 @@ export const createCLIPrinter = (processStates: Array<any> = []) => {
       }
       case PROCESS_STATES.FINDING_KEY_BY_ALIAS_FINISHED: {
         const { alias, key } = args
-        task.succeed(`Key found by alias "${alias}": ${key && key.address}`)
+        task.succeed(`Key found for alias "${alias}": ${key && key.address}`)
+        break;
+      }
+      case PROCESS_STATES.CREATE_PAYLOAD_STARTED: { 
+        task = startTask(`Creating signature payload ...`)
+        break; 
+      }
+      case PROCESS_STATES.CREATE_PAYLOAD_FINISHED: { 
+        const { payload } = args
+        task.succeed(`Signature payload created: ${Object.keys(payload).length} checksums`)
+        break; 
+      }
+      case PROCESS_STATES.VERIFY_JWS_STARTED: { 
+        const { signatureEntry } = args
+        const signaturePath =  path.basename((<IPackageEntry>signatureEntry).relativePath)
+        task = startTask(`Verifying JWS: ${signaturePath}`)
+        break; 
+      }
+      case PROCESS_STATES.VERIFY_JWS_FINISHED: { 
+        const { decodedToken, signatureEntry } = args
+        const signaturePath =  path.basename((<IPackageEntry>signatureEntry).relativePath)
+        task.succeed(`Verified JWS with signature algorithm: ${ decodedToken && JSON.stringify(decodedToken.header.alg)}: ${signaturePath}`)
+        break; 
+      }
+      case PROCESS_STATES.COMPARE_DIGESTS_STARTED: { 
+        task = startNewTask(`Comparing calculated digests with signature`)
+        break; 
+      }
+      case PROCESS_STATES.COMPARE_DIGESTS_FINISHED: { 
+        task.succeed(`Finished comparing package digests with signature`)
+        break; 
+      }
+      case PROCESS_STATES.RECOVER_SIGNATURE_ADDRESS_STARTED: { 
+        task = startNewTask(`Recovering public key from signature`)
+        break; 
+      }
+      case PROCESS_STATES.RECOVER_SIGNATURE_ADDRESS_FINISHED: { 
+        task.succeed(`Recovered public key from signature`)
+        break; 
+      }
+      case PROCESS_STATES.RESOLVE_ENS_STARTED: {
+        const { name } = args
+        task = startNewTask(`Resolving ENS name "${name}"`)
+        break;
+      }
+      case PROCESS_STATES.RESOLVE_ENS_FINISHED: {
+        const { name, address } = args
+        task.succeed(`Resolved ENS name "${name}" to address: ${address}`)
         break;
       }
     }
