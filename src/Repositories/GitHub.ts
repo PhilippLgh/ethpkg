@@ -126,9 +126,8 @@ export default class GitHubRepository implements IRepository {
       // console.log('latest releases unsorted\n', releases.map(r => `{ version: '${r.version}', channel: '${r.channel}' }`).slice(0, 5).join(',\n'))
       return releases
     } catch (error) {
-      console.log('could not retrieve releases list from github. error: ', error.message)
-      // FIXME handle API errors such as rate-limits
-      return []
+      throw new Error('Could not retrieve release list from GitHub: '+ (error ? error.message : '' ))
+      throw error
     }
   }
 
