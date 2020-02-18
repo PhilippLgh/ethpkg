@@ -1,30 +1,80 @@
 import path from 'path'
-import fs from 'fs'
-import PackageManager from '../../PackageManager/PackageManager'
-import { isDirSync } from '../../util'
+import PackageManager, { GetSigningKeyOptions } from '../../PackageManager/PackageManager'
 import { Command, command, param, Options, option } from 'clime'
+import { createCLIPrinter } from '../printUtils'
+import { KeyFileInfo } from '../../PackageSigner/KeyFileInfo';
+import { getSelectedKeyFromUser, getPasswordFromUser } from '../interactive';
+import { isSigned } from '../../PackageSigner';
+
+export class PublishOptions extends Options {
+  @option({
+    flag: 's',
+    description: 'signing package before publishing it',
+    default: undefined
+  })
+  sign?: boolean = undefined;
+  @option({
+    flag: 'k',
+    description: 'signing key alias or address',
+    default: undefined
+  })
+  key?: string;
+}
 
 @command({
-  description: 'publishes a package',
+  description: 'Publishes a package',
 })
 export default class extends Command {
   public async execute(
     @param({
-      name: 'path',
       description: 'path to the package',
+      name: 'package path',
+      required: true
     })
-    packagePath: string
+    packagePath: string,
+    @param({
+      description: 'where to publish the package',
+      name: 'repository name',
+      required: false,
+      default: 'ipfs'
+    })
+    repository: string,
+    options: PublishOptions,
   ) {
+
+    const { key, sign: signPackage } = options
+
     const packageManager = new PackageManager()
+    const printer = createCLIPrinter()
+
     packagePath = path.resolve(packagePath)
-    if (!fs.existsSync(packagePath)) {
-      throw new Error('Invalid path: '+packagePath)
+
+    printer.print(`Publishing package "${packagePath}" to hoster "${repository}"`, { isTask: false })
+    if (key) {
+      printer.print(`Sign package using key "${key}"`, { isTask: false })
     }
-    if (isDirSync(packagePath)) {
-      console.log('publish target is directory')
-      const pkg = await packageManager.createPackage(packagePath)
-      return await packageManager.publishPackage(pkg, 'ipfs')
-    } 
-    await packageManager.publishPackage(packagePath, 'ipfs')
+
+    let pkg 
+    try {
+      pkg = await packageManager.publishPackage(packagePath, {
+        repository,
+        listener: printer.listener,
+        signPackage: signPackage,
+        keyInfo: {
+          alias: key,
+          password: async () => {
+            const password = await getPasswordFromUser()
+            return password
+          },
+          selectKeyCallback: async (keys: Array<KeyFileInfo>) => {
+            const result = await getSelectedKeyFromUser(keys) as KeyFileInfo
+            return result
+          }
+        }
+      })
+    } catch (error) {
+      printer.fail(error)
+    }
+
   }
 }
