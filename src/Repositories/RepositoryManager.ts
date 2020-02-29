@@ -4,7 +4,7 @@ import NpmRepository from './Npm'
 import BintrayRepository from './Bintray'
 import IpfsRepository from './Ipfs'
 
-import { IRepository } from './IRepository'
+import { IRepository, RepositoryConfig } from './IRepository'
 import { ConstructorOf } from '../util'
 import { ParsedSpec } from '../SpecParser'
 
@@ -34,10 +34,18 @@ export default class RepositoryManager {
     return delete this.repositories[name]
   }
 
-  async getRepository(config: ParsedSpec) : Promise<IRepository | undefined> {
-    const { repo } = config
-    if (repo && repo in this.repositories) {
-      return new this.repositories[repo.toLowerCase()](config) as IRepository
+  async getRepository(config: ParsedSpec | RepositoryConfig | string) : Promise<IRepository | undefined> {
+
+    if (typeof config === 'string') {
+      if (config in this.repositories) {
+        return new this.repositories[config]({})
+      }
+      return undefined
+    }
+
+    const { name } = config
+    if (name && name in this.repositories) {
+      return new this.repositories[name.toLowerCase()](config) as IRepository
     } 
 
     // nothing found: ask repos
@@ -45,7 +53,10 @@ export default class RepositoryManager {
     for (const repo of repos) {
       if (repo.hasOwnProperty('handlesSpec')) {
         // @ts-ignore
-        const result = repo.handlesSpec(config)
+        const processedConfig = repo.handlesSpec(config)
+        if (processedConfig) {
+          return new repo(processedConfig)
+        }
       }
     }
   
