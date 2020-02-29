@@ -22,6 +22,7 @@ import KeyStore, { PasswordCallback, getPassword, GetKeyOptions } from '../Packa
 import { SignPackageOptions, VerifyPackageOptions, isSigned } from '../PackageSigner'
 import { KeyFileInfo } from '../PackageSigner/KeyFileInfo'
 import { getExtension } from '../utils/FilenameUtils'
+import SignerManager from '../Signers/SignerManager'
 
 // browser / webpack support
 if (!fs.existsSync) {
@@ -85,11 +86,12 @@ export default class PackageManager {
 
   private repoManager: getRepository
 
-  private signers: Array<ISigner> = []
+  private signerManager: SignerManager
 
   constructor(options?: PackageManagerOptions) {
 
     this.repoManager = new RepositoryManager()
+    this.signerManager = new SignerManager()
 
     let cacheInit = false
     if (options && options.cache) { 
@@ -121,8 +123,8 @@ export default class PackageManager {
     return this.repoManager.addRepository(name, repo)
   }
 
-  async getRepository(name: string, options: any) : Promise<IRepository | undefined> {
-    return this.repoManager.getRepository(options)
+  async getRepository(name: string) : Promise<IRepository | undefined> {
+    return this.repoManager.getRepository(name)
   }
 
   async listRepositories() : Promise<Array<string>> {
@@ -351,16 +353,16 @@ export default class PackageManager {
     return _keyStore.getKey(options)
   }
 
-  async addSigner(signer: ISigner) : Promise<void> {
-    this.signers.push(signer)
+  async addSigner(name: string, signer: ISigner) : Promise<void> {
+    this.signerManager.addSigner(name, signer)
   }
 
   async listSigners() : Promise<Array<string>> {
-    return this.signers.map(signer => signer.name)
+    return this.signerManager.listSigners()
   }
 
   async getSigner(name: string) : Promise<ISigner | undefined> {
-    return this.signers.find(signer => signer.name.toLowerCase() === name.toLowerCase())
+    return this.signerManager.getSigner(name)
   }
 
   /**
