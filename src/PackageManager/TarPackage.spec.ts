@@ -121,7 +121,7 @@ describe('TarPackage (IPackage)', () => {
   describe('async writePackage(outPath: string): Promise<string>', () => {
     it('compresses the contents if the outPath contains gzip extension', async () => {
       let pkg = await TarPackage.create(FOO_DIR)
-      await pkg.writePackage(FOO_PACKAGE_WRITE_COMPRESSED)
+      await pkg.writePackage(FOO_PACKAGE_WRITE_COMPRESSED, { overwrite: true })
       const pkg2 = await TarPackage.from(FOO_PACKAGE_WRITE_COMPRESSED)
       assert.isTrue((<TarPackage>pkg2).isGzipped)
       let content = await pkg2.getContent('./bar.txt')
