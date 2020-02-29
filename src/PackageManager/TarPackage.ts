@@ -236,7 +236,7 @@ export default class TarPackage implements IPackage {
     let packageName = dirPath ? path.basename(dirPathOrName) : dirPathOrName
     if (!hasPackageExtension(packageName)) {
       packageName += (compressed ? '.tar.gz' : 'tar')
-    }
+    } 
     if (dirPath) {
       const writeFileToPackStream = (filePath: string) => {
         return new Promise(async (resolve, reject) => {
@@ -269,6 +269,12 @@ export default class TarPackage implements IPackage {
         }
       }
       await writeDirToPackStream(dirPath)
+    } else {
+      // an empty package is created: use package name as hint if it is compressed or not
+      const extension = getExtension(packageName)
+      if (extension === '.tar') {
+        compressed = false
+      }
     }
 
     let strm = compressed ? pack.pipe(zlib.createGzip()) : pack
