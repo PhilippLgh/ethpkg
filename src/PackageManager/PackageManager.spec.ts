@@ -6,6 +6,7 @@ import PackageManager from './PackageManager'
 import TarPackage from './TarPackage'
 import ISigner from '../PackageSigner/ISigner'
 import { getSignatureEntriesFromPackage } from '../PackageSigner/SignerUtils'
+import { MemCache } from './Cache'
 
 const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
 const UNSIGNED_FOO_TAR = path.join(FIXTURES, 'foo.tar.gz')
@@ -20,7 +21,7 @@ const ETH_ADDRESS_1 = '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7'
 describe('PackageManager', () => {
   describe('constructor(options?: any) {}', function(){
     describe('options.cache', () => {
-      it('configures the cache path', async () => {
+      it('creates a persistent cache when passed a directory path', async () => {
 
       })
     })
@@ -159,11 +160,20 @@ describe('PackageManager', () => {
   })
 
   describe('async listPackages(spec: PackageQuery, options?: FetchOptions) : Promise<Array<IRelease>>', function(){
+    this.timeout(60 * 1000)
     it('lists all available & valid packages for a given PackageQuery', async () => {
       const pm = new PackageManager()
       const packages = await pm.listPackages('github:ethereum/grid-ui')
       // TODO mock http
       assert.equal(packages.length, 30)
+    })
+    it('lists packages for repo urls ', async () => {
+      const gethStore = 'https://gethstore.blob.core.windows.net'
+      const releases = await new PackageManager().listPackages(gethStore)
+      assert.isTrue(releases.length > 100)      
+    })
+    it('includes packages from a user defined cache path ', async () => {
+           
     })
     // TODO usage of fetch options
   })
@@ -181,8 +191,27 @@ describe('PackageManager', () => {
       const release = await pm.resolve('github:ethereum/grid-ui@>=1.6.2')
       assert.isUndefined(release)
     })
+    it('can be wrapped with a mem-cache', async () => {
+      const cache = new MemCache()
+      const pm = new PackageManager({
+        cache
+      })
+      const release = await pm.resolve('github:ethereum/grid-ui@>=1.6.1')
+      const key = (cache.keys())[0]
+      const cached = await cache.get(key)
+      assert.deepEqual(release, cached)
+    })
+    it('can be wrapped with a persistent cache', async () => {
+      const CACHE_PATH = path.join(FIXTURES, 'TestCache2')
+      const pm = new PackageManager({
+        cache: CACHE_PATH
+      })
+      const release = await pm.resolve('github:ethereum/grid-ui@>=1.6.1')
+      // assert.deepEqual(release, cached)
+    })
   })
 
+  /* TODO remove
   describe('async fetchPackage(release: IRelease, options?: DownloadPackageOptions) : Promise<IPackage | undefined>', function() {
     this.timeout(60 * 1000)
     it('fetches the package data (e.g. release asset on github) for a given IRelease', async () => {
@@ -213,6 +242,7 @@ describe('PackageManager', () => {
       assert.isDefined(pkg)
     })
   })
+  */
 
   describe('async getPackage(pkgSpec: PackageQuery | PackageData | ResolvePackageOptions, options? : ResolvePackageOptions) : Promise<IPackage | undefined>', function(){
     this.timeout(60*1000)
@@ -272,6 +302,20 @@ describe('PackageManager', () => {
       const index = await pkg.getContent('index.html')
       assert.isDefined(index)
     })
+    it.only('downloads a workflow package', async () => {
+      const pkg = await new PackageManager().getPackage('ianu:0x585c34f863e4064bdefa52305e3e7c89d39f98cf/foo-1.0.0.tar')
+      if(pkg === undefined) {
+        return assert.fail()
+      } 
+      const index = await pkg.getContent('index.js')
+      assert.isDefined(index)
+    })
+    it('accepts an IRelease as pkgSpec', () => {
+
+    })
+    it('accepts a state listener to listen for e.g. download progress changes', () => {
+
+    })
     it('has a short form which accepts a single ResolvePackageOptions object', async () => {
       const pkg = await new PackageManager().getPackage({
         spec: 'github:ethereum/grid-ui',
@@ -285,12 +329,22 @@ describe('PackageManager', () => {
       }
       assert.equal(pkg.metadata.version, '1.6.0')
     })
-    it('forwards download options to the fetcher', async () => {
+    it('accepts a proxy server to avoid cors issues during package download in the browser', async () => {
       const pkg = await new PackageManager().getPackage('github:ethereum/grid-ui', {
-        proxy: 'https://cors-anywhere.herokuapp.com/'
+        proxy: 'https://cors-anywhere.herokuapp.com/',
+        // proxy will block requests not coming from browser
+        headers: {
+          Origin: null,
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.84 Mobile Safari/537.36'
+        }
       })
-      // proxy will block requests not coming from browser (see above)
-      assert.isUndefined(pkg)
+      assert.isDefined(pkg)
+    })
+    it('tries to create the download directory if it doesn\'t exist yet', () => {
+      
+    })
+    it('can extract all package contents to disk test tar+zip', () => {
+
     })
   })
 
@@ -353,7 +407,7 @@ describe('PackageManager', () => {
     it('verifies a signed package against a trusted public key', async () => {
       const pm = new PackageManager()
       const signed = await pm.signPackage(UNSIGNED_FOO_TAR, PRIVATE_KEY_1)
-      const verificationResult = await pm.verifyPackage(signed, ETH_ADDRESS_1)
+      const verificationResult = await pm.verifyPackage(signed, { addressOrEnsName: ETH_ADDRESS_1 })
       assert.isTrue(verificationResult.isValid)
       assert.isTrue(verificationResult.isTrusted)
     })

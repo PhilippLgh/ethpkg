@@ -4,7 +4,7 @@ import { IPackage, instanceofIPackage } from './IPackage'
 
 import Fetcher from '../Fetcher'
 import * as PackageSigner from '../PackageSigner'
-import { IRelease, FetchOptions, IRepository, instanceOfIRelease } from '../Repositories/IRepository'
+import { IRelease, FetchOptions, IRepository, instanceOfIRelease, Credentials, RepositoryConfig } from '../Repositories/IRepository'
 import { ResolvePackageOptions, instanceofResolvePackageOptions, PackageQuery, instanceOfPackageQuery, DownloadPackageOptions } from '../Fetcher/Fetcher'
 import getRepository from '../Repositories/RepositoryManager'
 import { IVerificationResult } from '../IVerificationResult'
@@ -18,9 +18,10 @@ import { isDirSync, isDirPath, ConstructorOf, isFilePath } from '../util'
 import RepositoryManager from '../Repositories/RepositoryManager'
 import { isArray } from 'util'
 import { StateListener, PROCESS_STATES } from '../IStateListener'
-import KeyStore, { PasswordCallback, getPassword } from '../PackageSigner/KeyStore'
+import KeyStore, { PasswordCallback, getPassword, GetKeyOptions } from '../PackageSigner/KeyStore'
 import { SignPackageOptions, VerifyPackageOptions, isSigned } from '../PackageSigner'
 import { KeyFileInfo } from '../PackageSigner/KeyFileInfo'
+import { getExtension } from '../utils/FilenameUtils'
 
 // browser / webpack support
 if (!fs.existsSync) {
@@ -61,30 +62,22 @@ export interface PackOptions {
   type?: string;
   listener?: StateListener;
   filePath?: string; // if package should be written to disk
+  fileName?: string; // if package created from dirPath overwrite default fileName
   compressed?: boolean;
   overwrite?: boolean; // if existing package should be overwritten
 }
 
-export interface GetSigningKeyOptions {
-  keyStore?: string; // path where to search for keys
-  password?: string | PasswordCallback
-  listener?: StateListener,
-  alias?: string, // key alias or address
-  selectKeyCallback?: (keys: Array<KeyFileInfo>) => Promise<KeyFileInfo>,
-}
-
 export interface PublishOptions {
-  repository?: string; // ignored - used by package manager to find repo
+  repository?: string | RepositoryConfig; // ignored - used by package manager to find repo
   listener?: StateListener;
   signPackage?: boolean;
-  keyInfo?: GetSigningKeyOptions
+  keyInfo?: GetKeyOptions;
+  credentials?: Credentials
 }
 
 export interface PackageManagerOptions {
   cache?: string | ICache<ISerializable>
 }
-
-
 
 export default class PackageManager {
 
@@ -150,6 +143,7 @@ export default class PackageManager {
     type = 'tar',
     listener = () => {},
     filePath = undefined,
+    fileName = undefined,
     compressed = true,
     overwrite = false
   }: PackOptions = {}) : Promise<IPackage> {
@@ -166,6 +160,10 @@ export default class PackageManager {
       pkg = await ZipPackage.create(srcDirPathOrName, createPackageOptions)
     } else {
       pkg = await TarPackage.create(srcDirPathOrName, createPackageOptions)
+    }
+    if (fileName) {
+      const ext = getExtension(pkg.fileName)
+      pkg.fileName = `${fileName}${ext}`
     }
     listener(PROCESS_STATES.CREATE_PACKAGE_FINISHED, { name: pkg.fileName, pkg })
 
@@ -237,6 +235,7 @@ export default class PackageManager {
 
     if (destPath) {
       destPath = path.resolve(destPath)
+      // FIXME handle destPath = full file path: path/to/file/my-name.tar
       if (isDirPath(destPath)) {
         if(!isDirSync(destPath)) {
           // TODO try create dir if non-existent dir path
@@ -269,7 +268,6 @@ export default class PackageManager {
    * Creates and returns an IPackage based on a filepath, url, or package specifier
    */
   async getPackage(pkgSpec: IRelease | PackageData | PackageQuery | ResolvePackageOptions, options? : ResolvePackageOptions) : Promise<IPackage | undefined> {
-    
     if (!pkgSpec) {
       throw new Error('Invalid package specification: empty or undefined')
     } 
@@ -315,22 +313,23 @@ export default class PackageManager {
 
     // download IRelease if it does not exist in cache
     if (instanceOfIRelease(pkgSpec)) {
-
       const release : IRelease = pkgSpec
-
+      let cachedDataPath = (options && options.cache) ? path.join(options.cache, release.fileName) : undefined
       // TODO write tests
       if (options && options.cache && fs.existsSync(options.cache)) {
-
-        let cachedData = path.join(options.cache, release.fileName)
-        if (fs.existsSync(cachedData)) {
-          const pkg = await toPackage(cachedData)
+        if (cachedDataPath && fs.existsSync(cachedDataPath)) {
+          const pkg = await toPackage(cachedDataPath)
           pkg.metadata = release
-          pkg.filePath = cachedData
+          pkg.filePath = cachedDataPath
           pkg.metadata.remote = false // indicate that it was loaded from cache
           return pkg
         }
       }
 
+      // if cache is provided but no explicit download path we still download to cache
+      if (options && !options.destPath && options.cache) {
+        options.destPath = options.cache
+      }
       const pkg = await this.downloadPackage(release, options)
 
       if(pkg.metadata && options && options.cache) {
@@ -345,48 +344,11 @@ export default class PackageManager {
 
   /**
    * Helps to select or create a designated signing key
+   // path where to search for keys
    */
-  async getSigningKey({
-    keyStore = undefined,
-    password = undefined,
-    listener = () => {},
-    alias = undefined, // TODO alias = address is not handled
-    selectKeyCallback = undefined,
-  } : GetSigningKeyOptions = {}) : Promise<Buffer> {
-
-    // TODO move to PackageSigner
-    const keystore = new KeyStore(keyStore)
-    const keys = await keystore.listKeys()
-
-    // create new key
-    if (keys.length === 0) {
-      const { info, key } = await keystore.createKey({
-        password,
-        listener
-      })
-      // TODO allow user to backup key
-      let privateKey = key.getPrivateKey()
-      return privateKey
-    } 
-
-    let selectedKey
-    if (keys.length > 1) {
-      if (alias) {
-        listener(PROCESS_STATES.FINDING_KEY_BY_ALIAS_STARTED, { alias })
-        selectedKey = await keystore.getKeyByAlias(alias)
-        listener(PROCESS_STATES.FINDING_KEY_BY_ALIAS_FINISHED, { alias, key: selectedKey })
-      }
-      if (!selectedKey && typeof selectKeyCallback === 'function') {
-        selectedKey = await (<Function>selectKeyCallback)(keys)
-      } 
-      if (!selectedKey) {
-        throw new Error('Ambiguous signing keys and no select callback or alias provided')
-      }
-    }
-
-    password = await getPassword(password)
-    const unlockedKey = await keystore.unlockKey(selectedKey, password, listener)
-    return unlockedKey
+  async getSigningKey(options: GetKeyOptions = {}) : Promise<Buffer> {
+    const _keyStore = new KeyStore(options.keyStore)
+    return _keyStore.getKey(options)
   }
 
   async addSigner(signer: ISigner) : Promise<void> {
@@ -420,7 +382,8 @@ export default class PackageManager {
     repository = undefined,
     listener = () => {},
     signPackage = undefined,
-    keyInfo = undefined
+    keyInfo = undefined,
+    credentials = undefined
   } : PublishOptions = {}) {
 
     if(!repository) {
@@ -459,8 +422,14 @@ export default class PackageManager {
       })
     }
 
+    if (credentials && typeof repo.login === 'function') {
+      listener(PROCESS_STATES.REPOSITORY_LOGIN_STARTED)
+      const isLoggedIn = await repo.login(credentials)
+      listener(PROCESS_STATES.REPOSITORY_LOGIN_FINISHED, { isLoggedIn: !!isLoggedIn })
+    }
+
     if (typeof repo.publish !== 'function') {
-      throw new Error('Repository does not implement publish')
+      throw new Error(`Repository "${repository}" does not implement publish`)
     }
     const result = await repo.publish(pkg, {
       listener

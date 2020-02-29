@@ -21,6 +21,14 @@ const sleep = (t: number) : Promise<string> => new Promise((resolve, reject) => 
   setTimeout(() => resolve(`slept ${t} ms`), t)
 })
 
+export interface GetKeyOptions {
+  keyStore?: string
+  password?: string | PasswordCallback
+  listener?: StateListener,
+  alias?: string, // key alias or address
+  selectKeyCallback?: (keys: Array<KeyFileInfo>) => Promise<KeyFileInfo>
+}
+
 const KEYFILE_VERSION = 'ethpkg-3'
 
 export interface CreateKeyOptions {
@@ -66,7 +74,7 @@ export const getPassword = async (password: string | PasswordCallback | undefine
 
 export default class KeyStore {
   keystorePath: string
-  constructor(keystorePath?: string){
+  constructor(keystorePath?: string) {
     this.keystorePath = keystorePath || getKeyStorePath()
   }
   async listKeys() {
@@ -94,6 +102,56 @@ export default class KeyStore {
 
     return keys.find(k => k.address.toLowerCase() == `0x${aliasKey.address.toLowerCase()}`)
   }
+
+  async getKey({
+    password = undefined,
+    listener = () => {},
+    alias = undefined, // TODO alias = address is not handled
+    selectKeyCallback = undefined
+  } : GetKeyOptions = {}) {
+    const keys = await this.listKeys()
+
+    // create new key
+    if (keys.length === 0) {
+      const { info, key } = await this.createKey({
+        alias,
+        password,
+        listener
+      })
+      // TODO allow user to backup key
+      let privateKey = key.getPrivateKey()
+      return privateKey
+    } 
+
+    let selectedKey
+    if (alias) {
+      listener(PROCESS_STATES.FINDING_KEY_BY_ALIAS_STARTED, { alias })
+      selectedKey = await this.getKeyByAlias(alias)
+      listener(PROCESS_STATES.FINDING_KEY_BY_ALIAS_FINISHED, { alias, key: selectedKey })
+      if (!selectedKey) {
+        throw new Error(`Key not found for alias: "${alias}"`)
+      }
+    }
+
+    if (keys.length > 1) {
+      if (!selectedKey) {
+        if (typeof selectKeyCallback !== 'function') {
+          throw new Error('Ambiguous signing keys and no select callback or alias provided')
+        }
+        selectedKey = await (<Function>selectKeyCallback)(keys)
+      } 
+      if (!selectedKey) {
+        throw new Error('Ambiguous signing keys and no select callback or alias provided')
+      }
+    }
+    if (keys.length === 1 && !selectedKey) {
+      selectedKey = keys[0]
+    }
+
+    password = await getPassword(password)
+    const unlockedKey = await this.unlockKey(selectedKey, password, listener)
+    return unlockedKey
+  }
   async unlockKey(addressOrKey: string | KeyFileInfo, password: string, listener: StateListener = () => {}) {
     let key
     if (typeof addressOrKey === 'string') {
@@ -102,7 +160,7 @@ export default class KeyStore {
       key = addressOrKey
     }
     if (!key) {
-      throw new Error('Key not found')
+      throw new Error(`Key not found: ${addressOrKey}`)
     }
     listener(PROCESS_STATES.UNLOCKING_KEY_STARTED, { ...key })
     // FIXME find better way to offload unlock from main thread
@@ -119,7 +177,7 @@ export default class KeyStore {
     // handle invalid passwords, password callbacks etc
     password = await getPassword(password)
 
-    listener(PROCESS_STATES.CREATE_SIGNING_KEY_STARTED)
+    listener(PROCESS_STATES.CREATE_SIGNING_KEY_STARTED, { alias })
     const key = Wallet.generate()
     const json = key.toV3(password)
     json.version = KEYFILE_VERSION
@@ -128,7 +186,7 @@ export default class KeyStore {
     const fileName = generateKeystoreFilename(address)
     const filePath = path.join(this.keystorePath, fileName)
     fs.writeFileSync(filePath, JSON.stringify(json, null, 2))
-    listener(PROCESS_STATES.CREATE_SIGNING_KEY_FINISHED, { keyPath: filePath})
+    listener(PROCESS_STATES.CREATE_SIGNING_KEY_FINISHED, { alias, keyPath: filePath})
     return {
       key,
       info: {
