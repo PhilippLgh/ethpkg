@@ -3,10 +3,6 @@ import path from 'path'
 
 import { Command, command, param, Options, option } from 'clime'
 import { prompt } from 'enquirer'
-import { getPrivateKey } from '../lib/signFlow'
-
-import { cert } from '../..';
-import { progress } from '../task';
 
 const CERT_TYPE = {
   SELF: 'SELF_SIGNED'
@@ -32,7 +28,7 @@ const getCertType = async () => {
       { name: `${CERT_TYPE.SELF}`, message: 'Self signed' },
       // { name: `${KEY_STORAGE.PEM}`, message: 'CA signed' }
     ]
-  }];
+  }]
   let cert_type = await prompt(questionCertType) as any
   return cert_type.type
 }

@@ -1,10 +1,10 @@
 import crypto from 'crypto'
 import fs from 'fs'
-import { ICertificatePayload, CERT_TYPE, ISubjectInfo, IDENTITY_TYPE, IEthKeyShort, ICsrOptions } from "./ICertificate";
+import { ICertificatePayload, CERT_TYPE, ISubjectInfo, IDENTITY_TYPE, IEthKeyShort, ICsrOptions } from './ICertificate'
 import * as jwt from './jwt'
 import _jwt from 'jsonwebtoken'
 import * as ethUtil from 'ethereumjs-util'
-import { IFlattenedJwsSerialization } from './jws';
+import { IFlattenedJwsSerialization } from './jws'
 
 const uuid = () => crypto.randomBytes(16).toString('hex')
 

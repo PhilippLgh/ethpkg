@@ -84,10 +84,10 @@ export const printFormattedVerificationResult = (result : IVerificationResult) =
 
   if (result.signers.length > 0) {
     const signerAddresses = result.signers.map(s => s.address).join(',')
-    printSuccess(`Package is ${chalk.magenta('signed')}: Package contents are signed by [${signerAddresses}]`)
+    printSuccess(`Package is ${chalk.blueBright('signed')}: Package contents are signed by [${signerAddresses}]`)
   }
   if (result.isValid) {
-    printSuccess(`Package is ${chalk.cyan('valid')}: Package contents are ${chalk.magenta('signed')} and passed integrity checks`)
+    printSuccess(`Package is ${chalk.cyan('valid')}: Package contents are ${chalk.blueBright('signed')} and passed integrity checks`)
   } else {
     printError('Invalid package. The signatures do not match or are corrupted due to modifications')
   }

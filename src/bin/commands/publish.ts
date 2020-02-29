@@ -1,5 +1,5 @@
 import path from 'path'
-import PackageManager, { GetSigningKeyOptions } from '../../PackageManager/PackageManager'
+import PackageManager from '../../PackageManager/PackageManager'
 import { Command, command, param, Options, option } from 'clime'
 import { createCLIPrinter } from '../printUtils'
 import { KeyFileInfo } from '../../PackageSigner/KeyFileInfo';
