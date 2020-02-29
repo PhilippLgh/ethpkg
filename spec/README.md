@@ -16,6 +16,9 @@ The modular and dynamic nature of JavaScript and the fast moving open source eco
 
 While code-signing technologies like Authenticode exist, they don't protect against software that downloads and executes packages on virtual machines during runtime. In this case we need code-signing on a package level.
 
+Final note:
+"Please note that a good signature doesn’t mean a piece of software is trustworthy, reliable, or bug-free. It just means nobody tampered with it and you’re receiving it as the author intends. Keep a healthy dose of skepticism, and remember that cryptography cannot save us from our own foolishness."
+
 # Overview
 
 Signatures are created in accordance to the JSON Web Signatures (JWS) specification as defined in [RFC7515](https://tools.ietf.org/html/rfc7515):
@@ -179,6 +182,8 @@ Turn R and S into byte arrays in big endian order. Each array will be 32 bytes l
 Concatenate the two byte arrays in the order R and then S.
 Base64url encode the resulting 64 byte array.
 
+### Detached vs Embedded
+
 # Full Example
 
 TODO placeholder: not the actual payload
@@ -213,7 +218,16 @@ TODO placeholder: not the actual payload
 }
 ```
 
+# Certificates
+
+Certificates are JSON Web Tokens (JWT) that are ideally signed using secp256k1 ECDSA.
+
+
 # Ethereum Specifics
 
 ## Signed (Personal) Messages
+
+# References
+
+https://docs.oracle.com/javase/7/docs/technotes/tools/windows/jarsigner.html#CCHDAJHB
 
