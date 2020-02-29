@@ -84,5 +84,7 @@ typings/
 dist/
 bundles/
 build/
+NOTES/
+EXPERIMENTS/
 
 code-sign-key.json
