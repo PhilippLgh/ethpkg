@@ -25,7 +25,7 @@ export interface IPackage extends ISerializable {
   getEntries() : Promise<Array<IPackageEntry>>;
   getEntry(relativePath : string) : Promise<IPackageEntry | undefined>;
   getContent(relativePath : string) : Promise<Buffer>; 
-  addEntry(relativePath : string, file: IFile) : Promise<string>;
+  addEntry(relativePath : string, file: IFile | string | Buffer) : Promise<string>;
   toBuffer() : Promise<Buffer>;
   writePackage(outPath: string, options?: WritePackageOptions): Promise<string>;
   extract(destPath: string, options?: ExtractPackageOptions) : Promise<string>;

@@ -40,7 +40,7 @@ export default class ZipPackage implements IPackage {
   }
 
   async loadBuffer(buf : Buffer) : Promise<IPackage> {
-    this._size = buf.length
+    this._size = buf.byteLength
     this.zip = await JSZip.loadAsync(buf)
     return this
   }
@@ -94,14 +94,14 @@ export default class ZipPackage implements IPackage {
     if (entry.file.isDir) throw new Error('entry is not a file')
     return entry.file.readContent()
   }
-  async addEntry(relativePath : string, file: IFile) {
+  async addEntry(relativePath : string, file: IFile | string | Buffer) {
     await this.tryLoad()
     if(!this.zip) {
       throw new Error('package not loaded - load with loadBuffer()')
     }
-    const content = await file.readContent()
+    const content = Buffer.isBuffer(file) ? file : (typeof file === 'string' ? Buffer.from(file) : await file.readContent())
     // FIXME does not handle overwrite
-    this._size += content.length
+    this._size += content.byteLength
     this.zip.file(relativePath, content);
     return relativePath
   }

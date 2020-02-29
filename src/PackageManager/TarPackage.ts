@@ -26,7 +26,7 @@ export default class TarPackage implements IPackage {
   }
 
   get size() {
-    return this.tarbuf ? this.tarbuf.length : 0
+    return this.tarbuf ? this.tarbuf.byteLength : 0
   }
 
   init() { /* no op */}
@@ -146,13 +146,13 @@ export default class TarPackage implements IPackage {
     return entry.file.readContent()
   }
 
-  async addEntry(relativePath: string, file: IFile) : Promise<string> {
+  async addEntry(relativePath: string, file: IFile | string | Buffer) : Promise<string> {
     
     let wasOverwritten = false
 
     const writeEntryToPackStream = (pack: any, relativePath: string) => {
       return new Promise(async (resolve, reject) => {
-        const content = await file.readContent()
+        const content = Buffer.isBuffer(file) ? file : (typeof file === 'string' ? Buffer.from(file) : await file.readContent())
         let entry = pack.entry({ name: relativePath }, content)
         entry.on('finish', () => {
           resolve()
@@ -206,7 +206,7 @@ export default class TarPackage implements IPackage {
       throw new Error('Package exists already! Use "overwrite" option')
     }
     if (this.isGzipped && (!(outPath.endsWith('.tgz') || outPath.endsWith('.tar.gz')))){
-      throw new Error('Attempt to write compressed into a decompressed file: consider using ".tar.gz" or ".tgz" or explicitly decompress')
+      throw new Error('Attempt to write compressed data into a decompressed file: consider using ".tar.gz" or ".tgz" or explicitly decompress')
     }
     let s
     if (!this.isGzipped && ((outPath.endsWith('.tgz') || outPath.endsWith('.tar.gz')))) {
@@ -235,7 +235,7 @@ export default class TarPackage implements IPackage {
     const dirPath = path.basename(dirPathOrName) === dirPathOrName ? undefined : dirPathOrName
     let packageName = dirPath ? path.basename(dirPathOrName) : dirPathOrName
     if (!hasPackageExtension(packageName)) {
-      packageName += (compressed ? '.tgz' : 'tar')
+      packageName += (compressed ? '.tar.gz' : 'tar')
     }
     if (dirPath) {
       const writeFileToPackStream = (filePath: string) => {
