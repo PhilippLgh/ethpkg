@@ -351,7 +351,7 @@ describe('SignerUtils', function() {
         address: '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7',
         certificates: [],
       }
-      const publicKeyInfo = 'foo.test.ens'
+      const publicKeyInfo = 'foo.test.eth'
       const result = await SignerUtils.containsSignature([info], publicKeyInfo)
       assert.isTrue(result)
     })

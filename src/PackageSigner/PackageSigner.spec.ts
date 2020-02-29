@@ -25,7 +25,7 @@ const MULTISIGNED_INVALID_FOO_TAR = path.join(FIXTURES, 'foo_multisigned_invalid
 const MULTISIGNED_CORRUPTED_FOO_TAR = path.join(FIXTURES, 'foo_multisigned_corrupt.tar')
 const MULTISIGNED_FOO_TAR = path.join(FIXTURES, 'foo_multisigned.tar')
 
-const TEST_ENS = 'foo.test.ens'
+const TEST_ENS = 'foo.test.eth'
 
 describe('PackageSigner', function() {
 
