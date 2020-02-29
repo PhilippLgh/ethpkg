@@ -14,6 +14,7 @@
     "static-files": "copyfiles src/signer/eth/metamask/public/index.html -u 1 dist/",
     "copy-build": "yarn static-files && tsc -p ./tsconfig.json",
     "build": "tsc -p ./tsconfig.json",
+    "watch": "tsc -p ./tsconfig.json -w",
     "build:web": "webpack --config webpack.config.js --display-error-details",
     "start": "node ./dist/index.js",
     "_publish": "npm pack && ethpkg sign --publish true"
