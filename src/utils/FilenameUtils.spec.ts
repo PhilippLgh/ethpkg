@@ -21,7 +21,7 @@ describe('FilenameUtils', () => {
     }
   })
 
-  describe.only('hasPackageExtension = (fileName : string | undefined) : boolean', () => {
+  describe('hasPackageExtension = (fileName : string | undefined) : boolean', () => {
     const testCases = [
       { fileName: 'foo.jpg', expected: false },
       { fileName: 'foo.zip', expected: true },

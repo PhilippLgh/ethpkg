@@ -82,7 +82,7 @@ describe('Fetcher', () => {
       
     })
 
-    it.only('handles queries with filenames', async () => {
+    it.skip('handles queries with filenames', async () => {
       const query = 'azure:gethstore@geth-alltools-linux-amd64-1.9.11-unstable-38d1b0cb.tar.gz '
       const fetcher = new Fetcher()
       const result = await fetcher.getRelease(query)
