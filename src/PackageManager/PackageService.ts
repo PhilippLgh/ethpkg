@@ -30,10 +30,15 @@ const getPackageFromBuffer = async (pkgBuf: Buffer, pkgFileName?: string): Promi
     throw new Error('bad input buffer')
   }
   // https://en.wikipedia.org/wiki/List_of_archive_formats
-  if (['application/gzip', 'application/x-tar'].includes(bufferType.mime)) {
+  if (['application/gzip'].includes(bufferType.mime)) {
     // FIXME throw if pkgFileName is not provided
     // FIXME tar packages need a more robust way to determine if gzipped. to use names is especially bad because of cases like this
     const tar = new TarPackage(pkgFileName || 'package-from-buffer.tar.gz')
+    await tar.loadBuffer(pkgBuf)
+    return tar
+  } 
+  else if(['application/x-tar'].includes(bufferType.mime)) {
+    const tar = new TarPackage(pkgFileName || 'package-from-buffer.tar')
     await tar.loadBuffer(pkgBuf)
     return tar
   }
