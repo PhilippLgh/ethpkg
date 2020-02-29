@@ -10,6 +10,8 @@ export interface FetchOptions {
   timeout? : number // time in ms for request timeouts.
   skipCache? : boolean // if cached files should be ignored. default: false 
   cache?: string | Array<string> // user defined path to cache dir(s) where to look for packages 
+  cacheOnly? : boolean // if requests to backends should be made (good for offline or frequent use)
+  preferCache?: boolean // this will return cached releases if they are recent enough
   pagination?: boolean | number // is pagination should be used and number of pages
   limit?: number // number of results
   listener?: StateListener
@@ -41,9 +43,22 @@ export function instanceOfIRelease(obj: any): obj is IRelease {
   return obj.fileName && obj.version
 }
 
+export interface Credentials {
+  username?: string;
+  password?: string;
+  privateKey?: Buffer;
+}
+
+export interface RepositoryConfig {
+  name?: string;
+  owner?: string;
+  project?: string;
+}
+
 export interface IRepository {
   readonly name : string // used e.g. for logging
   // repositoryUrl?: string
+  login?: (credentials: Credentials) => Promise<boolean>
   listReleases(options?: FetchOptions): Promise<Array<(IRelease)>>
   publish?: (pkg: IPackage, options?: PublishOptions) => Promise<IRelease>
 }

@@ -76,7 +76,7 @@ describe('SpecParser', () => {
       it (`parses query: "${input}"`, async () => {
         const result = await SpecParser.parseSpec(input)
         assert.isDefined(result)
-        assert.equal(result.repo, expected.repo)
+        assert.equal(result.name, expected.repo)
         assert.equal(result.project, expected.project)
       })
     }
@@ -84,7 +84,7 @@ describe('SpecParser', () => {
       it (`parses query+version: "${spec}"`, async () => {
         const result = await SpecParser.parseSpec(spec)
         assert.isDefined(result)
-        assert.isDefined(result.repo)
+        assert.isDefined(result.name)
         assert.isDefined(result.project)
         assert.isDefined(result.version)
       })

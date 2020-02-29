@@ -1,11 +1,9 @@
 import { isUrl } from './util'
 import url from 'url'
 import { hasPackageExtension } from './utils/FilenameUtils'
+import { RepositoryConfig } from './Repositories/IRepository'
 
-export interface ParsedSpec {
-  repo?: string;
-  owner?: string;
-  project?: string;
+export interface ParsedSpec extends RepositoryConfig {
   version?: string;
   input: string;
 }
@@ -66,9 +64,12 @@ export default class Parser {
 
     const getVersion = (project: string) => {
       const project_parts = project.split('@')
-      const version = project_parts.length > 1 ? project_parts[1] : undefined
+      let version = project_parts.length > 1 ? project_parts[1] : undefined
       if (project_parts.length > 1) {
         project = project.substring(0, project.indexOf('@'))
+      }
+      if (version === 'latest') {
+        version = undefined
       }
       return {
         version,
@@ -83,7 +84,7 @@ export default class Parser {
       const { version, project: projectParsed } = getVersion(project)
       return {
         input: spec,
-        repo,
+        name: repo,
         owner,
         project: projectParsed,
         version
@@ -93,7 +94,7 @@ export default class Parser {
       const { version, project: projectParsed } = getVersion(project)
       return {
         input: spec,
-        repo,
+        name: repo,
         owner: undefined,
         project: projectParsed,
         version: version
