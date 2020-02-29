@@ -57,8 +57,10 @@ export const PROCESS_STATES = {
 
   EXTRACT_PACKAGE_PROGRESS: 'extract_package_progress',
   
+  REPOSITORY_LOGIN_STARTED: 'repository_login_started',
+  REPOSITORY_LOGIN_FINISHED: 'repository_login_finished',
+
   // upload
-  EXCHANGING_CREDENTIALS: 'exchanging_credentials',
   UPLOAD_STARTED: 'upload_started',
   UPLOAD_PROGRESS: 'upload_progress',
   UPLOAD_FINISHED: 'upload_finished',
