@@ -56,7 +56,7 @@ describe('Cache', () => {
     })
   })
 
-  describe('PersistentJsonCache', () => {
+  describe.skip('PersistentJsonCache', () => {
     before('setting up temp cache dirs', () => {
       if (!fs.existsSync(CACHE_PATH)) {
         fs.mkdirSync(CACHE_PATH)
