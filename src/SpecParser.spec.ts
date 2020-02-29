@@ -8,42 +8,42 @@ describe('SpecParser', () => {
     {
       input: 'github:ethereum/remix-ide',
       expected: {
-        repo: 'github',
+        name: 'github',
         project: 'remix-ide'
       }
     },
     {
       input: 'azure:gethstore',
       expected: {
-        repo: 'azure',
+        name: 'azure',
         project: 'gethstore'
       }
     },
     {
       input: 'npm:philipplgh/ethpkg',
       expected: {
-        repo: 'npm',
+        name: 'npm',
         project: 'ethpkg'
       }
     },
     { 
       input: 'npm:ethpkg',
       expected: {
-        repo: 'npm',
+        name: 'npm',
         project: 'ethpkg'
       }
     },
     { 
       input: 'bintray:hyperledger-org/besu-repo/besu',
       expected: {
-        repo: 'bintray',
+        name: 'bintray',
         project: 'besu-repo/besu'
       } 
     },
     { 
       input: 'azure:gethstore@geth-alltools-darwin-amd64-1.9.8-unstable-22e3bbbf.tar.gz',
       expected: {
-        repo: 'azure',
+        name: 'azure',
         project: 'gethstore'
       }
     }
@@ -55,16 +55,16 @@ describe('SpecParser', () => {
 
   const fullUrls = [
     {input: 'https://gethstore.blob.core.windows.net', expected: {
-      repo: 'windows',
+      name: 'windows',
       project: 'gethstore'
     }},
     {input: 'https://www.github.com/PhilippLgh/ethpkg', expected: {
-      repo: 'github',
+      name: 'github',
       owner: 'PhilippLgh',
       project: 'ethpkg'
     }},
     {input: 'https://github.com/ethereum/grid-ui', expected: {
-      repo: 'github',
+      name: 'github',
       owner: 'ethereum',
       project: 'grid-ui'
     }}
@@ -76,7 +76,7 @@ describe('SpecParser', () => {
       it (`parses query: "${input}"`, async () => {
         const result = await SpecParser.parseSpec(input)
         assert.isDefined(result)
-        assert.equal(result.name, expected.repo)
+        assert.equal(result.name, expected.name)
         assert.equal(result.project, expected.project)
       })
     }

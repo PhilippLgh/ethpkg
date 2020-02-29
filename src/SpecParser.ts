@@ -26,7 +26,7 @@ const parseUrl = (urlStr: string) : ParsedSpec => {
     project = hostParts[0]
   }
   const result = {
-    repo: hostParts.pop(), // get part before top-level: api.github.com => github
+    name: hostParts.pop(), // get part before top-level: api.github.com => github
     owner,
     project,
     version: undefined,
