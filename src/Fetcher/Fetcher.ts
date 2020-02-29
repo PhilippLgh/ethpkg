@@ -150,7 +150,11 @@ export default class Fetcher {
     version = undefined,
     prefix = undefined,
     timeout = 0,
+    cache = undefined,
     skipCache = false,
+    cacheOnly = false,
+    preferCache = true,
+    // TODO cacheThreshold = 24 * 60,
     pagination = false,
     limit = 0,
     listener = () => {}
@@ -159,72 +163,82 @@ export default class Fetcher {
     if (!spec || !instanceOfPackageQuery(spec)) {
       throw new Error(`Package query is undefined or malformed: "${spec}"`)
     }
-
     spec = spec.trim()
-
-    /*
-    FIXME  have subfolders per repo?
-    // FIXME before we make a long running call to backend (which requires internet) test the cache
-    const cachePath = 'TODO'
-    try {
-      const cache = new FileSystemRepository({
-        project: cachePath
-      })
-      const cachedReleases = await cache.listReleases()
-      const filteredCached = await this.filterReleases(cachedReleases, {
-        filter,
-        filterInvalid,
-        sort,
-        version,
-        limit
-      })
-      console.log('cached releases found', filteredCached)
-      return filteredCached
-    } catch (error) {
-      console.log('cache error', error)
-    }
-    */
-
     let repository = undefined
+    let parsedSpec = undefined
+
     if (spec.startsWith('mock')) {
       const testCase = spec.split(':')[1]
       repository = new Mock(testCase)
     } else {
-      const parsed = await Parser.parseSpec(spec)
-      if (!parsed) throw new Error(`Unsupported or invalid package specification: "${spec}"`)
-      version = parsed.version || version
-      repository = await this.repoManager.getRepository(parsed)
+      parsedSpec = await Parser.parseSpec(spec)
+      if (!parsedSpec) throw new Error(`Unsupported or invalid package specification: "${spec}"`)
+      version = parsedSpec.version || version
     }
 
-    if (!repository) {
-      throw new Error('Could not find a repository for specification: ' + spec)
-    }
-
-    listener(PROCESS_STATES.FETCHING_RELEASE_LIST_STARTED, { repo: repository.name })
-    let releases: Array<IRelease> = []
-    try {
-      releases = await repository.listReleases({
-        prefix,
-        pagination,
-        timeout
-      })
-    } catch (error) {
-      // TODO logger
-      // console.log('Repository exception: could not retrieve release list', error && error.message)
-      throw error
-      return releases
-    }
-    listener(PROCESS_STATES.FETCHING_RELEASE_LIST_FINISHED, { releases, repo: repository.name })
-
-    listener(PROCESS_STATES.FILTER_RELEASE_LIST_STARTED)
-    let filteredReleases = await this.filterReleases(releases, {
+    const filterArgs = {
       filter,
       filterInvalid,
       sort,
       version,
       limit,
       listener
-    })
+    }
+
+    // before we make a long running call to backend (which requires internet) test the cache
+    let cachedReleases: Array<IRelease> = []
+    if (cache !== undefined) {
+      if (cache instanceof Array) {
+        // TODO handle cache arrays
+        cache = cache[0]
+      }
+      try {
+        const _cache = new FileSystemRepository({
+          project: cache
+        })
+        cachedReleases = await _cache.listReleases()
+        if (cachedReleases.length > 0 && preferCache) {
+          let filteredReleases = await this.filterReleases(cachedReleases, filterArgs)
+          const latestCached = filteredReleases.length > 0 ? filteredReleases[0] : undefined
+          if (latestCached && latestCached.updated_ts) {
+            const diffMinutes = ((Date.now() - latestCached.updated_ts) / 1000) / 60
+            if (diffMinutes < (24 * 60)) {
+              return filteredReleases
+            }
+          }
+        }
+      } catch (error) {
+        // console.log('cache error', error)
+      }
+    }
+
+
+    repository = parsedSpec && await this.repoManager.getRepository(parsedSpec)
+    if (!repository) {
+      throw new Error('Could not find a repository for specification: ' + spec)
+    }
+
+    let releases: Array<IRelease> = []
+    if (cacheOnly) {
+      releases = cachedReleases
+    } else {
+      listener(PROCESS_STATES.FETCHING_RELEASE_LIST_STARTED, { repo: repository.name })
+      try {
+        releases = await repository.listReleases({
+          prefix,
+          pagination,
+          timeout
+        })
+      } catch (error) {
+        // TODO logger
+        console.log('Repository exception: could not retrieve release list', error && error.message)
+        releases = cachedReleases
+      }
+      listener(PROCESS_STATES.FETCHING_RELEASE_LIST_FINISHED, { releases, repo: repository.name })
+    }
+
+    listener(PROCESS_STATES.FILTER_RELEASE_LIST_STARTED)
+    let filteredReleases = await this.filterReleases(releases, filterArgs)
     listener(PROCESS_STATES.FILTER_RELEASE_LIST_FINISHED, { releases: filteredReleases })
 
     return filteredReleases
@@ -238,6 +252,7 @@ export default class Fetcher {
     prefix = undefined,
     timeout = 0,
     skipCache = false,
+    cache = undefined,
     pagination = false,
     limit = 0
   } : ResolvePackageOptions = {}) : Promise<IRelease | undefined> {
@@ -253,12 +268,12 @@ export default class Fetcher {
       version,
       prefix,
       timeout,
+      cache,
       skipCache,
       pagination,
       limit: 5000, // don't limit prematurely
       listener
     })
-
     let resolved = undefined
 
     // if more than one release is returned we default to returning the latest version
