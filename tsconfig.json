@@ -65,6 +65,7 @@
   },
   "exclude": [
     "test",
-    "dist"
+    "dist",
+    "EXPERIMENTS"
   ]
 }
