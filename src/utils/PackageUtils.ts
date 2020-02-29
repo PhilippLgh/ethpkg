@@ -86,10 +86,12 @@ export const toIFile = (relPath: string, content: string | Buffer) : IFile => {
   return {
     name,
     isDir: false,
-    size: contentBuf.length,
+    size: contentBuf.byteLength,
     readContent: () => Promise.resolve(contentBuf)
   }
 }
+
+export const toFile = toIFile
 
 // TODO consider moving to package utils
 export const writeEntry = async (pkg: IPackage, relPath: string, content: string) => {

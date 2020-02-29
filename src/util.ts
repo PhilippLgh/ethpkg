@@ -248,7 +248,7 @@ export const localFileToIFile = (filePath: string) : IFile => {
   const _content = fs.readFileSync(filePath)
   const file : IFile = {
     name,
-    size: _content.length,
+    size: _content.byteLength,
     isDir,
     readContent: () => Promise.resolve(_content)
   }
