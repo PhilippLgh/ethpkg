@@ -206,7 +206,7 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
-"@ianu/sdk@^1.0.0":
+"@ianu/sdk@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@ianu/sdk/-/sdk-1.0.1.tgz#30b1ccd88feb0fe16ec349b9b88f7259f4ccd13e"
   integrity sha512-9ebPziq0+F5Kz7rK+uOf4sKAceJ9JTZWawZpObYQal7Qs9N1A7tHelWCGnqdNPXvpYpwgpPfKQCBKu2xyi2w7Q==
