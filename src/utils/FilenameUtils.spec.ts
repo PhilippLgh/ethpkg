@@ -35,7 +35,7 @@ describe('FilenameUtils', () => {
       { fileName: '', expected: false },
       { fileName: undefined, expected: false },
       { fileName: 'geth-alltools-linux-amd64-1.9.11-unstable-38d1b0cb.tar.gz ', expected: true},
-      { fileName: 'hello-world@1.0.0 ', expected: true}
+      { fileName: 'hello-world@1.0.0 ', expected: false}
     ]
     for (const testCase of testCases) {
       const { fileName, expected } = testCase

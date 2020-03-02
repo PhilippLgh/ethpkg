@@ -59,7 +59,7 @@ describe('PackageManager', () => {
     describe('async listRepositories() : Promise<Array<string>>', function(){
       it('lists all the names of available repositories', async () => {
         const repoNames = await pm.listRepositories()
-        assert.equal(repoNames.length, 7)
+        assert.equal(repoNames.length, 9)
         assert.includeMembers(repoNames, ['github', 'test'])
       })
     })

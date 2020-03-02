@@ -78,14 +78,14 @@ describe('PrivateKeySigner', () => {
       assert.equal(('0x'+signature.toString('hex')), metamaskSignature)
     })
 
-    it.only(`produces same signature as metamask's sign call #2`, async () => {
+    it(`produces same signature as metamask's sign call #2`, async () => {
       const { msgBuffer, privateKey, metamaskSignature } = TEST_CASE_2
       const signer = new PrivateKeySigner(privateKey)
       const signature = await signer.ethSign(msgBuffer)
       assert.equal(('0x'+signature.toString('hex')), metamaskSignature)
     })
 
-    it.only(`produces same signature as metamask's sign call #3`, async () => {
+    it(`produces same signature as metamask's sign call #3`, async () => {
       const { msgBuffer, privateKey, metamaskSignature } = TEST_CASE_2
       const signer = new PrivateKeySigner(privateKey)
       const signature = await signer.ethSign(msgBuffer)
