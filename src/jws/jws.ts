@@ -179,6 +179,13 @@ export const sign = async (payload: any, signerOrPrivateKey: Buffer | ISigner, h
     throw new Error(`Signer "${signer.name}" produced an invalid signature`)
   }
 
+  let address = await signer.getAddress()
+  address = address.startsWith('0x') ? address : `0x${address}`
+  const recoveredAddress = await ecRecover(signature.toString('hex'), signingInput.toString(), header.alg)
+  if(address.toLowerCase() !== recoveredAddress.toLowerCase()) {
+    throw new Error(`Failed to sign: recovered address does not match signer's address: ${address} vs ${recoveredAddress}`)
+  }
+
   /*
   Compute the encoded signature value BASE64URL(JWS Signature).
   */
