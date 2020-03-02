@@ -38,6 +38,7 @@ export default class PrivateKeySigner implements ISigner {
     const ethMsg = ethUtil.hashPersonalMessage(Buffer.from(msg))
     const signature: ECDSASignature = ethUtil.ecsign(ethMsg, this._privateKey)
     const rpcSig = ethUtil.toRpcSig(signature.v, signature.r, signature.s)
-    return Buffer.from(rpcSig.slice(2), 'hex')
+    const signatureBuf = Buffer.from(rpcSig.slice(2), 'hex')
+    return signatureBuf
   }
 }

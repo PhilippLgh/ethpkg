@@ -10,14 +10,16 @@ import { getSigner, PrivateKeyInfo, PublicKeyInfo } from './KeyService'
 import { toIFile } from '../utils/PackageUtils'
 import { StateListener, PROCESS_STATES } from '../IStateListener'
 import { resolveName } from '../ENS/ens'
+import { is } from '../util'
 
 export interface SignPackageOptions {
-  expiresIn?: number,
+  expiresIn?: number;
+  algorithm?: string;
   listener?: StateListener
 }
 
 export interface VerifyPackageOptions {
-  addressOrEnsName?: PublicKeyInfo,
+  addressOrEnsName?: PublicKeyInfo;
   listener?: StateListener
 }
 
@@ -87,7 +89,8 @@ const isTrusted = async (pkgSpec: PackageData, publicKeyInfo?: PublicKeyInfo) : 
 
 export const sign = async (pkgSpec: PackageData, privateKey: PrivateKeyInfo, {
   expiresIn = undefined,
-  listener = () => {}
+  listener = () => {},
+  algorithm = is.browser() ? ALGORITHMS.ETH_SIGN : ALGORITHMS.EC_SIGN
 }: SignPackageOptions = {}) : Promise<IPackage> => {
   
   let pkg 
@@ -113,7 +116,7 @@ export const sign = async (pkgSpec: PackageData, privateKey: PrivateKeyInfo, {
   listener(PROCESS_STATES.CREATE_PAYLOAD_FINISHED, { payload })
 
   const header = createHeader({
-    algorithm: ALGORITHMS.EC_SIGN, // TODO use when node, use eth_sign when browser (metamask)
+    algorithm,
     address
   })
   // sign payload according to RFC7515 Section 5.1

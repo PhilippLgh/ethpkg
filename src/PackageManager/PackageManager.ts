@@ -368,7 +368,7 @@ export default class PackageManager {
   /**
    * Signs a package or directory
    */
-  async signPackage(pkg: PackageData, privateKey: Buffer /*| ISigner*/, options?: SignPackageOptions) : Promise<IPackage> {
+  async signPackage(pkg: PackageData, privateKey: Buffer | ISigner, options?: SignPackageOptions) : Promise<IPackage> {
     // TODO support all package specifier options that this.getPackage supports
     return PackageSigner.sign(pkg, privateKey, options)
   }
@@ -393,7 +393,7 @@ export default class PackageManager {
     }
     const repo = await this.repoManager.getRepository(repository)
     if (!repo) {
-      throw new Error(`Repository not found for specifier: "${repository}"`)
+      throw new Error(`Repository not found for specifier: "${JSON.stringify(repository)}"`)
     }
 
     let pkg

@@ -7,6 +7,7 @@ import * as SignerUtils from './SignerUtils'
 import TarPackage from '../PackageManager/TarPackage'
 import { toPackage } from '../PackageManager/PackageService'
 import { writeEntry, toIFile } from '../utils/PackageUtils'
+import { ALGORITHMS } from '../jws'
 
 const PRIVATE_KEY_1 = Buffer.from('62DEBF78D596673BCE224A85A90DA5AECF6E781D9AADCAEDD4F65586CFE670D2', 'hex')
 const ETH_ADDRESS_1 = '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7'
@@ -138,7 +139,16 @@ describe('PackageSigner', function() {
       const buf = fs.readFileSync(UNSIGNED_FOO_TAR)
       let isSigned = await PackageSigner.isSigned(buf)
       assert.isFalse(isSigned)
-      const pkgSigned = await PackageSigner.sign(buf, Buffer.from(PRIVATE_KEY_1))
+      const pkgSigned = await PackageSigner.sign(buf, Buffer.from(PRIVATE_KEY_1), { algorithm: ALGORITHMS.EC_SIGN})
+      assert.isDefined(pkgSigned)
+      isSigned = await PackageSigner.isSigned(<IPackage>pkgSigned)
+      assert.isTrue(isSigned)
+    })
+    it('signs an unsigned tar package when passed a package buffer + private key', async () => {
+      const buf = fs.readFileSync(UNSIGNED_FOO_TAR)
+      let isSigned = await PackageSigner.isSigned(buf)
+      assert.isFalse(isSigned)
+      const pkgSigned = await PackageSigner.sign(buf, Buffer.from(PRIVATE_KEY_1), { algorithm: ALGORITHMS.ETH_SIGN})
       assert.isDefined(pkgSigned)
       isSigned = await PackageSigner.isSigned(<IPackage>pkgSigned)
       assert.isTrue(isSigned)

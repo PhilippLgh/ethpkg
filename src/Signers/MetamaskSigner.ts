@@ -1,40 +1,69 @@
-import ISigner from "../PackageSigner/ISigner"
+import ISigner from '../PackageSigner/ISigner'
+import { rejects } from 'assert'
 
-const Metamask = {
-  sign: (msg: Buffer, address: string) : Promise<Buffer> => {
-    return new Promise((resolve, reject) => {
-      // TODO handle new API: https://medium.com/metamask/no-longer-injecting-web3-js-4a899ad6e59e?
-      // @ts-ignore
-      const web3 = window.web3
-      web3.personal.sign(msg, address, (err: any, result: any) => {
-        if (err) return reject(err)
-        return resolve(result)
-      })
-    })
+declare const web3: any
+declare const ethereum: any
+
+const connect = async () => {
+  if (typeof ethereum !== 'undefined') {
+    return ethereum.enable()
+    .catch(console.error)
   }
+  throw new Error('Cannot connect to Metamask')
 }
 
 export default class MetamaskSigner implements ISigner {
   name: string = 'Metamask'
   type: string = 'signer'
 
-  async getAddress() : Promise<string> {
-    return 'TODO'
+  async getAddress(retry = true) : Promise<string> {
+    let from = undefined
+    try {
+      from = web3.eth.accounts[0]
+    } catch (error) {
+      // ignore .. not connected? try again once
+    }
+    if (!from) {
+      await connect()
+      if (retry) {
+        return this.getAddress(false)
+      }
+    }
+    return from
   }
 
   async ecSign(msg: Buffer) : Promise<Buffer> {
     throw new Error('Unsupported Operation')
   }
 
-  async ethSign(msg: Buffer) : Promise<Buffer> {
-    const ETH_ADDRESS_1 = '0xF863aC227B0a0BCA88Cb2Ff45d91632626CE32e7'
+  async metamaskEthSign(msg: string, from: string) : Promise<string | undefined> {
+    const method = 'personal_sign'
+    const params = [msg, from]
     try {
-      const result = await Metamask.sign(msg, ETH_ADDRESS_1)
-      return result
+      const { result: signature } = await new Promise((resolve, reject) => {
+        web3.currentProvider.sendAsync({ method, params, from }, function(err: any, data: any){
+          if (err) {return reject(err)}
+          return resolve(data)
+        })
+      })
+      return signature
     } catch (error) {
-      console.log('err', error)
-      throw new Error('Signing operation failed')
+      if (error && error.code === 4001) {
+        // user denied
+        console.log(error.message)
+        return undefined
+      }
+      throw error
     }
+  }
+
+  async ethSign(msg: Buffer) : Promise<Buffer> {
+    const address = await this.getAddress()
+    const rpcSig = await this.metamaskEthSign(msg.toString(), address)
+    if (rpcSig) {
+      return Buffer.from(rpcSig.slice(2), 'hex')
+    }
+    throw new Error('Could not sign')
   }
 
 }
