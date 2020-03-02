@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!--script src="https://www.unpkg.com/ethpkg@0.7.0/bundles/ethpkg.js"></script-->
+  <script src="../bundles/ethpkg.js"></script>
+  <title>Ethpkg Browser Signer Example</title>
+</head>
+<body>
+  <h1>Web Signer</h1>
+  <div>
+    <p>Note that this example will not work with file:// protocol.</p>
+    <p>Use a server like "serve" and start it in root / ethpkg dir.</p>
+    <p>Then go to http://localhost:5000/examples/sign_verify or the port the app is running on.</p>
+  </div>
+  <hr />
+  <div>Signer ID: <span id="signer"></span></div>
+  <span>(if you see an address here you're connected with a web3 provider and ready to sign. else get metamask or a web3 browser like brave)</span>
+
+  <div>
+    <br />
+    <input type="file" id="input" disabled onchange="handleFiles(this.files)">
+  </div>
+  <script>
+    const packageManager = ethpkg.default
+    let metamaskSigner
+
+    const init = async () => {
+      // we use the metamask signer explicitly
+      metamaskSigner = await packageManager.getSigner('metamask')
+      // connect metamask / "login" and get address of user
+      const address = await metamaskSigner.getAddress()
+      if (address) {
+        document.getElementById('signer').innerText = address 
+        document.getElementById('input').disabled = false
+      }
+    }
+    init()
+    
+    const handleFiles = async () => {
+      const selectedFile = document.getElementById('input').files[0]
+      if (!selectedFile) {
+        return
+      }
+      console.log('selected file', selectedFile)
+      const pkg = await packageManager.getPackage(selectedFile)
+      const entries = await pkg.getEntries()
+      // console.log('entries', entries)
+      const metamaskSigner = await packageManager.getSigner('metamask')
+      const pkgSigned = await packageManager.signPackage(pkg, metamaskSigner)
+    }
+  </script>
+</body>
+</html>
