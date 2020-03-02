@@ -11,7 +11,8 @@ export const getExtension = (fileName : string) : string => {
       return ext
     }
   }
-  return path.extname(fileName)
+  let ext = path.extname(fileName)
+  return ext.length > 2 ? ext : ''
 }
 
 export const hasPackageExtension = (fileName : string | undefined) : boolean => {
@@ -29,5 +30,5 @@ export const hasSignatureExtension = (fileName : string | undefined) : boolean =
 
 export const removeExtension = (fileName : string) : string => {
   const ext = getExtension(fileName)
-  return fileName.slice(0, -ext.length)
+  return ext.length > 0 ? fileName.slice(0, -ext.length) : fileName
 }
