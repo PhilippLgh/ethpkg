@@ -1,6 +1,6 @@
 {
   "name": "ethpkg",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Decentralized package management & package signing using crypto currency keys",
   "main": "./dist/index.js",
   "bin": {
@@ -97,6 +97,7 @@
     "secp256k1": "^3.6.2",
     "semver": "^6.3.0",
     "tar-stream": "^2.0.1",
+    "uuid": "^7.0.1",
     "xml2js": "^0.4.22"
   }
 }
