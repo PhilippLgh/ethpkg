@@ -14,3 +14,7 @@ export const resolveName = async (name: string): Promise<string | undefined> => 
   cache[name] = address
   return address
 }
+
+export const lookupName = async (address: string) => {
+  
+}
