@@ -1,6 +1,6 @@
 {
   "name": "ethpkg",
-  "version": "0.6.0",
+  "version": "0.8.0",
   "description": "Decentralized package management & package signing using crypto currency keys",
   "main": "./dist/index.js",
   "bin": {
@@ -16,6 +16,7 @@
     "build": "tsc -p ./tsconfig.json",
     "watch": "tsc -p ./tsconfig.json -w",
     "build:web": "webpack --config webpack.config.js --display-error-details",
+    "build:web:watch": "webpack --config webpack.config.js --display-error-details --watch",
     "start": "node ./dist/index.js",
     "_publish": "npm pack && ethpkg sign --publish true"
   },
@@ -24,10 +25,12 @@
       ".ts",
       ".tsx"
     ],
+    "include": [
+      "src/"
+    ],
     "exclude": [
       "**/test/",
       "**/*.spec.ts",
-      "_test",
       "src/bin",
       "**/*.d.ts"
     ],
@@ -74,6 +77,7 @@
     "webpack-cli": "^3.3.10"
   },
   "dependencies": {
+    "@ianu/sdk": "^1.0.1",
     "@octokit/rest": "^16.35.0",
     "asn1.js": "^5.0.1",
     "base64url": "^3.0.1",

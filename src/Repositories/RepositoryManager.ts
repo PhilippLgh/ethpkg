@@ -3,6 +3,7 @@ import AzureRepository from './Azure'
 import NpmRepository from './Npm'
 import BintrayRepository from './Bintray'
 import IpfsRepository from './Ipfs'
+import EthpkgRepository from './EthpkgRepo'
 
 import { IRepository, RepositoryConfig } from './IRepository'
 import { ConstructorOf } from '../util'
@@ -19,7 +20,9 @@ export default class RepositoryManager {
     'windows': AzureRepository, // handle: https://gethstore.blob.core.windows.net
     'npm': NpmRepository,
     'bintray': BintrayRepository,
-    'ipfs': IpfsRepository
+    'ipfs': IpfsRepository,
+    'ethpkg': EthpkgRepository,
+    'ethpkg.org': EthpkgRepository
   }
 
   async addRepository(name: string, repo: ConstructorOf<IRepository>) : Promise<void> {
