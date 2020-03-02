@@ -1,14 +1,11 @@
 import fs, { WriteStream } from 'fs'
 import path from 'path'
 import stream, { Readable, Writable } from 'stream'
-import ZipPackage from './PackageManager/ZipPackage'
 import { IPackage, IFile } from './PackageManager/IPackage'
 // @ts-ignore
 import { parseString } from 'xml2js'
 import { StateListener, PROCESS_STATES } from './IStateListener'
 import { getExtension } from './utils/FilenameUtils'
-
-// const keythereum = require('keythereum')
 
 export function parseXml(xml : string | Buffer){
   return new Promise((resolve, reject) => {
@@ -272,5 +269,7 @@ export const deleteFolderRecursive = function(dirPath: string) {
 }
 
 export const is = {
-  browser: () => process === undefined
+  // due to jsdom all browser env detections will evaluate to true
+  // @ts-ignore
+  browser: () => typeof __webpack_require__ === 'function'
 }
