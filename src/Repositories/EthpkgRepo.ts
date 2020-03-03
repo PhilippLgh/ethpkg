@@ -7,6 +7,7 @@ import { IPackage } from '../PackageManager/IPackage'
 import { Auth, Storage, Registry, ReleaseInfo } from '@ianu/sdk'
 import { removeExtension } from '../utils/FilenameUtils'
 import { ParsedSpec } from '../SpecParser'
+import { resolveName } from '../ENS/ens'
 
 export default class EthpkgRepository implements IRepository {
 
@@ -75,7 +76,20 @@ export default class EthpkgRepository implements IRepository {
     }
     // TODO allow public key for search
     const registry = new Registry(this.registryId)
-    const releases = await registry.listReleases(this.project)
+    let parts = this.project.split('/')
+    let userId = parts.shift()
+    if (!userId) {
+      throw new Error('Malformed project ID')
+    }
+    if (userId.endsWith('.eth')) {
+      let nameResolved = await resolveName(userId)
+      if (!nameResolved) {
+        throw new Error(`ENS name ${userId} could not be resolved`)
+      }
+      userId = nameResolved
+    }
+    let project = [userId, ...parts].join('/')
+    const releases = await registry.listReleases(project)
     return releases.map((release:ReleaseInfo) => this.toRelease(release))
   }
 
