@@ -7,6 +7,16 @@ import { parseString } from 'xml2js'
 import { StateListener, PROCESS_STATES } from './IStateListener'
 import { getExtension } from './utils/FilenameUtils'
 
+// https://github.com/ethereum/go-ethereum/wiki/Backup-&-restore#data-directory
+export const getDefaultDataDir = () => {
+  switch (process.platform) {
+    case 'win32': return `${process.env.APPDATA}/Ethereum`
+    case 'linux': return '~/.ethereum'
+    case 'darwin': return '~/Library/Ethereum'
+    default: return '~/.ethereum'
+  }
+}
+
 export function parseXml(xml : string | Buffer){
   return new Promise((resolve, reject) => {
     parseString(xml, (err : any, result : any) => {
@@ -27,7 +37,7 @@ export const formatBytes = (bytes : number) => {
 
 export const isDirPath = (str: string) => !path.extname(str)
 
-export const isFilePath = (str: string | undefined) => str && (!!getExtension(str))
+export const isFilePath = (str: string | undefined) => str && !isUrl(str) && (!!getExtension(str))
 
 export const isDirSync = (filePath : string | undefined) => {
   if (filePath === undefined) {
@@ -273,3 +283,7 @@ export const is = {
   // @ts-ignore
   browser: () => typeof __webpack_require__ === 'function'
 }
+
+export const sleep = (t: number = 2000) => new Promise((resolve, reject) => {
+  setTimeout(resolve, t)
+})

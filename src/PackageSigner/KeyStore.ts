@@ -32,6 +32,7 @@ export interface GetKeyOptions {
   password?: string | PasswordCallback
   listener?: StateListener,
   alias?: string, // key alias or address
+  create?: boolean, // create new if none exists
   selectKeyCallback?: (keys: Array<KeyFileInfo>) => Promise<KeyFileInfo>
 }
 
@@ -56,19 +57,23 @@ export const getPrivateKeyFromKeyfile = async (keyfilePath: string, password: st
   } catch (error) {
     throw new Error('Key cannot be parsed')
   }
-  const wallet = await Wallet.fromEncryptedJson(w, password)
+  const wallet = await Wallet.fromEncryptedJson(JSON.stringify(w), password)
   const pk = wallet.privateKey
   return pk
 }
 
-export type PasswordCallback = () => Promise<string> | string
+export type PasswordCallback = (options: any) => Promise<string> | string
 
-export const getPassword = async (password: string | PasswordCallback | undefined): Promise<string> => {
+export const getPassword = async (password: string | PasswordCallback | undefined, key?: KeyFileInfo): Promise<string> => {
+  let keyName = key ? key.address : ''
+  if (key && key.alias && key.alias.length > 0) {
+    keyName = `"${key.alias.join(' | ')}"`
+  }
   if (!password) {
     throw new Error('No password provided to de/encrypt key')
   }
   if (typeof password === 'function') {
-    password = await password()
+    password = await password({ keyName })
     if (!password) {
       throw new Error('Password callback returned an empty or invalid password')
     }
@@ -90,7 +95,7 @@ export default class KeyStore {
       const filePath = path.join(keystore, fileName)
       try {
         const stat = fs.statSync(filePath)
-        const keyObj : { [index:string]: string } = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+        const keyObj : { [index:string]: any } = JSON.parse(fs.readFileSync(filePath, 'utf8'))
         const { address, alias, version } = keyObj
         const isValid = SUPPORTED_KEYFILE_VERSIONS.includes(version)
         return {
@@ -122,7 +127,7 @@ export default class KeyStore {
   }
   async hasKey(keyInfo: string) : Promise<boolean> {
     const keys = await this.listKeys()
-    const k = keys.find(k => k.fileName == keyInfo || k.filePath === keyInfo || k.address === keyInfo || k.alias === keyInfo)
+    const k = keys.find(k => k.fileName == keyInfo || k.filePath === keyInfo || k.address === keyInfo || (Array.isArray(k.alias) && k.alias.includes(keyInfo)) )
     return k !== undefined
   }
   async getKeyByAddress(address: string): Promise<KeyFileInfo | undefined> {
@@ -130,17 +135,10 @@ export default class KeyStore {
     const selectedKey = keys.find(k => k.address === address)
     return selectedKey
   }
-  async getKeyByAlias(alias: string): Promise<KeyFileInfo | undefined> {
+  async getKeyByAlias(alias: string): Promise<Array<KeyFileInfo>> {
     const keys = await this.listKeys()
-    const aliasKey = keys.find(k => k.alias && k.alias.includes(alias))
-    if (!aliasKey) {
-      return undefined
-    }
-    const aliasAddress = aliasKey.address
-    if(!aliasAddress) {
-      return undefined
-    }
-    return keys.find(k => k.address && k.address.toLowerCase() == `0x${aliasAddress.toLowerCase()}`)
+    const aliasKeys = keys.filter(k => (k.alias && k.alias.includes(alias)) || k.fileName === alias || k.address?.toLowerCase() === alias.toLowerCase())
+    return aliasKeys
   }
 
   public static async isKeyfile(keyPath: string) {
@@ -153,13 +151,16 @@ export default class KeyStore {
   async getKey({
     password = undefined,
     listener = () => { },
-    alias = undefined, // TODO alias = address is not handled
+    alias = undefined,
+    create = false,
     selectKeyCallback = undefined
-  }: GetKeyOptions = {}) {
-    const keys = await this.listKeys()
+  }: GetKeyOptions = {}) : Promise<Buffer> {
 
-    // create new key
-    if (keys.length === 0) {
+    let keys = await this.listKeys()
+    // if user has no keys (in keystore) -> create new key
+    if (create && keys.length === 0) {
+      // TODO use listener
+      console.log('Creating a new key')
       const { info, key } = await this.createKey({
         alias,
         password,
@@ -170,34 +171,43 @@ export default class KeyStore {
       return privateKey
     }
 
-    let selectedKey
+    // search by alias
     if (alias) {
       listener(PROCESS_STATES.FINDING_KEY_BY_ALIAS_STARTED, { alias })
-      selectedKey = await this.getKeyByAlias(alias)
-      listener(PROCESS_STATES.FINDING_KEY_BY_ALIAS_FINISHED, { alias, key: selectedKey })
-      if (!selectedKey) {
+      keys = await this.getKeyByAlias(alias)
+      // TODO fix key: matchingKeys[0]
+      if (keys.length === 0) {
         throw new Error(`Key not found for alias: "${alias}"`)
+      } else {
+        listener(PROCESS_STATES.FINDING_KEY_BY_ALIAS_FINISHED, { alias, key: keys[0] })
       }
     }
 
-    if (keys.length > 1) {
-      if (!selectedKey) {
-        if (typeof selectKeyCallback !== 'function') {
-          throw new Error('Ambiguous signing keys and no select callback or alias provided')
-        }
-        selectedKey = await (<Function>selectKeyCallback)(keys)
+    let selectedKey = undefined
+    if (keys.length === 1) {
+      selectedKey = keys[0]
+    }
+    else if (keys.length > 1) {
+      // try to use any key that has an alias if it is only one
+      const keysWithAlias = keys.filter(k => k.alias !== undefined)
+      if (keysWithAlias.length === 1) {
+        selectedKey = keysWithAlias[0]
       }
+    }
+
+    if (!selectedKey && keys.length > 1) {
+      if (typeof selectKeyCallback !== 'function') {
+        throw new Error('Ambiguous signing keys and no select callback or alias provided')
+      }
+      selectedKey = await (<Function>selectKeyCallback)(keys)
       if (!selectedKey) {
         throw new Error('Ambiguous signing keys and no select callback or alias provided')
       }
     }
-    if (keys.length === 1 && !selectedKey) {
-      selectedKey = keys[0]
-    }
 
-    password = await getPassword(password)
+    password = await getPassword(password, selectedKey)
     const unlockedKey = await this.unlockKey(selectedKey, password, listener)
-    return unlockedKey
+    return Buffer.from(unlockedKey.slice(2), 'hex')
   }
   async unlockKey(addressOrKey: string | KeyFileInfo, password: string, listener: StateListener = () => { }) {
     let key
