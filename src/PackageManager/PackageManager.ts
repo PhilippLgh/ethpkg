@@ -353,6 +353,11 @@ export default class PackageManager {
     return _keyStore.getKey(options)
   }
 
+  async listKeys() {
+    const _keyStore = new KeyStore()
+    return _keyStore.listKeys()
+  }
+
   async addSigner(name: string, signer: ISigner) : Promise<void> {
     this.signerManager.addSigner(name, signer)
   }
