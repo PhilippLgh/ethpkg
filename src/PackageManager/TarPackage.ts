@@ -3,7 +3,7 @@ import fs, { realpath } from 'fs'
 import zlib from 'zlib'
 import { IPackage, IPackageEntry, IFile, WritePackageOptions, CreatePackageOptions, ExtractPackageOptions } from './IPackage'
 import tarStream from 'tar-stream'
-import { streamToBuffer, bufferToStream, streamPromise, isDirSync, isFileSync, extractPackage } from '../util'
+import { streamToBuffer, bufferToStream, streamPromise, isDirSync, isFileSync, extractPackage, isDirPath } from '../util'
 import { getExtension, hasPackageExtension } from '../utils/FilenameUtils'
 import { relativePathEquals } from '../utils/PackageUtils'
 import { IRelease } from '../Repositories/IRepository'
@@ -202,6 +202,13 @@ export default class TarPackage implements IPackage {
     overwrite = false,
     compression = true // TODO handle compression param
   } : WritePackageOptions = {}): Promise<string> {
+    if (isDirPath(outPath)) {
+      if (!this.fileName) {
+        throw new Error('Cannot write package: file name is not set and path points to directory')
+      }
+      // expand to file path
+      outPath = path.join(outPath, this.fileName)
+    }
     if (fs.existsSync(outPath) && !overwrite) {
       throw new Error('Package exists already! Use "overwrite" option')
     }
