@@ -78,7 +78,7 @@
   },
   "dependencies": {
     "@ianu/sdk": "^1.0.1",
-    "@octokit/rest": "^16.35.0",
+    "@octokit/rest": "^17.5.1",
     "asn1.js": "^5.0.1",
     "base64url": "^3.0.1",
     "boxen": "^4.1.0",
@@ -87,7 +87,6 @@
     "clime": "^0.5.10",
     "enquirer": "^2.3.0",
     "ethereumjs-util": "^6.2.0",
-    "ethereumjs-wallet": "^0.6.3",
     "ethers": "^4.0.45",
     "file-type": "^10.9.0",
     "form-data": "^3.0.0",
