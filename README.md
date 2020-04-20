@@ -17,6 +17,22 @@
 # Table of Contents <!-- omit in toc -->
 - [Installation](#installation)
 - [CLI](#cli)
+  - [Example: create, sign and publish packages from CLI](#example-create-sign-and-publish-packages-from-cli)
+    - [1. Create a package:](#1-create-a-package)
+    - [2. Sign the package](#2-sign-the-package)
+        - [**(optional)** Create key:  `ethpkg` can be used to create signing keys.](#optional-create-key-ethpkg-can-be-used-to-create-signing-keys)
+          - [Command: `ethpkg key new -a <alias> -p <password> -k <keystore path>`](#command-ethpkg-key-new--a-alias--p-password--k-keystore-path)
+          - [Example: `ethpkg key new -a my-project -k .` will create a new keyfile int the current directory:](#example-ethpkg-key-new--a-my-project--k--will-create-a-new-keyfile-int-the-current-directory)
+        - [**(optional)** List keys to find available keys:](#optional-list-keys-to-find-available-keys)
+          - [Command: `ethpkg key list`](#command-ethpkg-key-list)
+        - [Sign package:](#sign-package)
+          - [Command: `ethpkg sign <zip | tarball> -a <alias | address | filename> -k <path to keyfile | keystore>`](#command-ethpkg-sign-zip--tarball--a-alias--address--filename--k-path-to-keyfile--keystore)
+          - [Example sign with local key: `ethpkg sign ./my-foo-0.0.1.tar.gz -k ./ethpkg--UTC--2020-04-20T10-50-25.052Z--0xF3EaDEdA87D8ed949fC50da07CF26Aa18cE3fb62 `](#example-sign-with-local-key-ethpkg-sign-my-foo-001targz--k-ethpkg--utc--2020-04-20t10-50-25052z--0xf3eadeda87d8ed949fc50da07cf26aa18ce3fb62)
+          - [Example sign with alias & in-place: `ethpkg sign ./my-foo-0.0.1.tar.gz -a my-project -i true`](#example-sign-with-alias--in-place-ethpkg-sign-my-foo-001targz--a-my-project--i-true)
+    - [3. Publish the package](#3-publish-the-package)
+          - [Command: `ethpkg publish <package path> <hoster>`](#command-ethpkg-publish-package-path-hoster)
+          - [Example publish to IPFS: `ethpkg publish foo-1.0.1_signed.tar.gz`](#example-publish-to-ipfs-ethpkg-publish-foo-101signedtargz)
+          - [Example publish to GitHub: `ethpkg publish foo-1.0.1_signed.tar.gz github -r my-repository`](#example-publish-to-github-ethpkg-publish-foo-101signedtargz-github--r-my-repository)
   - [List Packages](#list-packages)
     - [Example: List packages on Ipfs](#example-list-packages-on-ipfs)
     - [Example: List GitHub releases with download counts](#example-list-github-releases-with-download-counts)
@@ -27,7 +43,7 @@
     - [Example: Latest Version](#example-latest-version)
     - [Example: Specific Version](#example-specific-version)
   - [Inspect Packages](#inspect-packages)
-    - [Example: &quot;Unsigned&quot; package](#example-quotunsignedquot-package)
+    - [Example: "Unsigned" package](#example-%22unsigned%22-package)
     - [Example: Signed package](#example-signed-package)
   - [Download Packages](#download-packages)
   - [Create Packages](#create-packages)
@@ -42,6 +58,92 @@
 # Installation
 
 # CLI
+
+## Example: create, sign and publish packages from CLI
+
+### 1. Create a package:
+All packages should be versioned and the version should be part of the package name. 
+Command: `ethpkg pack <dirname> <package name> `
+Example: `ethpkg pack fooDirectory my-foo-0.0.1`  will create a package `my-foo-0.0.1.tar.gz`
+
+### 2. Sign the package
+In order to sign packages we need a key.
+##### **(optional)** Create key:  `ethpkg` can be used to create signing keys.
+The alias argument is strongly recommended as it helps to distinguish the purposes of keys.
+The keystore path will default to the geth keystore.
+###### Command: `ethpkg key new -a <alias> -p <password> -k <keystore path>`
+###### Example: `ethpkg key new -a my-project -k .` will create a new keyfile int the current directory:
+   ```shell
+    ✔ Creating a new key with alias "my-project"
+    ✔ Enter password to de/encrypt key · ****
+    ✔ Repeat password to de/encrypt key · ****
+    ✔ Success! New key with address 0xf5870BD1fb95934876945B360538f14CF865BBCe created at:
+   ```
+##### **(optional)** List keys to find available keys: 
+###### Command: `ethpkg key list` 
+   ```shell
+  ┌─────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ alias       │ fileName                                                                                                              │
+  ├─────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ ethpkg      │ ethpkg--UTC--2020-04-20T10-15-29.475Z--0x041D023b8f9F8f837365EFB4a1d3c573F8dE21F0                                     │
+  ├─────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ my-project  │ ethpkg--UTC--2020-04-20T10-27-17.263Z--0xf5870BD1fb95934876945B360538f14CF865BBCe                                     │
+  └─────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+   ```
+##### Sign package:
+###### Command: `ethpkg sign <zip | tarball> -a <alias | address | filename> -k <path to keyfile | keystore>`  
+###### Example sign with local key: `ethpkg sign ./my-foo-0.0.1.tar.gz -k ./ethpkg--UTC--2020-04-20T10-50-25.052Z--0xF3EaDEdA87D8ed949fC50da07CF26Aa18cE3fb62 `  
+  ```shell
+  ✔ Key found for alias "ethpkg--UTC--2020-04-20T10-50-25.052Z--0xF3EaDEdA87D8ed949fC50da07CF26Aa18cE3fb62": f3eadeda87d8ed949fc50da07cf26aa18ce3fb62
+  ✔ Enter password to de/encrypt key "test" · ****
+  ✔ Key unlocked: f3eadeda87d8ed949fc50da07cf26aa18ce3fb62
+  ✔ Signature payload created: 5 checksums
+  ✔ Package is signed: Package contents are signed by [0xf3eadeda87d8ed949fc50da07cf26aa18ce3fb62]
+  ✔ Package is valid: Package contents are signed and passed integrity checks
+  -> Signature by 0xf3eadeda87d8ed949fc50da07cf26aa18ce3fb62 expires: Sat Oct 17 2020 14:16:23 GMT+0200 (Central European Summer Time)
+  ✔ Success! Package signed and written to /.../foo-1.0.1_signed.tar.gz
+  ```
+   
+###### Example sign with alias & in-place: `ethpkg sign ./my-foo-0.0.1.tar.gz -a my-project -i true`  
+  ```shell
+  ✔ Key found for alias "my-project": f5870bd1fb95934876945b360538f14cf865bbce
+  ....
+  ✔ Success! Package signed and written to /.../foo-1.0.1.tar.gz
+  ```
+
+### 3. Publish the package
+Ethpkg supports multiple backends for hosting with IPFS being the default.
+Unfortunately, versioning and package management on IPFS is not easy and the support is not very good at the moment.
+######  Command: `ethpkg publish <package path> <hoster>`
+###### Example publish to IPFS: `ethpkg publish foo-1.0.1_signed.tar.gz`
+```shell
+Publishing package "/.../foo-1.0.1_signed.tar.gz" to hoster "ipfs"
+result {
+  fileName: 'foo-1.0.1_signed.tar.gz',
+  original: [
+    {
+      Name: 'foo-1.0.1_signed.tar.gz',
+      Hash: 'QmTWMAiU4WLEUs94LX6x7GSxPTT6xqfVTXtBG9rL22Gzxp',
+      Size: '708'
+    }
+  ]
+}
+```
+###### Example publish to GitHub: `ethpkg publish foo-1.0.1_signed.tar.gz github -r my-repository`
+The GitHub access token can be provided as env variable `GITHUB_TOKEN` or as password in the interactive CLI flow:
+```shell
+Publishing package "/.../foo-1.0.1_signed.tar.gz" to hoster "github"
+✔ Enter username · philipplgh
+✔ Enter login password · **************************************** // expects access token
+{
+  name: 'owner_repo',
+  version: '1.0.1',
+  displayVersion: 'v1.0.1',
+  ... other release info
+}
+```
+
+
 
 ## List Packages
 
@@ -147,7 +249,7 @@ Use ethpkg to list all of its own NPM releases:
 ## Inspect Packages
 
 ### Example: "Unsigned" package
-`ethpkg inspect azure:gethstore/geth-alltools-darwin-amd64-1.9.8-unstable-22e3bbbf.tar.gz`
+`ethpkg inspect azure:gethstore@geth-alltools-linux-amd64-1.9.11-unstable-38d1b0cb.tar.gz `
 
 ### Example: Signed package
 
