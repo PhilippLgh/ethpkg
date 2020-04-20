@@ -77,7 +77,7 @@ export const printFormattedSignerInfo = (signature: ISignerInfo) => {
   }
 }
 
-export const printFormattedVerificationResult = (result : IVerificationResult) => {
+export const printFormattedVerificationResult = (result : IVerificationResult, warnUntrusted = true) => {
   if (result.error) {
     return printError(result.error.message)
   }
@@ -94,10 +94,12 @@ export const printFormattedVerificationResult = (result : IVerificationResult) =
 
   if(result.signers.length > 0 && !result.isTrusted) {
   }
-  if (result.isTrusted) {
-    printSuccess(`Package is ${chalk.greenBright('trusted')}: Signatures are ${chalk.cyan('valid')} and the key of at least one valid signature matches with a trusted address`)
-  } else {
-    printWarning(`Package is NOT ${chalk.greenBright('trusted')}: The key used to sign has no certificate and no trusted address was provided!\nThere is no proof that the signature was created by the author or entity you might believe it was`)
+  if (warnUntrusted) {
+    if (result.isTrusted) {
+      printSuccess(`Package is ${chalk.greenBright('trusted')}: Signatures are ${chalk.cyan('valid')} and the key of at least one valid signature matches with a trusted address`)
+    } else {
+      printWarning(`Package is NOT ${chalk.greenBright('trusted')}: The key used to sign has no certificate and no trusted address was provided!\nThere is no proof that the signature was created by the author or entity you might believe it was`)
+    }
   }
 
   const { signers } = result
