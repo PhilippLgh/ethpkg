@@ -7,6 +7,7 @@ import nock from 'nock'
 import { fetch } from '../Downloader'
 
 import http from 'https'
+import TarPackage from '../PackageManager/TarPackage'
 
 const FIXTURES = path.join(__dirname, '..', '..', 'test', 'fixtures')
 const releaseResponsePath = path.join(FIXTURES, 'ServerResponses', 'GitHub', 'githubReleases.json')
@@ -49,5 +50,14 @@ describe('Github', function() {
     })
   })
 
+  describe.skip('async publish(pkg: IPackage)', function() {
+    it('publishes a package', async () => {
+      // requires process.env.GITHUB_TOKEN
+      const github = new Github({ owner: 'philipplgh', project: 'ethpkg' })
+      const pkg = await TarPackage.from(path.join(FIXTURES, 'foo.tar.gz'))
+      const result = await github.publish(pkg)
+      assert.isDefined(result)
+    })
+  })
 
 })

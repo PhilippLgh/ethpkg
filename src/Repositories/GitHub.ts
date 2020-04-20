@@ -1,7 +1,8 @@
-import { IRepository, IRelease, FetchOptions } from './IRepository'
-import GitHub, { ReposListReleasesResponseItem, ReposListReleasesResponseItemAssetsItem } from '@octokit/rest'
+import { IRepository, IRelease, FetchOptions, PublishOptions } from './IRepository'
+import { Octokit as GitHub } from '@octokit/rest'
 import { extractVersionFromString, extractChannelFromVersionString, versionToDisplayVersion } from '../utils/FilenameHeuristics'
 import { datestring } from '../utils/PackageUtils'
+import { IPackage } from '../PackageManager/IPackage'
 
 export default class GitHubRepository implements IRepository {
 
@@ -11,9 +12,9 @@ export default class GitHubRepository implements IRepository {
   private owner: string;
   private repo: string;
 
-  constructor({ 
-    owner = '', 
-    project = '' 
+  constructor({
+    owner = '',
+    project = ''
   }) {
     // WARNING: For unauthenticated requests, the rate limit allows for up to 60 requests per hour.
     if (process.env.GITHUB_TOKEN && typeof process.env.GITHUB_TOKEN === 'string') {
@@ -30,7 +31,37 @@ export default class GitHubRepository implements IRepository {
     this.toRelease = this.toRelease.bind(this)
   }
 
-  private toRelease(releaseInfo : ReposListReleasesResponseItem) : IRelease[] {
+  private _toRelease(
+    name: string,
+    tag_name: string,
+    assetName: string,
+    size: number,
+    updated_at: string,
+    browser_download_url: string,
+    original: any
+  ): IRelease {
+
+    const version = extractVersionFromString(tag_name)
+    const displayVersion = versionToDisplayVersion(version)
+    const channel = extractChannelFromVersionString(version)
+
+    const updated_ts = Date.parse(updated_at) // return timestamp
+
+    return {
+      name: `${this.owner}_${this.repo}`,
+      version,
+      displayVersion,
+      channel,
+      fileName: assetName,
+      size,
+      updated_ts,
+      updated_at: datestring(updated_ts),
+      location: browser_download_url,
+      original
+    }
+  }
+
+  private toRelease(releaseInfo: GitHub.ReposListReleasesResponseItem): IRelease[] {
     const {
       /*
       url,
@@ -52,16 +83,12 @@ export default class GitHubRepository implements IRepository {
       author,
       */
       assets,
-      name : releaseName,
+      name: releaseName,
       tag_name,
-      target_commitish : branch
+      target_commitish: branch
     } = releaseInfo
 
-    let releases = assets.map((asset : ReposListReleasesResponseItemAssetsItem) => {
-
-      const version = extractVersionFromString(tag_name)
-      const displayVersion = versionToDisplayVersion(version)
-      const channel = extractChannelFromVersionString(version)
+    let releases = assets.map((asset: GitHub.ReposListReleasesResponseItemAssetsItem) => {
 
       const {
         browser_download_url,
@@ -82,29 +109,18 @@ export default class GitHubRepository implements IRepository {
       let releaseInfoCopy = JSON.parse(JSON.stringify(releaseInfo))
       delete releaseInfoCopy.assets
 
-      const updated_ts = Date.parse(updated_at) // return timestamp
-
-      return {
-        name: `${this.owner}_${this.repo}`,
-        version,
-        displayVersion,
-        channel,
-        fileName: assetName,
-        size,
-        updated_ts,
-        updated_at: datestring(updated_ts),
-        location: browser_download_url,
-        original: {
-          releaseInfo: releaseInfoCopy,
-          asset
-        }
+      const original = {
+        releaseInfo: releaseInfoCopy,
+        asset
       }
+
+      return this._toRelease(name, tag_name, assetName, size, updated_at, browser_download_url, original)
     })
 
     return releases
   }
-  
-  async listReleases(options? : FetchOptions): Promise<IRelease[]> {
+
+  async listReleases(options?: FetchOptions): Promise<IRelease[]> {
     // FIXME use pagination
     try {
       let releaseInfo = await this.client.repos.listReleases({
@@ -126,9 +142,65 @@ export default class GitHubRepository implements IRepository {
       // console.log('latest releases unsorted\n', releases.map(r => `{ version: '${r.version}', channel: '${r.channel}' }`).slice(0, 5).join(',\n'))
       return releases
     } catch (error) {
-      throw new Error('Could not retrieve release list from GitHub: '+ (error ? error.message : '' ))
+      throw new Error('Could not retrieve release list from GitHub: ' + (error ? error.message : ''))
       throw error
     }
+  }
+
+  async publish(pkg: IPackage, options?: PublishOptions): Promise<IRelease> {
+
+    const version = pkg.metadata ? pkg.metadata.version : extractVersionFromString(pkg.fileName) || Date.now()
+
+    const { data: releaseDraft } = await this.client.repos.createRelease({
+      owner: this.owner,
+      repo: this.repo,
+      tag_name: 'v' + version,
+      name: `${pkg.fileName} - ${version}`,
+      draft: false,
+      body: 'ethpkg auto-generated release'
+    });
+
+    if (!releaseDraft) {
+      throw new Error('Release draft failed')
+    }
+
+    const fileName = pkg.fileName
+    const contentType = fileName.endsWith('.txt') ? 'text/plain' : 'application/octet-stream'
+    const contentLength = pkg.size
+
+    const githubOpts = {
+      owner: this.owner,
+      repo: this.repo,
+      url: releaseDraft.upload_url,
+      headers: {
+        'content-type': contentType,
+        'content-length': contentLength,
+      },
+      name: fileName,
+      data: await pkg.toBuffer()
+    }
+    const { data: assetResponse } = await this.client.repos.uploadReleaseAsset(githubOpts)
+
+    if (!assetResponse) {
+      throw new Error('Asset upload failed')
+    }
+
+    const { tag_name } = releaseDraft
+    const {
+      name: assetName,
+      size,
+      updated_at,
+      browser_download_url
+    } = assetResponse as any
+
+    const original = {
+      releaseDraft,
+      assetResponse
+    }
+
+    const release = this._toRelease(name, tag_name, assetName, size, updated_at, browser_download_url, original)
+
+    return release
   }
 
 }
