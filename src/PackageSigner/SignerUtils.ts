@@ -5,10 +5,10 @@ import { IPackage, IPackageEntry, IFile } from '../PackageManager/IPackage'
 import { IVerificationResult, ISignerInfo } from '../IVerificationResult'
 import * as jws from '../jws'
 import { normalizeRelativePath } from '../utils/PackageUtils'
-import { PublicKeyInfo, getSigner } from './KeyService'
 import { resolveName } from '../ENS/ens'
 import { IFlattenedJwsSerialization } from '../jws'
 import { StateListener, PROCESS_STATES } from '../IStateListener'
+import { ISigner } from '..'
 
 const META_DIR = '_META_'
 const SIGNATURE_PREFIX = `${META_DIR}/_sig`
@@ -19,6 +19,9 @@ const shasum = (data : any, alg? : string) => {
     .update(data)
     .digest('hex')
 }
+
+export type PrivateKeyInfo = string | Buffer | ISigner
+export type PublicKeyInfo = string // can be public key, eth address, ens name or certificate
 
 export const checksumsPath = async (pkg : IPackage) => {
   const shouldPrefix = await isNPM(pkg)

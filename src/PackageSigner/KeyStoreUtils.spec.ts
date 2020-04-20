@@ -35,6 +35,7 @@ const KEYFILE_1_PATH_OUTSIDE = path.join(FIXTURES, 'Keys', 'UTC--2019-12-17T10-3
 const KEYFILE_VERSION_1 = path.join(FIXTURES, 'Keys', 'UTC--2019-13-17T10-30-10.617174000Z--585c34f863e4064bdefa52305e3e7c89d39f98cf')
 
 describe('KeyStoreUtils', function() {
+  /*
 
   describe('getKeyStorePath = async () : Promise<string>', function() {
     it('returns the path to the platform-specific default ethereum keystore whether it exists or not', async () => {
@@ -140,6 +141,6 @@ describe('KeyStoreUtils', function() {
       assert.equal(result.toString('hex').toLowerCase(), PEM_KEY.privateKey.toLowerCase())
     })
   })
-
+*/
 
 })

@@ -1,4 +1,4 @@
-import ISigner from "../PackageSigner/ISigner"
+import ISigner from '../PackageSigner/ISigner'
 import * as ethUtil from 'ethereumjs-util'
 import { ECDSASignature } from 'ethereumjs-util'
 
@@ -8,6 +8,9 @@ export default class PrivateKeySigner implements ISigner {
   type: string = 'signer'
   private _privateKey: Buffer
   constructor(privateKey: Buffer) {
+    if (!ethUtil.isValidPrivate(privateKey)){
+      throw new Error('Invalid private key')
+    }
     this._privateKey = privateKey
   }
 

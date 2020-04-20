@@ -1,22 +1,26 @@
 import { IPackage, IPackageEntry } from '../PackageManager/IPackage'
 import * as ethUtil from 'ethereumjs-util'
 import * as jws from '../jws'
-import ISigner from './ISigner'
 import { IVerificationResult, ISignerInfo } from '../IVerificationResult'
 import * as SignerUtils from './SignerUtils'
 import { toPackage, PackageData } from '../PackageManager/PackageService'
 import { createHeader, ALGORITHMS, IFlattenedJwsSerialization } from '../jws'
-import { getSigner, PrivateKeyInfo, PublicKeyInfo } from './KeyService'
 import { toIFile } from '../utils/PackageUtils'
 import { StateListener, PROCESS_STATES } from '../IStateListener'
 import { resolveName } from '../ENS/ens'
 import { is } from '../util'
+import PrivateKeySigner from '../Signers/PrivateKeySigner'
+import { ISigner } from '..'
 
 export interface SignPackageOptions {
   expiresIn?: number;
   algorithm?: string;
   listener?: StateListener
 }
+
+// TODO remove redundant type
+export type PrivateKeyInfo = string | Buffer | ISigner
+export type PublicKeyInfo = string // can be public key, eth address, ens name or certificate
 
 export interface VerifyPackageOptions {
   addressOrEnsName?: PublicKeyInfo;
@@ -100,7 +104,12 @@ export const sign = async (pkgSpec: PackageData, privateKey: PrivateKeyInfo, {
     throw new Error(VERIFICATION_ERRORS.BAD_PACKAGE)
   }
 
-  const signer = await getSigner(privateKey)
+  let signer
+  if (Buffer.isBuffer(privateKey)) {
+    signer = new PrivateKeySigner(privateKey)
+  } else if(typeof privateKey === 'string') {
+    new PrivateKeySigner(Buffer.from(privateKey, 'hex'))
+  }
   if(!signer) {
     // TODO support external signers
     throw new Error('private key / ISigner not provided or malformed')

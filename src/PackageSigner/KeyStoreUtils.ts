@@ -1,95 +1,7 @@
 import crypto from 'crypto'
 import fs from 'fs'
-import path from 'path'
-import os from 'os'
-import { isDirSync } from '../util'
-import { KeyFileInfo } from './KeyFileInfo'
-import { getPrivateKeyFromKeyfile } from './KeyStore'
 const secp256k1 = require('secp256k1')
 const asn1 = require('asn1.js')
-
-const SUPPORTED_KEYFILE_VERSIONS = [3, 'ethpkg-3']
-
-// https://github.com/ethereum/go-ethereum/wiki/Backup-&-restore#data-directory
-const getDefaultDataDir = () => {
-  switch (process.platform) {
-    case 'win32': return `${process.env.APPDATA}/Ethereum`
-    case 'linux': return '~/.ethereum'
-    case 'darwin': return '~/Library/Ethereum'
-    default: return '~/.ethereum'
-  }
-}
-
-export const getKeyStorePath = () : string => {
-  // TODO support different network IDs
-  const dataDir = getDefaultDataDir().replace('~', os.homedir())
-  const keystore = path.join(dataDir, 'keystore')
-  return keystore
-}
-
-export const listKeys = async (keystorePath?: string) : Promise<Array<KeyFileInfo>> => {
-  const keystore = keystorePath || await getKeyStorePath()
-  // TODO we could filter keys here for e.g. a prefix like 'ethpkg' to avoid misuse
-  const keyFiles = fs.readdirSync(keystore).map(f => {
-    let address = f.split('--').pop() || ''
-    address = address.startsWith('0x') ?  address : `0x${address}`
-    return {
-      // FIXME this is very fragile: parsing the address would be better but slower
-      address,
-      fileName: f,
-      filePath: path.join(keystore, f)
-    }
-  })
-  const validKeyFiles = []
-  for (const key of keyFiles) {
-    const isValid = await isValidKeyStoreFile(key.filePath)
-    if (isValid) {
-      validKeyFiles.push(key)
-    }
-  }
-  return validKeyFiles
-}
-
-export const findKeyStoreFile = async (keyfilePathOrAlias: string, keyStorePath?: string) : Promise<string | undefined> => {
-  if (fs.existsSync(keyfilePathOrAlias)) {
-    return keyfilePathOrAlias
-  }
-  const keystore = keyStorePath || (await getKeyStorePath())
-
-  // try to expand
-  if (fs.existsSync(path.join(keystore, keyfilePathOrAlias))) {
-    return path.join(keystore, keyfilePathOrAlias)
-  }
-
-  // account referenced by address / alias
-  if (keyfilePathOrAlias.startsWith('0x')) {
-    const keys = await listKeys(keystore)
-    let key = keys.find(k => k.address.toLowerCase() === keyfilePathOrAlias.toLowerCase())
-    if (!key) {
-      return undefined
-    } 
-    return key.filePath
-  } else {
-    return undefined
-  }
-
-}
-
-export const isValidKeyStoreFile = async (keyfilePathOrAlias: string, keyStorePath?: string) : Promise<boolean> => {
-  const keyfilePath = await findKeyStoreFile(keyfilePathOrAlias, keyStorePath)
-  if (keyfilePath === undefined){ return false }
-  if (isDirSync(keyfilePath)) { return false }
-  const content = fs.readFileSync(keyfilePath, 'utf8')
-  let keyInfo
-  try {
-    keyInfo = JSON.parse(content)
-  } catch (error) {
-    // console.error('could not parse keyfile', keyfilePath, error)
-    // keyfile cannot be parsed
-    return false
-  }
-  return keyInfo && SUPPORTED_KEYFILE_VERSIONS.includes(keyInfo.version)
-}
 
 export const isValidPemKeyfile = async (keyfilePath: string) : Promise<boolean> => {
   try {
@@ -101,15 +13,6 @@ export const isValidPemKeyfile = async (keyfilePath: string) : Promise<boolean> 
   }
 }
 
-export const isKeyfile = async (keyfilePathOrAlias: string, keyStorePath?: string) : Promise<boolean> => {
-  const _isKeyStoreFile = await isValidKeyStoreFile(keyfilePathOrAlias, keyStorePath)
-  // perf: if already valid don't look further
-  if (_isKeyStoreFile) {
-    return true
-  }
-  const _isPemFile = await isValidPemKeyfile(keyfilePathOrAlias)
-  return _isPemFile
-}
 
 const getPrivateKeyFromPEM = async (keyfilePath: string) : Promise<Buffer | undefined> => {
   const dearmor = (str: string) => {
@@ -175,7 +78,7 @@ const getPrivateKeyFromPEM = async (keyfilePath: string) : Promise<Buffer | unde
 }
 
 
-
+/*
 export const getPrivateKey = async (keyfilePathOrAlias: string, passwordOrKeyStore?: string, password?: string) : Promise<Buffer> => {
   const _isKeyStoreFile = await isValidKeyStoreFile(keyfilePathOrAlias, passwordOrKeyStore)
   if (_isKeyStoreFile) {
@@ -198,3 +101,4 @@ export const getPrivateKey = async (keyfilePathOrAlias: string, passwordOrKeySto
 
   throw new Error('Keyfile not found or not a valid Ethereum or PEM file')
 }
+*/
