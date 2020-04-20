@@ -84,7 +84,8 @@ export default class IpfsRepository implements IRepository {
     // console.log('raw response', responses)
 
     return {
-      fileName: pkg.fileName
+      fileName: pkg.fileName,
+      original: responses
     }
   }
 
