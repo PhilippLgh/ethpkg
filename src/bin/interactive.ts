@@ -21,8 +21,31 @@ export const getUserFilePath = async (message: string, filePath?: string) : Prom
   return file
 }
 
-export const getPasswordFromUser = async ({ repeat = false } = {}) => {
-  const questionKeyPassword = (message = `Enter password to de/encrypt key`) => ({
+export const getCredentialsFromUser = async ({  } = {}) => {
+  const questionUsername = (message = `Enter username`) => ({
+    type: 'text',
+    name: 'username',
+    message
+  })
+  const { username } = await prompt(questionUsername())
+
+  const questionPassword = (message = `Enter login password`) => ({
+    type: 'password',
+    name: 'password',
+    message
+  })
+  const { password } = await prompt(questionPassword())
+  if (!password) {
+    throw new Error('Error: no password provided by user')
+  }
+  return {
+    username,
+    password
+  }
+}
+
+export const getPasswordFromUser = async ({ repeat = false, keyName = '' } = {}) => {
+  const questionKeyPassword = (message = `Enter password to de/encrypt key ${keyName}`) => ({
     type: 'password',
     name: 'password',
     message
