@@ -1,5 +1,5 @@
-import { IRepository, IRelease, FetchOptions, PublishOptions } from './IRepository'
-import { Octokit as GitHub } from '@octokit/rest'
+import { IRepository, IRelease, FetchOptions, PublishOptions, Credentials } from './IRepository'
+import { Octokit } from '@octokit/rest'
 import { extractVersionFromString, extractChannelFromVersionString, versionToDisplayVersion } from '../utils/FilenameHeuristics'
 import { datestring } from '../utils/PackageUtils'
 import { IPackage } from '../PackageManager/IPackage'
@@ -8,23 +8,26 @@ export default class GitHubRepository implements IRepository {
 
   name: string = 'GitHubRepository'
 
-  private client: GitHub;
+  private client: Octokit;
   private owner: string;
   private repo: string;
 
   constructor({
     owner = '',
-    project = ''
+    project = '',
+    auth = undefined
   }) {
     // WARNING: For unauthenticated requests, the rate limit allows for up to 60 requests per hour.
     if (process.env.GITHUB_TOKEN && typeof process.env.GITHUB_TOKEN === 'string') {
       // TODO make sure it works in browser
-      this.client = new GitHub({
+      this.client = new Octokit({
         // @ts-ignore
         auth: process.env.GITHUB_TOKEN
       })
     } else {
-      this.client = new GitHub()
+      this.client = new Octokit({
+        auth
+      })
     }
     this.owner = owner
     this.repo = project
@@ -61,7 +64,7 @@ export default class GitHubRepository implements IRepository {
     }
   }
 
-  private toRelease(releaseInfo: GitHub.ReposListReleasesResponseItem): IRelease[] {
+  private toRelease(releaseInfo: any /*ReposListReleasesResponseItem*/): IRelease[] {
     const {
       /*
       url,
@@ -88,7 +91,7 @@ export default class GitHubRepository implements IRepository {
       target_commitish: branch
     } = releaseInfo
 
-    let releases = assets.map((asset: GitHub.ReposListReleasesResponseItemAssetsItem) => {
+    let releases = assets.map((asset: any /*ReposListReleasesResponseItemAssetsItem*/) => {
 
       const {
         browser_download_url,
@@ -171,6 +174,7 @@ export default class GitHubRepository implements IRepository {
     const githubOpts = {
       owner: this.owner,
       repo: this.repo,
+      release_id: releaseDraft.id,
       url: releaseDraft.upload_url,
       headers: {
         'content-type': contentType,
@@ -179,6 +183,7 @@ export default class GitHubRepository implements IRepository {
       name: fileName,
       data: await pkg.toBuffer()
     }
+    // @ts-ignore see: https://github.com/octokit/rest.js/issues/1645
     const { data: assetResponse } = await this.client.repos.uploadReleaseAsset(githubOpts)
 
     if (!assetResponse) {
@@ -198,7 +203,7 @@ export default class GitHubRepository implements IRepository {
       assetResponse
     }
 
-    const release = this._toRelease(name, tag_name, assetName, size, updated_at, browser_download_url, original)
+    const release = this._toRelease(assetName, tag_name, assetName, size, updated_at, browser_download_url, original)
 
     return release
   }
