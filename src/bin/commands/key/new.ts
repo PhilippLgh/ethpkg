@@ -16,6 +16,12 @@ export class KeyOptions extends Options {
     required: false
   })
   password?: string = undefined;
+  @option({
+    flag: 'k',
+    description: 'keystore path',
+    required: false
+  })
+  keystorePath?: string = undefined;
 }
 
 @command({
@@ -26,9 +32,11 @@ export default class extends Command {
   public async execute(
     options: KeyOptions,
   ) {  
-    const keyManager = new KeyStore()
-    const { alias, password } = options
+    const { alias, password, keystorePath } = options
+    const keyManager = new KeyStore(keystorePath)
     const printer = createCLIPrinter()
+    // FIXME ask user interactive for alias
+    // FIXME if alias exists use different default
     printer.print(`Creating a new key with alias "${alias}"`)
     let keyInfo
     try {

@@ -3,6 +3,9 @@ import fs from 'fs'
 import { Command, command, param, Options, option } from 'clime'
 import PackageManager from '../../PackageManager/PackageManager'
 import { createCLIPrinter, printFormattedPackageInfo } from '../printUtils'
+import { extractVersionFromString } from '../../utils/FilenameHeuristics'
+import { removeExtension } from '../../utils/FilenameUtils'
+import chalk from 'chalk'
 
 const existsInDir = (dirPath: string, fileNames: Array<string>) => {
   const fullPaths = fileNames.map(f => path.join(dirPath, f))
@@ -20,7 +23,14 @@ export default class extends Command {
       required: false,
       default: '.'
     })
-    inputDirPath: string
+    inputDirPath: string,
+    @param({
+      name: 'package name',
+      description: 'Name of the package - should include version',
+      required: false,
+      default: undefined
+    })
+    packageName?: string
   ) {
 
     inputDirPath = path.resolve(process.cwd(), inputDirPath)
@@ -31,6 +41,12 @@ export default class extends Command {
       isTask: false,
       bold: false
     })
+
+    const version = extractVersionFromString(packageName) || extractVersionFromString(inputDirPath)
+    if(!version) {
+      console.log(`${chalk.yellow('WARNING:')} packages should be versioned but a version could not be parsed from package name`)
+    }
+
     let pkg
     try {
       if (existsInDir(inputDirPath, ['.npmignore', 'package.json'])) {
@@ -38,8 +54,19 @@ export default class extends Command {
       }
       pkg = await pm.createPackage(inputDirPath, {
         compressed: true,
+        fileName: packageName,
         listener: printer.listener
       })
+      try {
+        // try to set metadata for nicer output
+        pkg.metadata = {
+          name: removeExtension(pkg.fileName),
+          fileName: pkg.fileName,
+          version
+        }
+      } catch (error) {
+        
+      }
     } catch (error) {
       return printer.fail(error)
     }

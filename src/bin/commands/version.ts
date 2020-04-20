@@ -10,7 +10,7 @@ export default class extends Command {
   public execute(){
     try {
       const pkgJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', '..', 'package.json'), 'utf8'))
-      console.log('ethpkg Version: ', pkgJson.version)
+      console.log('ethpkg version: ', pkgJson.version)
     } catch (error) {
       console.log('Could not access version information')
     }

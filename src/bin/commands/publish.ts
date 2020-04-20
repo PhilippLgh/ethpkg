@@ -3,7 +3,7 @@ import PackageManager from '../../PackageManager/PackageManager'
 import { Command, command, param, Options, option } from 'clime'
 import { createCLIPrinter } from '../printUtils'
 import { KeyFileInfo } from '../../PackageSigner/KeyFileInfo';
-import { getSelectedKeyFromUser, getPasswordFromUser } from '../interactive';
+import { getSelectedKeyFromUser, getPasswordFromUser, getCredentialsFromUser } from '../interactive';
 import { isSigned } from '../../PackageSigner';
 
 export class PublishOptions extends Options {
@@ -19,6 +19,18 @@ export class PublishOptions extends Options {
     default: undefined
   })
   key?: string;
+  @option({
+    flag: 'l',
+    description: 'login before publish',
+    default: false
+  })
+  login?: false;
+  @option({
+    flag: 'r',
+    description: 'repository',
+    default: undefined
+  })
+  repository?: '';
 }
 
 @command({
@@ -54,10 +66,23 @@ export default class extends Command {
       printer.print(`Sign package using key "${key}"`, { isTask: false })
     }
 
-    let pkg 
+    let _repository : string | any = repository
+    if (repository === 'github') {
+      if (!options.repository) {
+        return printer.fail('The flag -r for the repository is required with github release strategy')
+      }
+      const { username, password } = await getCredentialsFromUser() 
+      _repository = {
+        name: 'github',
+        owner: username,
+        project: options.repository,
+        auth: password
+      }
+    }
+
     try {
-      pkg = await packageManager.publishPackage(packagePath, {
-        repository,
+      const result = await packageManager.publishPackage(packagePath, {
+        repository: _repository,
         listener: printer.listener,
         signPackage: signPackage,
         keyInfo: {
@@ -72,6 +97,7 @@ export default class extends Command {
           }
         }
       })
+      console.log('result', result)
     } catch (error) {
       printer.fail(error)
     }

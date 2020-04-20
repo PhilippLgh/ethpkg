@@ -6,6 +6,7 @@ import { getExtension } from '../../utils/FilenameUtils'
 import { createCLIPrinter, printFormattedVerificationResult } from '../printUtils'
 import { KeyFileInfo } from '../../PackageSigner/KeyFileInfo'
 import { getSelectedKeyFromUser, getPasswordFromUser } from '../interactive'
+import { isFilePath } from '../../util'
 
 const buildOutputPathSigned = (pkgPath : string) => {
   let ext = getExtension(pkgPath)
@@ -26,9 +27,9 @@ export class SignOptions extends Options {
   @option({
     flag: 'a',
     description: 'alias name for key',
-    default: 'ethpkg'
+    default: undefined
   })
-  alias: string = 'ethpkg';
+  alias?: string = undefined;
   @option({
     flag: 'p',
     description: 'WARNING: use interactive mode: password for key',
@@ -41,6 +42,20 @@ export class SignOptions extends Options {
     required: false
   })
   inplace?: boolean = undefined;
+  // TODO support this option
+  @option({
+    flag: 'c',
+    description: 'create new key',
+    required: false,
+    default: false
+  })
+  createKey?: boolean = false;
+  @option({
+    flag: 'k',
+    description: 'key or keystore path',
+    required: false
+  })
+  keystorePath?: string = undefined;
   /*
   @option({
     flag: 'a',
@@ -76,6 +91,7 @@ export default class extends Command {
 
     const printer = createCLIPrinter()
 
+    // FIXME support ENS
     /*
     TODO interactive mode
     inputPath = await getUserFilePath('Which package (zip, tar) file do you want to sign?', inputPath)
@@ -94,6 +110,8 @@ export default class extends Command {
 
     const packageManager = new PackageManager()
 
+    let { keystorePath, alias } = options
+
     let pkg
     try {
       pkg = await packageManager.getPackage(inputPath, {
@@ -103,14 +121,22 @@ export default class extends Command {
         return printer.fail(`Package not found: "${inputPath}"`)
       }
 
+      // if keystore is file path split in keystore & filename
+      if (keystorePath && isFilePath(keystorePath)) {
+        // this overwrites any alias options
+        alias = path.basename(keystorePath)
+        keystorePath = path.resolve(path.dirname(keystorePath))
+      }
+
       const privateKey = await packageManager.getSigningKey({
-        alias: options.alias,
+        keyStore: keystorePath,
+        alias,
         listener: printer.listener,
-        password: async () => {
+        password: async (info) => {
           if (options.password) {
             return options.password
           }
-          const password = await getPasswordFromUser()
+          const password = await getPasswordFromUser(info)
           return password
         },
         selectKeyCallback: async (keys: Array<KeyFileInfo>) => {
@@ -127,7 +153,7 @@ export default class extends Command {
       })
 
       const verificationInfo = await packageManager.verifyPackage(pkg)
-      await printFormattedVerificationResult(verificationInfo)
+      await printFormattedVerificationResult(verificationInfo, false)
 
     } catch (error) {
       return printer.fail(error)
