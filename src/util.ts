@@ -107,7 +107,8 @@ export const extractPackage = async (pkg : IPackage, destPath: string, listener?
       try {
         listener(PROCESS_STATES.EXTRACT_PACKAGE_PROGRESS, {
           progress, 
-          file: entry.file.name
+          file: entry.file.name,
+          destPath
         })
       } catch (error) {
         console.log('error in onProgress handler')
