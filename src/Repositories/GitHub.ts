@@ -117,7 +117,7 @@ export default class GitHubRepository implements IRepository {
         asset
       }
 
-      return this._toRelease(name, tag_name, assetName, size, updated_at, browser_download_url, original)
+      return this._toRelease(releaseName, tag_name, assetName, size, updated_at, browser_download_url, original)
     })
 
     return releases
@@ -138,7 +138,8 @@ export default class GitHubRepository implements IRepository {
          */
         // page?: number;
       })
-      // convert to IRelease list
+
+      // convert to IRelease list and flatten
       let releases = releaseInfo.data.map(this.toRelease).reduce((prev, cur) => {
         return prev.concat(cur)
       })
