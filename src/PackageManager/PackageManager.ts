@@ -30,7 +30,7 @@ if (!fs.existsSync) {
 }
 
 // we need to tell th ecahe how to restore persisted objects
-const packageFactory = async (info: SerializationInfo) : Promise<IPackage | undefined> => {
+const packageFactory = async (info: SerializationInfo): Promise<IPackage | undefined> => {
   const { ctor, data } = info
   if (ctor === undefined) {
     return undefined
@@ -38,7 +38,7 @@ const packageFactory = async (info: SerializationInfo) : Promise<IPackage | unde
   if (!data) {
     return data
   }
-  if(ctor === 'Object') {
+  if (ctor === 'Object') {
     return data
   }
   // FIXME restore fileName
@@ -47,15 +47,15 @@ const packageFactory = async (info: SerializationInfo) : Promise<IPackage | unde
     const pkg = await new ZipPackage(filePath).loadBuffer(buffer)
     pkg.metadata = metadata
     return pkg
-  } 
-  else if(ctor === 'TarPackage') {
+  }
+  else if (ctor === 'TarPackage') {
     const { filePath, buffer, metadata } = data
     const pkg = await new TarPackage(filePath).loadBuffer(buffer)
     pkg.metadata = metadata
     return pkg
   }
   else {
-    throw new Error('De-serialization error: unknown ctor'+ctor)
+    throw new Error('De-serialization error: unknown ctor' + ctor)
   }
 }
 
@@ -94,17 +94,17 @@ export default class PackageManager {
     this.signerManager = new SignerManager()
 
     let cacheInit = false
-    if (options && options.cache) { 
-      if(instanceOfICache(options.cache)) {
+    if (options && options.cache) {
+      if (instanceOfICache(options.cache)) {
         this.cache = options.cache
         cacheInit = true
       }
-      else if(isDirSync(options.cache)) {
+      else if (isDirSync(options.cache)) {
         this.cache = new PersistentJsonCache(options.cache, packageFactory)
         cacheInit = true
-      } 
+      }
       else {
-        throw new Error('Invalid cache path provided: not accessible -'+options.cache)
+        throw new Error('Invalid cache path provided: not accessible -' + options.cache)
       }
     }
 
@@ -112,30 +112,30 @@ export default class PackageManager {
       this.resolve = withCache(this.cache, this.resolve.bind(this), (spec: PackageQuery) => `resolve:${spec}`)
       this.getPackage = withCache(this.cache, this.getPackage.bind(this))
     }
-    
+
   }
 
   info() {
-    return 'ethpkg version: '+ require('../../package.json').version
+    return 'ethpkg version: ' + require('../../package.json').version
   }
 
-  async addRepository(name: string, repo: ConstructorOf<IRepository>) : Promise<void> {
+  async addRepository(name: string, repo: ConstructorOf<IRepository>): Promise<void> {
     return this.repoManager.addRepository(name, repo)
   }
 
-  async getRepository(name: string) : Promise<IRepository | undefined> {
+  async getRepository(name: string): Promise<IRepository | undefined> {
     return this.repoManager.getRepository(name)
   }
 
-  async listRepositories() : Promise<Array<string>> {
+  async listRepositories(): Promise<Array<string>> {
     return this.repoManager.listRepositories()
   }
 
-  async removeRepository(name: string) : Promise<boolean> {
+  async removeRepository(name: string): Promise<boolean> {
     return this.repoManager.removeRepository(name)
   }
 
-  async clearCache() : Promise<void> {
+  async clearCache(): Promise<void> {
     if (this.cache) {
       await this.cache.clear()
     }
@@ -143,12 +143,12 @@ export default class PackageManager {
 
   async createPackage(srcDirPathOrName: string, {
     type = 'tar',
-    listener = () => {},
+    listener = () => { },
     filePath = undefined,
     fileName = undefined,
     compressed = true,
     overwrite = false
-  }: PackOptions = {}) : Promise<IPackage> {
+  }: PackOptions = {}): Promise<IPackage> {
 
     const createPackageOptions = {
       listener: listener,
@@ -169,7 +169,7 @@ export default class PackageManager {
     }
     listener(PROCESS_STATES.CREATE_PACKAGE_FINISHED, { name: pkg.fileName, pkg })
 
-    if(filePath) {
+    if (filePath) {
       await pkg.writePackage(filePath, {
         overwrite
       })
@@ -178,7 +178,7 @@ export default class PackageManager {
     return pkg
   }
 
-  async listPackages(spec: PackageQuery, options?: FetchOptions) : Promise<Array<IRelease>> {
+  async listPackages(spec: PackageQuery, options?: FetchOptions): Promise<Array<IRelease>> {
     const fetcher = new Fetcher(this.repoManager)
     const releases = await fetcher.listReleases(spec, options)
     if (options && options.cache) {
@@ -191,7 +191,7 @@ export default class PackageManager {
     return releases
   }
 
-  async resolve(spec: PackageQuery, options? : ResolvePackageOptions): Promise<IRelease | undefined> {
+  async resolve(spec: PackageQuery, options?: ResolvePackageOptions): Promise<IRelease | undefined> {
     const fetcher = new Fetcher(this.repoManager)
     const release = await fetcher.getRelease(spec, options)
     return release
@@ -209,7 +209,7 @@ export default class PackageManager {
     destPath = undefined,
     extract = false,
     verify = true
-  } : DownloadPackageOptions = {}) : Promise<IPackage> {
+  }: DownloadPackageOptions = {}): Promise<IPackage> {
 
     const fetcher = new Fetcher(this.repoManager)
     const buf = await fetcher.downloadPackage(release, {
@@ -235,33 +235,40 @@ export default class PackageManager {
       */
     }
 
+    // make sure destPath exists and is dir
     if (destPath) {
       destPath = path.resolve(destPath)
       // FIXME handle destPath = full file path: path/to/file/my-name.tar
       if (isDirPath(destPath)) {
-        if(!isDirSync(destPath)) {
+        if (!isDirSync(destPath)) {
           // TODO try create dir if non-existent dir path
           fs.mkdirSync(destPath, {
             recursive: true
           })
+        } else {
+          destPath: undefined // invalid: reset
         }
-        destPath = path.join(destPath, release.fileName)
-      }
-      pkg.filePath = destPath
-      await pkg.writePackage(destPath)
-      if(pkg.metadata) {
-        pkg.metadata.remote = false // indicate that local version is available
       }
     }
 
-    if (extract) {
-      if (destPath && isDirSync(destPath)) {
+    if (destPath && isDirSync(destPath)) {
+      // don't overwrite extract dest path
+      let _pkgDestPath = path.join(destPath, release.fileName)
+      pkg.filePath = _pkgDestPath
+      await pkg.writePackage(_pkgDestPath)
+      if (pkg.metadata) {
+        pkg.metadata.remote = false // indicate that local version is available
+      }
+
+      if (extract) {
         await pkg.extract(destPath, {
           listener
         })
         // TODO stateListener(PROCESS_STATES.EXTRACT_FINISHED, { location, size: packageData.length, release })
       }
+
     }
+
 
     return pkg
   }
@@ -269,18 +276,18 @@ export default class PackageManager {
   /**
    * Creates and returns an IPackage based on a filepath, url, or package specifier
    */
-  async getPackage(pkgSpec: IRelease | PackageData | PackageQuery | ResolvePackageOptions, options? : ResolvePackageOptions) : Promise<IPackage | undefined> {
+  async getPackage(pkgSpec: IRelease | PackageData | PackageQuery | ResolvePackageOptions, options?: ResolvePackageOptions): Promise<IPackage | undefined> {
     if (!pkgSpec) {
       throw new Error('Invalid package specification: empty or undefined')
-    } 
+    }
 
     // pkgSpec is already available as buffer, File (browser), IPackage or file path => no fetch
-    if (instanceOfPackageData(pkgSpec )) {
+    if (instanceOfPackageData(pkgSpec)) {
       return toPackage(pkgSpec)
     }
     // test for invalid file paths not handled by instanceOfPackageData()
-    if(typeof pkgSpec === 'string' && isFilePath(pkgSpec)) {
-      if (!fs.existsSync(pkgSpec)){
+    if (typeof pkgSpec === 'string' && isFilePath(pkgSpec)) {
+      if (!fs.existsSync(pkgSpec)) {
         throw new Error(`Path does not point to valid package: "${pkgSpec}"`)
       }
     }
@@ -294,7 +301,7 @@ export default class PackageManager {
         throw new Error('No package specifier provided')
       }
       options = pkgSpec
-      pkgSpec = pkgSpec.spec 
+      pkgSpec = pkgSpec.spec
     }
 
     // try to resolve package queries to IRelease
@@ -311,11 +318,11 @@ export default class PackageManager {
         // console.log('error during download', error)
         throw error
       }
-    } 
+    }
 
     // download IRelease if it does not exist in cache
     if (instanceOfIRelease(pkgSpec)) {
-      const release : IRelease = pkgSpec
+      const release: IRelease = pkgSpec
       let cachedDataPath = (options && options.cache) ? path.join(options.cache, release.fileName) : undefined
       // TODO write tests
       if (options && options.cache && fs.existsSync(options.cache)) {
@@ -334,7 +341,7 @@ export default class PackageManager {
       }
       const pkg = await this.downloadPackage(release, options)
 
-      if(pkg.metadata && options && options.cache) {
+      if (pkg.metadata && options && options.cache) {
         fs.writeFileSync(path.join(options.cache, `${pkg.fileName}.json`), JSON.stringify(pkg.metadata))
       }
 
@@ -348,7 +355,7 @@ export default class PackageManager {
    * Helps to select or create a designated signing key
    // path where to search for keys
    */
-  async getSigningKey(options: GetKeyOptions = {}) : Promise<Buffer> {
+  async getSigningKey(options: GetKeyOptions = {}): Promise<Buffer> {
     const _keyStore = new KeyStore(options.keyStore)
     return _keyStore.getKey(options)
   }
@@ -358,27 +365,27 @@ export default class PackageManager {
     return _keyStore.listKeys()
   }
 
-  async addSigner(name: string, signer: ISigner) : Promise<void> {
+  async addSigner(name: string, signer: ISigner): Promise<void> {
     this.signerManager.addSigner(name, signer)
   }
 
-  async listSigners() : Promise<Array<string>> {
+  async listSigners(): Promise<Array<string>> {
     return this.signerManager.listSigners()
   }
 
-  async getSigner(name: string) : Promise<ISigner | undefined> {
+  async getSigner(name: string): Promise<ISigner | undefined> {
     return this.signerManager.getSigner(name)
   }
 
   /**
    * Signs a package or directory
    */
-  async signPackage(pkg: PackageData, privateKey: Buffer | ISigner, options?: SignPackageOptions) : Promise<IPackage> {
+  async signPackage(pkg: PackageData, privateKey: Buffer | ISigner, options?: SignPackageOptions): Promise<IPackage> {
     // TODO support all package specifier options that this.getPackage supports
     return PackageSigner.sign(pkg, privateKey, options)
   }
 
-  async verifyPackage(pkg: PackageData, options?: VerifyPackageOptions) : Promise<IVerificationResult> {
+  async verifyPackage(pkg: PackageData, options?: VerifyPackageOptions): Promise<IVerificationResult> {
     return PackageSigner.verify(pkg, options)
   }
 
@@ -387,13 +394,13 @@ export default class PackageManager {
    */
   async publishPackage(pkgSpec: string | PackageData, {
     repository = undefined,
-    listener = () => {},
+    listener = () => { },
     signPackage = undefined,
     keyInfo = undefined,
     credentials = undefined
-  } : PublishOptions = {}) {
+  }: PublishOptions = {}) {
 
-    if(!repository) {
+    if (!repository) {
       throw new Error('No repository specified for upload')
     }
     const repo = await this.repoManager.getRepository(repository)
@@ -410,14 +417,14 @@ export default class PackageManager {
       pkg = await this.getPackage(pkgSpec, {
         listener
       })
-    }     
+    }
     if (!pkg) {
       throw new Error('Package not found or could not be created')
     }
 
     // default to signing for unsigned packages
     const _isSigned = await isSigned(pkg)
-    signPackage = (typeof signPackage === undefined) ? !_isSigned : signPackage 
+    signPackage = (typeof signPackage === undefined) ? !_isSigned : signPackage
     if (signPackage) {
       if (!keyInfo) {
         throw new Error('Cannot sign package without keys')
