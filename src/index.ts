@@ -1,4 +1,5 @@
 import PackageManager from './PackageManager/PackageManager'
+export { download } from './Downloader'
 export { PackageManager }
 
 export default new PackageManager()
@@ -11,3 +12,4 @@ export { default as ISigner } from './PackageSigner/ISigner'
 export { default as KeyStore } from './PackageSigner/KeyStore'
 export { KeyFileInfo } from './PackageSigner/KeyFileInfo'
 export { GetKeyOptions } from './PackageSigner/KeyStore'
+export { Registry } from '@ianu/sdk'
