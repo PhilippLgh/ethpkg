@@ -73,15 +73,16 @@ export default class Fetcher {
   private async filterReleases(releases: Array<IRelease>, {
     filter = undefined,
     filterInvalid = true,
+    packagesOnly = true,
     sort = true,
     version = undefined,
     limit = 0,
     listener = () => {}
   } : FetchOptions = {}): Promise<IRelease[]> {
 
-    // filter non-package releases e.g. Github assets that are .txt, .json etc
+    // filter releases without fileName AND non-package releases e.g. Github assets that are .txt, .json etc unless packagesOnly de-activated
     releases = releases.map(release => {
-      if(release.fileName && hasPackageExtension(release.fileName)) {
+      if(release.fileName && (packagesOnly === false  || hasPackageExtension(release.fileName))) {
         return release
       }
       release.error = 'Release has no file name information or unsupported package extension'
@@ -146,6 +147,7 @@ export default class Fetcher {
   async listReleases(spec: PackageQuery, {
     filter = undefined,
     filterInvalid = true,
+    packagesOnly = true,
     sort = true,
     version = undefined,
     prefix = undefined,
@@ -179,6 +181,7 @@ export default class Fetcher {
     const filterArgs = {
       filter,
       filterInvalid,
+      packagesOnly,
       sort,
       version,
       limit,

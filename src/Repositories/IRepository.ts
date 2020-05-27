@@ -4,6 +4,7 @@ import { IPackage } from '../PackageManager/IPackage'
 export interface FetchOptions {
   filter?: (release: IRelease) => boolean; // custom filter logic
   filterInvalid?: boolean // if corrupted or invalid releases should be removed from list
+  packagesOnly?: boolean // default: true - if false also non package releases will be returned; potentially breaking things
   sort? : boolean // if release list should be sorted. default: true - by version
   version?: string // version or version range that should be returned
   prefix? : string // server-side processed name- / path-filter. default: undefined
@@ -37,6 +38,8 @@ export interface IRelease {
 
   location?: string; // download url or path to package
   remote? : boolean; // if package is available locally or only remote
+
+  signature?: string; // url to .asc file
 }
 export function instanceOfIRelease(obj: any): obj is IRelease {
   //TODO ['displayVersion', 'channel'].some(p => obj[p])
