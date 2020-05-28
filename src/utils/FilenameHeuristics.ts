@@ -1,23 +1,15 @@
 import semver from 'semver'
 
-// https://github.com/sindresorhus/semver-regex
-const semverMatcher = /\bv?(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\da-z-]+(?:\.[\da-z-]+)*)?(?:\+[\da-z-]+(?:\.[\da-z-]+)*)?\b/ig;
+const semverMatcher = /v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)((?:-alpha|beta){1}(\.[0-9]+)?)?/ig;
 
 export const extractVersionFromString = (str : string | undefined) :string | undefined => {
   if (str === undefined) return undefined
-  // first check segment by segment
-  const segments = str.split(/(-|_)+/)
-  for (const segment of segments) {
-    const res = semver.clean(segment, { loose: true })
-    if (res) return res
-  }
-  // if nothing found try regex (more aggressively)
-  // FIXME regex will not include prerelease info
   semverMatcher.lastIndex = 0
-  const result = semverMatcher.exec(str)
-  const version = result && result.length > 0 ? result[0] : undefined
+  const match = str.match(semverMatcher)
+  const version = match ? match[0] : undefined
   if (!version) return undefined
-  return semver.clean(version) || undefined
+  if (version.startsWith('v')) return version.slice(1)
+  return version
 }
 
 // 0.4.4-Unstable-0bc45194 -> v0.4.4
