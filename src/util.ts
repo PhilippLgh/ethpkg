@@ -64,7 +64,7 @@ export const isFileSync = (filePath : string | undefined) => {
 }
 
 // FIXME note that this is not performance optimized and we do multiple runs on the package data stream
-export const extractPackage = async (pkg : IPackage, destPath: string, listener?: StateListener) => {
+export const extractPackage = async (pkg : IPackage, destPath: string, listener: StateListener = () => {}) => {
   // get a list of all entries in the package
   const entries = await pkg.getEntries()
   // iterate over all entries and write them to disk next to the package

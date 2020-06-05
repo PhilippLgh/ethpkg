@@ -55,7 +55,9 @@ export const PROCESS_STATES = {
   ADDING_SIGNATURE_METADATA_STARTED: 'adding_signature_metadata_started',
   ADDING_SIGNATURE_METADATA_FINISHED: 'adding_signature_metadata_finished',
 
+  EXTRACT_PACKAGE_STARTED: 'extract_package_started',
   EXTRACT_PACKAGE_PROGRESS: 'extract_package_progress',
+  EXTRACT_PACKAGE_FINISHED: 'extract_package_finished',
   
   REPOSITORY_LOGIN_STARTED: 'repository_login_started',
   REPOSITORY_LOGIN_FINISHED: 'repository_login_finished',

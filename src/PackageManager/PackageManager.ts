@@ -205,7 +205,7 @@ export default class PackageManager {
     proxy = undefined,
     headers = undefined,
     onDownloadProgress = undefined,
-    listener = undefined,
+    listener = () => {},
     destPath = undefined,
     extract = false,
     verify = true
@@ -261,10 +261,11 @@ export default class PackageManager {
       }
 
       if (extract) {
+        listener(PROCESS_STATES.EXTRACT_PACKAGE_STARTED, { release })
         await pkg.extract(destPath, {
           listener
         })
-        // TODO stateListener(PROCESS_STATES.EXTRACT_FINISHED, { location, size: packageData.length, release })
+        listener(PROCESS_STATES.EXTRACT_PACKAGE_FINISHED, { release })
       }
 
     }
